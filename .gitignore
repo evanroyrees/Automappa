@@ -1,0 +1,3 @@
+apps/__pycache__/*.pyc
+*.pyc
+app/__pycache__
