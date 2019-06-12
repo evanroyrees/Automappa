@@ -1,11 +1,10 @@
-from simple_salesforce import Salesforce
-from simple_salesforce.exceptions import SalesforceExpiredSession
+from am_credentials import AutometaUser
+from am_credentials.exceptions import AutometaUserExpiredSession
 import pandas as pd
 
-class sf_Manager():
+class am_manager():
 	def __init__(self):
-		# Create a free SalesForce account: https://developer.salesforce.com/signup
-		self.sf = Salesforce(
+		self.sf = AutometaUser(
 			username="USERNAME",
     			password="PASSWORD",
     			security_token="TOKEN"
@@ -13,8 +12,8 @@ class sf_Manager():
 
 
 	def login(self):
-		# Create a free SalesForce account: https://developer.salesforce.com/signup
-		self.sf = Salesforce(
+		# Create a free AutometaUser account: https://developer.AutometaUser.com/signup
+		self.sf = AutometaUser(
 			username="USERNAME",
     			password="PASSWORD",
     			security_token="TOKEN"
@@ -28,7 +27,7 @@ class sf_Manager():
 			for val in range(query_result["totalSize"])
 			}
 		df = pd.DataFrame.from_dict(items, orient="index").drop(["attributes"], axis=1)
-		
+
 		if date: # date indicates if the df contains datetime column
 			df["CreatedDate"] = pd.to_datetime(df["CreatedDate"], format="%Y-%m-%d") # convert to datetime
 			df["CreatedDate"] = df["CreatedDate"].dt.strftime('%Y-%m-%d') # reset string
@@ -38,7 +37,7 @@ class sf_Manager():
 	def get_leads(self):
 		try:
 			desc = self.sf.Lead.describe()
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			desc = self.sf.Lead.describe()
 
@@ -53,7 +52,7 @@ class sf_Manager():
 		query_text = "SELECT CreatedDate, Name, StageName, ExpectedRevenue, Amount, LeadSource, IsWon, IsClosed, Type, Probability FROM Opportunity"
 		try:
 			query_result = self.sf.query(query_text)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			query_result = self.sf.query(query_text)
 		opportunities = self.dict_to_df(query_result)
@@ -64,7 +63,7 @@ class sf_Manager():
 		query_text = "SELECT CreatedDate, Type, Reason, Status, Origin, Subject, Priority, IsClosed, OwnerId, IsDeleted, AccountId FROM Case"
 		try:
 			query_result = self.sf.query(query_text)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			query_result = self.sf.query(query_text)
 
@@ -76,7 +75,7 @@ class sf_Manager():
 		query_text = "SELECT Id, Salutation, FirstName, LastName FROM Contact"
 		try:
 			query_result = self.sf.query(query_text)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			query_result = self.sf.query(query_text)
 
@@ -87,7 +86,7 @@ class sf_Manager():
 		query_text = "SELECT Id,FirstName, LastName FROM User"
 		try:
 			query_result = self.sf.query(query_text)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			query_result = self.sf.query(query_text)
 
@@ -98,7 +97,7 @@ class sf_Manager():
 		query_text = "SELECT Id, Name FROM Account"
 		try:
 			query_result = self.sf.query(query_text)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			query_result = self.sf.query(query_text)
 
@@ -109,7 +108,7 @@ class sf_Manager():
 	def add_lead(self, query):
 		try:
 			self.sf.Lead.create(query)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			self.sf.Lead.create(query)
 		return 0
@@ -118,7 +117,7 @@ class sf_Manager():
 	def add_opportunity(self, query):
 		try:
 			self.sf.Opportunity.create(query)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			self.sf.Opportunity.create(query)
 		return 0
@@ -127,8 +126,7 @@ class sf_Manager():
 	def add_case(self, query):
 		try:
 			self.sf.Case.create(query)
-		except SalesforceExpiredSession as e:
+		except AutometaUserExpiredSession as e:
 			self.login()
 			self.sf.Case.create(query)
 		return 0
-

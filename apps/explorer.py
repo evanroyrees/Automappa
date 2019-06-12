@@ -5,6 +5,9 @@ import os
 import sys
 import json
 import math
+import base64
+import datetime
+import io
 
 import pandas as pd
 import numpy as np
@@ -19,7 +22,7 @@ import dash_html_components as html
 from plotly import graph_objs as go
 import plotly.plotly as py
 
-from app import app, indicator, millify, df_to_table #, sf_manager
+from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
 
 # returns choropleth map figure based on status filter
 # def choropleth_map(status, df):
@@ -140,7 +143,7 @@ def modal():
                         html.Div(
                             [
                                 html.Span(
-                                    "New Lead",
+                                    "Upload Autometa Results Table",
                                     style={
                                         "color": "#c5040d",
                                         "fontWeight": "bold",
@@ -149,7 +152,7 @@ def modal():
                                 ),
                                 html.Span(
                                     "×",
-                                    id="leads_modal_close",
+                                    id="analysis_modal_close",
                                     n_clicks=0,
                                     style={
                                         "float": "right",
@@ -168,7 +171,7 @@ def modal():
                             [
                                 html.P(
                                     [
-                                        "Company Name",
+                                        "Length Cutoff",
 
                                     ],
                                     style={
@@ -179,86 +182,48 @@ def modal():
                                     className="row",
                                 ),
                                 dcc.Input(
-                                    id="new_lead_company",
-                                    # placeholder="Enter company name",
+                                    id="length_cutoff",
+                                    placeholder="Length Cutoff (default 3000bp)",
                                     type="text",
-                                    value="",
+                                    value="3000",
                                     style={"width": "100%"},
                                 ),
                                 html.P(
-                                    "Company State",
                                     style={
                                         "textAlign": "left",
                                         "marginBottom": "2",
                                         "marginTop": "4",
                                     },
+                                    id="completeness_display"
                                 ),
-                                dcc.Dropdown(
-                                    id="new_lead_state",
-                                    options=[
-                                        {"label": state, "value": state}
-                                        for state in states
-                                    ],
-                                    value="NY",
+                                dcc.Slider(
+                                    id="completeness_cutoff",
+                                    min=5.0,
+                                    max=100.0,
+                                    value=20.0,
+                                    updatemode="drag",
                                 ),
                                 html.P(
-                                    "Status",
+                                    "Select Metagenome Assembly",
                                     style={
                                         "textAlign": "left",
                                         "marginBottom": "2",
                                         "marginTop": "4",
                                     },
                                 ),
-                                dcc.Dropdown(
-                                    id="new_lead_status",
-                                    options=[
-                                        {
-                                            "label": "Open - Not Contacted",
-                                            "value": "Open - Not Contacted",
-                                        },
-                                        {
-                                            "label": "Working - Contacted",
-                                            "value": "Working - Contacted",
-                                        },
-                                        {
-                                            "label": "Closed - Converted",
-                                            "value": "Closed - Converted",
-                                        },
-                                        {
-                                            "label": "Closed - Not Converted",
-                                            "value": "Closed - Not Converted",
-                                        },
-                                    ],
-                                    value="Open - Not Contacted",
-                                ),
-                                html.P(
-                                    "Source",
+                                dcc.Upload(
+                                    id='upload-data',
+                                    children=['Drag and Drop or ', html.A('Select a File')],
                                     style={
-                                        "textAlign": "left",
-                                        "marginBottom": "2",
-                                        "marginTop": "4",
+                                        'width': '100%',
+                                        'height': '60px',
+                                        'lineHeight':' 60px',
+                                        'borderWidth': 'dashed',
+                                        'borderRadius': '5px',
+                                        'textAlign': 'center',
                                     },
-                                ),
-                                dcc.Dropdown(
-                                    id="new_lead_source",
-                                    options=[
-                                        {"label": "Web", "value": "Web"},
-                                        {
-                                            "label": "Phone Inquiry",
-                                            "value": "Phone Inquiry",
-                                        },
-                                        {
-                                            "label": "Partner Referral",
-                                            "value": "Partner Referral",
-                                        },
-                                        {
-                                            "label": "Purchased List",
-                                            "value": "Purchased List",
-                                        },
-                                        {"label": "Other", "value": "Other"},
-                                    ],
-                                    value="Web",
-                                ),
+
+                                )
                             ],
                             className="row",
                             style={"padding": "2% 8%"},
@@ -278,7 +243,7 @@ def modal():
             ],
             className="modal",
         ),
-        id="leads_modal",
+        id="analysis_modal",
         style={"display": "none"},
     )
 
@@ -363,7 +328,7 @@ layout = [
             # add button
             html.Div(
                 html.Span(
-                    "New Analysis",
+                    "Upload Results",
                     id="new_analysis",
                     n_clicks=0,
                     className="button button--primary",
@@ -464,9 +429,9 @@ layout = [
         },
         id='binning_table'
     ),
+    html.Div(id='uploaded-data'),
 
-
-    # modal(),
+    modal(),
 ]
 
 
@@ -679,14 +644,6 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
                 y=df[df[cluster_col] == i][yaxis_column],
                 text=df[df[cluster_col] == i]['contig'],
                 mode='markers',
-                # selectedpoints=selected,
-                # selected={
-                #     'marker':{
-                #         'color':'red',
-                #         'size':15,
-                #         'opacity':0.75,
-                #     }
-                # },
                 opacity=0.45,
                 marker={
                     'size': df.assign(normLen = normalizeLen)['normLen'],
@@ -752,47 +709,54 @@ def update_table(selectedData, df):
 
 
 # hide/show modal
-# @app.callback(Output("leads_modal", "style"), [Input("new_lead", "n_clicks")])
-# def display_leads_modal_callback(n):
-#     if n > 0:
-#         return {"display": "block"}
-#     return {"display": "none"}
+@app.callback(Output("analysis_modal", "style"), [Input("new_analysis", "n_clicks")])
+def display_analysis_modal_callback(n):
+    if n > 0:
+        return {"display": "block"}
+    return {"display": "none"}
 
 
 # reset to 0 add button n_clicks property
-# @app.callback(
-#     Output("new_lead", "n_clicks"),
-#     [Input("leads_modal_close", "n_clicks"), Input("submit_new_lead", "n_clicks")],
-# )
-# def close_modal_callback(n, n2):
-#     return 0
+@app.callback(
+    Output("new_analysis", "n_clicks"),
+    [Input("analysis_modal_close", "n_clicks"), Input("submit_new_lead", "n_clicks")],
+)
+def close_modal_callback(n, n2):
+    return 0
 
+@app.callback(
+    Output("completeness_display", "children"),
+    [Input("completeness_cutoff", "value")]
+)
+def display_modal_completeness_cutoff(completeness):
+    return 'Completeness Cutoff:\t{}%'.format(completeness)
 
-# add new lead to salesforce and stores new df in hidden div
-# @app.callback(
-#     Output("leads_df", "children"),
-#     [Input("submit_new_lead", "n_clicks")],
-#     [
-#         State("new_lead_status", "value"),
-#         State("new_lead_state", "value"),
-#         State("new_lead_company", "value"),
-#         State("new_lead_source", "value"),
-#         State("leads_df", "children"),
-#     ],
-# )
-# def add_lead_callback(n_clicks, status, state, company, source, current_df):
-#     if n_clicks > 0:
-#         if company == "":
-#             company = "Not named yet"
-#         query = {
-#             "LastName": company,
-#             "Company": company,
-#             "Status": status,
-#             "State": state,
-#             "LeadSource": source,
-#         }
-#         # sf_manager.add_lead(query)
-#         # df = sf_manager.get_leads()
-#         return df.to_json(orient="split")
-#
-#     return current_df
+# Start new analysis given autometa parameters and new metagenome dataset
+@app.callback(
+    Output("uploaded-data", "children"),
+    [
+        Input("submit_new_lead", "n_clicks"),
+    ],
+    [
+        State("upload-data", "contents"),
+        State("upload-data", "filename"),
+        State("upload-data", "last_modified"),
+        State("completeness_cutoff", "value"),
+        State("length_cutoff", "value"),
+    ],
+)
+def results_upload(n_clicks, contents, fname, last_modified, completeness, length):
+    if n_clicks > 0:
+        query = {
+            "length": length,
+            "completeness": completeness,
+            "filename": fname,
+            "last_modified": last_modified,
+            "contents": contents,
+        }
+        # am_manager.add_project(query)
+        # df = am_manager.get_project(fname)
+        # return df.to_json(orient="split")
+
+        return parse_df_upload(contents,fname,last_modified)
+    return

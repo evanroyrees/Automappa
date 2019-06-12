@@ -12,7 +12,7 @@ import dash_html_components as html
 import plotly.plotly as py
 from plotly import graph_objs as go
 
-from app import app, indicator, millify, df_to_table#, sf_manager
+from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
 
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
@@ -133,6 +133,7 @@ def taxa_by_rank(df, column, rank):
     }
     clusters = dict(list(df.groupby(column)))
     clusters = df[column].unique().tolist()
+    clusters.pop(clusters.index('unclustered'))
     nuniques = [df[df[column] == cluster][rank].nunique() for cluster in clusters]
     data = [go.Bar(y=clusters, x=nuniques, orientation="h")] # x could be any column value since its a count
 
@@ -686,7 +687,8 @@ layout = [
 )
 def num_bins_indicator_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
-    return df[clusterCol].nunique()
+    indices = [i for i in df[clusterCol].index if df[clusterCol].loc[i] != 'unclustered']
+    return df[clusterCol].take(indices).nunique()
 
 
 @app.callback(
@@ -697,6 +699,7 @@ def num_bins_indicator_callback(clusterCol, df):
 def median_completeness_indicator_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     clusters = dict(list(df.groupby(clusterCol)))
+    clusters.pop('unclustered', None)
     clusters_completeness = []
     for cluster, dff in clusters.items():
         pfams = dff.single_copy_PFAMs.dropna().tolist()
@@ -716,6 +719,7 @@ def median_completeness_indicator_callback(clusterCol, df):
 def median_purity_indicator_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     clusters = dict(list(df.groupby(clusterCol)))
+    clusters.pop('unclustered', None)
     purities = []
     for cluster, dff in clusters.items():
         pfams = dff.single_copy_PFAMs.dropna().tolist()

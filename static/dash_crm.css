@@ -27,7 +27,7 @@ body{
     margin: 5% auto; /* 15% from the top and centered */
     padding: 20px;
     width: 50%; /* Could be more or less, depending on screen size */
-    color:#9b0000;
+    color:#333;
 }
 ._dash-undo-redo {
   display: none;

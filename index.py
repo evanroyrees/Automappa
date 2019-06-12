@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+import math
+import sys
+import base64
+
+
 import dash
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
@@ -8,10 +14,9 @@ import pandas as pd
 import flask
 import plotly.plotly as py
 from plotly import graph_objs as go
-import math
-import sys
+
 from app import app, server
-from apps import explorer, summary
+from apps import explorer, summary, projects
 
 
 usage = 'index.py </path/to/autometa.binning.tsv>'
@@ -62,11 +67,11 @@ app.layout = html.Div(
         html.Div(id="tab_content", className="row", style={"margin": "2% 3%"}),
 
         html.Link(href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",rel="stylesheet"),
-        html.Link(href="https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css",rel="stylesheet"),
         html.Link(href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"),
         html.Link(href="https://fonts.googleapis.com/css?family=Open+Sans", rel="stylesheet"),
         html.Link(href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"),
-        html.Link(href="static/dash_crm.css", rel="stylesheet")
+        html.Link(href="static/dash_crm.css", rel="stylesheet"),
+        html.Link(href="static/stylesheet.css",rel="stylesheet"),
     ],
     className="row",
     style={"margin": "0%"},
@@ -76,7 +81,7 @@ app.layout = html.Div(
 @app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
 def render_content(tab):
     if tab == "projects_tab":
-        return explorer.layout
+        return projects.layout
         # return opportunities.layout
     elif tab == "explorer_tab":
         return explorer.layout

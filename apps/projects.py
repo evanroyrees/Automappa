@@ -14,7 +14,7 @@ import plotly.plotly as py
 from plotly import graph_objs as go
 
 
-from app import app, indicator, millify, df_to_table#, sf_manager
+from app import app, indicator, millify, df_to_table, parse_contents #am_manager
 
 
 def converted_opportunities(period, source, df):
