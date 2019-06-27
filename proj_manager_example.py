@@ -4,7 +4,7 @@ import pandas as pd
 
 class am_manager():
 	def __init__(self):
-		self.sf = AutometaUser(
+		self.am = AutometaUser(
 			username="USERNAME",
     			password="PASSWORD",
     			security_token="TOKEN"
@@ -13,7 +13,7 @@ class am_manager():
 
 	def login(self):
 		# Create a free AutometaUser account: https://developer.AutometaUser.com/signup
-		self.sf = AutometaUser(
+		self.am = AutometaUser(
 			username="USERNAME",
     			password="PASSWORD",
     			security_token="TOKEN"
@@ -21,7 +21,7 @@ class am_manager():
 		return 0
 
 
-	def dict_to_df(self, query_result,date=True):
+	def dict_to_df(self, query_result, date=True):
 		items = {
 			val: dict(query_result["records"][val])
 			for val in range(query_result["totalSize"])
@@ -34,16 +34,16 @@ class am_manager():
 		return df
 
 
-	def get_leads(self):
+	def get_projects(self):
 		try:
-			desc = self.sf.Lead.describe()
+			desc = self.am.Lead.describe()
 		except AutometaUserExpiredSession as e:
 			self.login()
-			desc = self.sf.Lead.describe()
+			desc = self.am.Lead.describe()
 
 		field_names = [field['name'] for field in desc['fields']]
 		soql = "SELECT {} FROM Lead".format(','.join(field_names))
-		query_result = self.sf.query_all(soql)
+		query_result = self.am.query_all(soql)
 		leads = self.dict_to_df(query_result)
 		return leads
 
@@ -51,10 +51,10 @@ class am_manager():
 	def get_opportunities(self):
 		query_text = "SELECT CreatedDate, Name, StageName, ExpectedRevenue, Amount, LeadSource, IsWon, IsClosed, Type, Probability FROM Opportunity"
 		try:
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		opportunities = self.dict_to_df(query_result)
 		return opportunities
 
@@ -62,10 +62,10 @@ class am_manager():
 	def get_cases(self):
 		query_text = "SELECT CreatedDate, Type, Reason, Status, Origin, Subject, Priority, IsClosed, OwnerId, IsDeleted, AccountId FROM Case"
 		try:
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 
 		cases = self.dict_to_df(query_result)
 		return cases
@@ -74,10 +74,10 @@ class am_manager():
 	def get_contacts(self):
 		query_text = "SELECT Id, Salutation, FirstName, LastName FROM Contact"
 		try:
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 
 		contacts = self.dict_to_df(query_result,False)
 		return contacts
@@ -85,10 +85,10 @@ class am_manager():
 	def get_users(self):
 		query_text = "SELECT Id,FirstName, LastName FROM User"
 		try:
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 
 		users = self.dict_to_df(query_result,False)
 		return users
@@ -96,10 +96,10 @@ class am_manager():
 	def get_accounts(self):
 		query_text = "SELECT Id, Name FROM Account"
 		try:
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			query_result = self.sf.query(query_text)
+			query_result = self.am.query(query_text)
 
 		accounts = self.dict_to_df(query_result,False)
 		return accounts
@@ -107,26 +107,26 @@ class am_manager():
 
 	def add_lead(self, query):
 		try:
-			self.sf.Lead.create(query)
+			self.am.Lead.create(query)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			self.sf.Lead.create(query)
+			self.am.Lead.create(query)
 		return 0
 
 
 	def add_opportunity(self, query):
 		try:
-			self.sf.Opportunity.create(query)
+			self.am.Opportunity.create(query)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			self.sf.Opportunity.create(query)
+			self.am.Opportunity.create(query)
 		return 0
 
 
 	def add_case(self, query):
 		try:
-			self.sf.Case.create(query)
+			self.am.Case.create(query)
 		except AutometaUserExpiredSession as e:
 			self.login()
-			self.sf.Case.create(query)
+			self.am.Case.create(query)
 		return 0
