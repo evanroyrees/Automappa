@@ -1,12 +1,12 @@
-## Autometa App
+# Autometa App
 
-### Autometa APP utilized as interactive interface for exploration and summaries of binning highly complex metagenomes.
+## An interactive interface for exploration of highly complex metagenomes.
 
 ___
 
 ## Feature Requests, Issues, Bugs
 
-I've integrated **[Trello boards](https://trello.com/b/8LClJVKA "Link to Autometa-App Trello Board")** into the bitbucket repository for noting any feature requests or bugs.
+I've integrated [Trello boards](https://trello.com/b/8LClJVKA "Link to Autometa-App Trello Board") into the bitbucket repository for noting any feature requests or bugs.
 
 ___
 
@@ -14,7 +14,9 @@ ___
 
 ### Remote & Docker:
 
-**If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.**
+Perhaps the easiest method to start exploring your data will be to run the app from docker image I have made available. This will allow you to skip worrying about the app dependencies and installation and to focus on simply understanding the binning summary provided by AutoMeta.
+
+If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.
 
 ```bash
 #ssh -L localport:localhost:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
