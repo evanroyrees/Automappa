@@ -514,10 +514,10 @@ def bin_table_callback(df):
         id='datatable',
         data=df.to_dict('records'),
         columns=[{'name':col, 'id':col} for col in df.columns],
-        sorting=True,
+        # sorting=True,
         # filtering=True,
         virtualization=True,
-        pagination_mode=False,
+        # pagination_mode=None,
     ),
     return child
 

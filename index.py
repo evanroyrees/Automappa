@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import math
 import sys
 import base64
-
-
 import dash
+import argparse
+
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
@@ -18,14 +18,16 @@ from plotly import graph_objs as go
 from app import app, server
 from apps import explorer, summary, projects
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    '-i',
+    '--input',
+    help='ML_recruitment.tab or recursive_dbscan.tab.',
+    required=True,
+)
+args = parser.parse_args()
 
-usage = 'index.py </path/to/autometa.binning.tsv>'
-# '</path/to/cluster_taxonomy.tsv> </path/to/cluster_summary.tsv>'
-if not len(sys.argv) >= 2:
-    sys.exit(usage)
-
-bin_fpath = sys.argv[1]
-df = pd.read_csv(bin_fpath, sep='\t')
+df = pd.read_csv(args.input, sep='\t')
 
 app.layout = html.Div(
     [

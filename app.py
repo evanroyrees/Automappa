@@ -1,5 +1,5 @@
-import math
 
+import math
 import pandas as pd
 import flask
 import dash
@@ -17,9 +17,6 @@ app = dash.Dash(__name__, server=server)
 app.config.suppress_callback_exceptions = True
 
 # sf_manager = sf_Manager()
-
-millnames = ["", " K", " M", " B", " T"] # used to convert numbers
-
 
 # return html Table with dataframe values
 def df_to_table(df):
