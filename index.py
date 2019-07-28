@@ -111,4 +111,10 @@ def render_content(tab):
         # return opportunities.layout
 
 if __name__ == "__main__":
-    app.run_server(host=args.host, port=args.port, debug=args.production)
+    try:
+        PORT = int(args.port)
+    except ValueError as err:
+        print('Must specify an integer for port!')
+        print(f'{args.port} is not an integer')
+        exit(1)
+    app.run_server(host=args.host, port=PORT, debug=args.production)
