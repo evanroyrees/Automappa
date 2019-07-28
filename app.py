@@ -10,13 +10,13 @@ import base64
 import io
 import datetime
 
-    # from sfManager import sf_Manager
+# from am_credentials import am_manager
 
 server = flask.Flask(__name__)
 app = dash.Dash(__name__, server=server)
 app.config.suppress_callback_exceptions = True
 
-# sf_manager = sf_Manager()
+# am_manager = am_manager()
 
 # return html Table with dataframe values
 def df_to_table(df):

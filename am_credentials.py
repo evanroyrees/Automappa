@@ -27,6 +27,9 @@ class exceptions(object):
         super(exceptions, self).__init__()
         self.arg = arg
 
+    def autometaUserExpiredSession(self):
+        raise NotImplementedError
+
 class project(object):
     """docstring for project."""
 
