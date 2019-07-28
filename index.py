@@ -25,6 +25,22 @@ parser.add_argument(
     help='ML_recruitment.tab or recursive_dbscan.tab.',
     required=True,
 )
+parser.add_argument(
+    '--port',
+    help='port to expose',
+    default='8050',
+)
+parser.add_argument(
+    '--host',
+    help='host ip address to expose',
+    default='0.0.0.0',
+)
+parser.add_argument(
+    '--production',
+    help='take autometa-app out of debug mode',
+    action='store_false',
+    default=True,
+)
 args = parser.parse_args()
 
 df = pd.read_csv(args.input, sep='\t')
@@ -95,4 +111,4 @@ def render_content(tab):
         # return opportunities.layout
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host=args.host, port=args.port, debug=args.production)

@@ -45,6 +45,30 @@ cd </path/to/autometa-app> && python index.py </path/to/autometa_output.tsv>
 
 Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `127.0.0.1:6920`.
 
+#### Remote & Docker:
+
+```bash
+
+ssh -L 6920:127.0.0.1:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
+
+docker run \
+  --rm \
+  # Data directory to mount inside container
+  -v </path/to/data/dir>:/data \
+  # Here we are forwarding the port exposed by the container to the host machine
+  -p 8050:8888
+  # run container from image
+  evanrees/autometa-app:latest \
+    # autometa-app command:
+    index.py \
+    --input data/</path/to/autometa/output/file/> \
+    # Specify the port the container will expose
+    --port 8888 \
+    --host 0.0.0.0 #default host name... Should be resolved later for security
+```
+
+As before, navigate to `127.0.0.1:6920` and you will see the loaded data
+
 ### Feature Requests, Issues, Bugs
 
 I've integrated [Trello boards](https://trello.com/b/8LClJVKA "Link to Autometa-App Trello Board") into the bitbucket repository for noting any feature requests or bugs.
