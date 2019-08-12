@@ -19,118 +19,15 @@ import dash_table
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_daq as daq
 from plotly import graph_objs as go
 import plotly.plotly as py
 
 from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
 
-# returns choropleth map figure based on status filter
-# def choropleth_map(status, df):
-#     if status == "open":
-#         df = df[
-#             (df["Status"] == "Open - Not Contacted")
-#             | (df["Status"] == "Working - Contacted")
-#         ]
-#
-#     elif status == "converted":
-#         df = df[df["Status"] == "Closed - Converted"]
-#
-#     elif status == "lost":
-#         df = df[df["Status"] == "Closed - Not Converted"]
-#
-#     df = df.groupby("State").count()
-#
-#     scl = [[0.0, "rgb(38, 78, 134)"], [1.0, "#0091D5"]] # colors scale
-#
-#     data = [
-#         dict(
-#             type="choropleth",
-#             colorscale=scl,
-#             locations=df.index,
-#             z=df["Id"],
-#             locationmode="USA-states",
-#             marker=dict(line=dict(color="rgb(255,255,255)", width=2)),
-#         )
-#     ]
-#
-#     layout = dict(
-#         geo=dict(
-#             scope="usa",
-#             projection=dict(type="albers usa"),
-#             lakecolor="rgb(255, 255, 255)",
-#         ),
-#         margin=dict(l=10, r=10, t=0, b=0),
-#     )
-#     return dict(data=data, layout=layout)
-
-
-# returns pie chart that shows lead source repartition
-# def lead_source(status, df):
-#     if status == "open":
-#         df = df[
-#             (df["Status"] == "Open - Not Contacted")
-#             | (df["Status"] == "Working - Contacted")
-#         ]
-#
-#     elif status == "converted":
-#         df = df[df["Status"] == "Closed - Converted"]
-#
-#     elif status == "lost":
-#         df = df[df["Status"] == "Closed - Not Converted"]
-#
-#     nb_leads = len(df.index)
-#     types = df["LeadSource"].unique().tolist()
-#     values = []
-#
-#     # compute % for each leadsource type
-#     for case_type in types:
-#         nb_type = df[df["LeadSource"] == case_type].shape[0]
-#         values.append(nb_type / nb_leads * 100)
-#
-#     trace = go.Pie(
-#         labels=types,
-#         values=values,
-#         marker={"colors": ["#264e86", "#0074e4", "#74dbef", "#eff0f4"]},
-#     )
-#
-#     layout = dict(margin=dict(l=15, r=10, t=0, b=65), legend=dict(orientation="h"))
-#     return dict(data=[trace], layout=layout)
-
-
-
-# def converted_leads_count(period, df):
-#     df["CreatedDate"] = pd.to_datetime(df["CreatedDate"], format="%Y-%m-%d")
-#     df = df[df["Status"] == "Closed - Converted"]
-#
-#     df = (
-#         df.groupby([pd.Grouper(key="CreatedDate", freq=period)])
-#         .count()
-#         .reset_index()
-#         .sort_values("CreatedDate")
-#     )
-#
-#     trace = go.Scatter(
-#         x=df["CreatedDate"],
-#         y=df["Id"],
-#         name="converted leads",
-#         fill="tozeroy",
-#         fillcolor="#e6f2ff",
-#     )
-#
-#     data = [trace]
-#
-#     layout = go.Layout(
-#         xaxis=dict(showgrid=False),
-#         margin=dict(l=33, r=25, b=37, t=5, pad=4),
-#         paper_bgcolor="white",
-#         plot_bgcolor="white",
-#     )
-#
-#     return {"data": data, "layout": layout}
-
-
-normalizeLen = lambda x: np.ceil(((x.length-x.length.min())/(x.length.max()-x.length.min()))*11+4)
-
+normalizeLen = lambda x: np.ceil(
+    (x.length-x.length.min()) / (x.length.max()-x.length.min())
+) * 2 + 4
 
 def modal():
     return html.Div(
@@ -138,7 +35,6 @@ def modal():
             [
                 html.Div(
                     [
-
                         # modal header
                         html.Div(
                             [
@@ -165,14 +61,12 @@ def modal():
                             className="row",
                             style={"borderBottom": "1px solid #C8D4E3"},
                         ),
-
                         # modal form
                         html.Div(
                             [
                                 html.P(
                                     [
                                         "Length Cutoff",
-
                                     ],
                                     style={
                                         "float": "left",
@@ -228,7 +122,6 @@ def modal():
                             className="row",
                             style={"padding": "2% 8%"},
                         ),
-
                         # submit button
                         html.Span(
                             "Submit",
@@ -249,123 +142,67 @@ def modal():
 
 
 layout = [
-
-    # top controls
-    html.Div(
-        [
-            html.Div(
-                dcc.Dropdown(
-                    id="zaxis_column",
-                    options=[
-                        {"label": "Coverage", "value": "cov"},
-                        {"label": "GC%", "value": "gc"},
-                        {"label": "Length", "value": "length"},
+        # 2D-scatter plot row div
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.P("2D Binning Overview"),
+                        dcc.Graph(
+                            id='scatter2d_graphic',
+                            style={"height": "90%", "width": "98%"},
+                            clear_on_unhover=True,
+                        ),
                     ],
-                    value="cov",
-                    clearable=False,
+                    className="ten columns chart_div"
                 ),
-                className="two columns",
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="cluster_col",
-                    options=[
-                        {"label": "Cluster", "value": "cluster"},
-                        {"label": "Decision Tree Classifier", "value": "ML_expanded_clustering"},
-                        {"label": "Paired-end Refinement", "value": "paired_end_refined_bin"},
-                        # {"label": "Grid Search", "value": "lost"},
-                    ],
-                    value="cluster",
-                    clearable=False,
+                html.Div([
+                    html.P("Color By:"),
+                    dcc.Dropdown(
+                        id="cluster_col",
+                        options=[],
+                        value="cluster",
+                        clearable=False,
+                    ),
+                    html.P("X-Axis:"),
+                    dcc.Dropdown(
+                        id="2d_xaxis",
+                        options=[
+                            {'label':'bh-tsne-x','value':'bh_tsne_x'},
+                            {'label':'Coverage','value':'cov'},
+                            {'label':'GC%','value':'gc'},
+                            {'label':'Length','value':'length'},
+                        ],
+                        value="bh_tsne_x",
+                        clearable=False,
+                    ),
+                    html.P("Y-Axis:"),
+                    dcc.Dropdown(
+                        id="2d_yaxis",
+                        options=[
+                            {'label':'bh-tsne-y','value':'bh_tsne_y'},
+                            {'label':'Coverage','value':'cov'},
+                            {'label':'GC%','value':'gc'},
+                            {'label':'Length','value':'length'},
+                        ],
+                        value="bh_tsne_y",
+                        clearable=False,
+                    ),
+                    # html.Pre('Legend:\nCircle Colors:'),
+                    daq.ToggleSwitch(id='2d-legend', label='Legend', labelPosition='right'),
+                    daq.ToggleSwitch(id='2d-circles', label='Circle bins', labelPosition='right', style={'align':'left'}),
+                    html.Pre(
+                        style={
+                            "textAlign": "middle",
+                        },
+                        id="selection_summary"
+                    ),
+                ],
+                className='two columns',
                 ),
-                className="two columns",
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="2d_xaxis",
-                    options=[
-                        {'label':'bh-tsne-x','value':'bh_tsne_x'},
-                        {'label':'Coverage','value':'cov'},
-                        {'label':'GC%','value':'gc'},
-                        {'label':'Length','value':'length'},
-                    ],
-                    value="bh_tsne_x",
-                    clearable=False,
-                ),
-                className="two columns",
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="2d_yaxis",
-                    options=[
-                        {'label':'bh-tsne-y','value':'bh_tsne_y'},
-                        {'label':'Coverage','value':'cov'},
-                        {'label':'GC%','value':'gc'},
-                        {'label':'Length','value':'length'},
-                    ],
-                    value="bh_tsne_y",
-                    clearable=False,
-                ),
-                className="two columns",
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="rank_dropdown",
-                    options=[
-                        {'label':'Kingdom','value':'kingdom'},
-                        {'label':'Phylum','value':'phylum'},
-                        {'label':'Class','value':'class'},
-                        {'label':'Order','value':'order'},
-                        {'label':'Family','value':'family'},
-                        {'label':'Genus','value':'genus'},
-                        {'label':'Species','value':'species'},
-                    ],
-                    value="phylum",
-                    clearable=False,
-                ),
-                className="two columns",
-            ),
-            # add button
-            html.Div(
-                html.Span(
-                    "Upload Results",
-                    id="new_analysis",
-                    n_clicks=0,
-                    className="button button--primary",
-                    style={
-                        "height": "34",
-                        "background": "#c5040d",
-                        "border": "1px solid #c5040d",
-                        "color": "white",
-                    },
-                ),
-                className="two columns",
-                style={"float": "right"},
-            ),
-        ],
-        className="row",
-        style={"marginBottom": "10"},
-    ),
-
-    # indicators row div
-    html.Div(
-        [
-            indicator(
-                "#00cc96", "Marker Sets", "marker_sets"
-            ),
-            indicator(
-                "#119DFF", "Completeness", "selected_completeness"
-            ),
-            indicator(
-                "#EF553B",
-                "Purity",
-                "selected_purity",
-            ),
-        ],
-        className="row",
-    ),
-
-    # charts row div
+            ],
+        ),
+    # 3D-scatter plot row div
     html.Div(
         [
             html.Div(
@@ -384,40 +221,83 @@ layout = [
                         }
                     ),
                 ],
-                className="four columns chart_div"
+                className="ten columns chart_div"
             ),
-
-            html.Div(
-                [
-                    html.P("2D Binning Overview"),
-                    dcc.Graph(
-                        id='scatter2d_graphic',
-                        style={"height": "90%", "width": "98%"},
-                        clear_on_unhover=True,
-                    ),
-                ],
-                className="four columns chart_div"
-            ),
-
-            html.Div(
-                [
-                    html.P("Taxa Distribution"),
-                    dcc.Graph(
-                        id='taxa_piechart',
-                        style={"height": "90%", "width": "98%"},
-                        config=dict(displayModeBar=False),
-                    ),
-                ],
-                className="four columns chart_div"
+            # add button
+            html.Div([
+                html.Span(
+                    "Upload Results",
+                    id="new_analysis",
+                    n_clicks=0,
+                    className="button button--primary",
+                    style={
+                        "height": "34",
+                        "background": "#c5040d",
+                        "border": "1px solid #c5040d",
+                        "color": "white",
+                    },
+                ),
+                html.P("Z-Axis:"),
+                dcc.Dropdown(
+                    id="zaxis_column",
+                    options=[
+                        {"label": "Coverage", "value": "cov"},
+                        {"label": "GC%", "value": "gc"},
+                        {"label": "Length", "value": "length"},
+                    ],
+                    value="cov",
+                    clearable=False,
+                ),
+                daq.ToggleSwitch(
+                    id='3d-legend',
+                    label='Legend',
+                    labelPosition='top',
+                ),
+            ],
+            className="two columns",
             ),
         ],
         className="row",
-        style={"marginTop": "5"},
+        style={"marginTop": "0", "marginBottom": "2"},
     ),
-
+    # Taxa Distribution plot row div
+    html.Div(
+        [
+        html.Div(
+            [
+                html.P("Taxa Distribution"),
+                dcc.Graph(
+                    id='taxa_piechart',
+                    style={"height": "90%", "width": "98%"},
+                    config=dict(displayModeBar=False),
+                ),
+            ],
+            className="ten columns chart_div",
+        ),
+        html.Div(
+            [
+                html.P("Rank:"),
+                dcc.Dropdown(
+                    id="rank_dropdown",
+                    options=[
+                        {'label':'Kingdom','value':'kingdom'},
+                        {'label':'Phylum','value':'phylum'},
+                        {'label':'Class','value':'class'},
+                        {'label':'Order','value':'order'},
+                        {'label':'Family','value':'family'},
+                        {'label':'Genus','value':'genus'},
+                        {'label':'Species','value':'species'},
+                    ],
+                    value="phylum",
+                    clearable=False,
+                ),
+            ],
+            className="row two columns",
+        ),
+    ]),
     # table div
     html.Div(
-        className="row",
+        className="row twelve columns",
         style={
             "maxHeight": "350px",
             "overflowY": "scroll",
@@ -434,64 +314,123 @@ layout = [
     modal(),
 ]
 
+# # TODO: See https://plot.ly/python/custom-buttons/ and relayout to remove
+# legend and draw circles (or convex hulls) over clusters
+# @app.callback(
+#     Output("2d-figure", ""),
+#     [Input("2d-legend", "value")]
+# )
 
-# updates left indicator based on df updates
+
 @app.callback(
-    Output("marker_sets", "children"),
+    Output("cluster_col", "options"),
+    [Input("binning_df", "children")]
+)
+def get_color_by_cols(df):
+    df = pd.read_json(df, orient='split')
+    df.drop(axis=1,labels=["single_copy_PFAMs"],inplace=True)
+    options = [{"label":col.title().replace('_',' '), "value":col}
+        for col in df.columns if df[col].dtype.name not in {'float64', 'int64'}]
+    return options
+
+@app.callback(
+    Output("selection_summary", "children"),
     [Input("scatter2d_graphic", "selectedData"),
     Input("cluster_col", "value"),
     Input("binning_df", "children")]
 )
-def selected_marker_sets_callback(selectedData, clusterCol, df):
+def display_selection_summary(selectedData, clusterCol, df):
     if not selectedData:
-        return '-'
+        lines =[
+            'Select points to update indicators',
+            'Marker Set: N/A',
+            'Completeness: N/A',
+            'Purity: N/A',
+            'Selected: 0',
+        ]
+        return '\n'.join(lines)
     # Update to return total number of bins
     df = pd.read_json(df, orient='split')
     ctg_list = {point['text'] for point in selectedData['points']}
+    n_selected = len(selectedData['points'])
     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
     total = len(all_pfams)
-    n_marker_sets = round(float(total)/139, 2)
-    marker_sets = '{} ({} markers)'.format(n_marker_sets, total)
-    return marker_sets
-
-
-# updates middle indicator based on selected contigs in 2d scatter plot
-@app.callback(
-    Output("selected_completeness", "children"),
-    [Input("scatter2d_graphic", "selectedData"),
-    Input("binning_df", "children")]
-)
-def selected_completeness_callback(selectedData, df):
-    if not selectedData:
-        return '-'
-    df = pd.read_json(df, orient='split')
-    ctg_list = {point['text'] for point in selectedData['points']}
-    pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-    all_pfams = [p for pfam in pfams for p in pfam.split(',')]
     markers = 139
+    n_marker_sets = round(float(total)/markers, 2)
+    marker_sets = '{} ({} markers)'.format(n_marker_sets, total)
     nunique = len(set(all_pfams))
     completeness = round(float(nunique)/markers * 100, 2)
-    return str(completeness)
-
-
-# updates right indicator based on selected contigs in 2d scatter plot
-@app.callback(
-    Output("selected_purity", "children"),
-    [Input("scatter2d_graphic", "selectedData"),
-    Input("binning_df", "children")]
-)
-def selected_purity_callback(selectedData, df):
-    if not selectedData:
-        return '-'
-    df = pd.read_json(df, orient='split')
-    ctg_list = {point['text'] for point in selectedData['points']}
-    pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-    all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-    total = len(all_pfams)
-    nunique = len(set(all_pfams))
     purity = '-' if total == 0 else round(float(nunique)/total * 100, 2)
-    return str(purity)
+    indicators = ['Marker Set(s)','Completeness','Purity','Selected']
+    lines = map(str,[
+        marker_sets,
+        completeness,
+        purity,
+        n_selected,
+    ])
+    p = []
+    for i,l in zip(indicators, lines):
+        p.append(': '.join([i,l]))
+    return '\n'.join(p)
+
+# # updates left indicator based on df updates
+# @app.callback(
+#     Output("marker_sets", "children"),
+#     [Input("scatter2d_graphic", "selectedData"),
+#     Input("cluster_col", "value"),
+#     Input("binning_df", "children")]
+# )
+# def selected_marker_sets_callback(selectedData, clusterCol, df):
+#     if not selectedData:
+#         return '-'
+#     # Update to return total number of bins
+#     df = pd.read_json(df, orient='split')
+#     ctg_list = {point['text'] for point in selectedData['points']}
+#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
+#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
+#     total = len(all_pfams)
+#     n_marker_sets = round(float(total)/139, 2)
+#     marker_sets = '{} ({} markers)'.format(n_marker_sets, total)
+#     return marker_sets
+#
+#
+# # updates middle indicator based on selected contigs in 2d scatter plot
+# @app.callback(
+#     Output("selected_completeness", "children"),
+#     [Input("scatter2d_graphic", "selectedData"),
+#     Input("binning_df", "children")]
+# )
+# def selected_completeness_callback(selectedData, df):
+#     if not selectedData:
+#         return '-'
+#     df = pd.read_json(df, orient='split')
+#     ctg_list = {point['text'] for point in selectedData['points']}
+#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
+#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
+#     markers = 139
+#     nunique = len(set(all_pfams))
+#     completeness = round(float(nunique)/markers * 100, 2)
+#     return str(completeness)
+#
+#
+# # updates right indicator based on selected contigs in 2d scatter plot
+# @app.callback(
+#     Output("selected_purity", "children"),
+#     [Input("scatter2d_graphic", "selectedData"),
+#     Input("binning_df", "children")]
+# )
+# def selected_purity_callback(selectedData, df):
+#     if not selectedData:
+#         return '-'
+#     df = pd.read_json(df, orient='split')
+#     ctg_list = {point['text'] for point in selectedData['points']}
+#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
+#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
+#     total = len(all_pfams)
+#     nunique = len(set(all_pfams))
+#     purity = '-' if total == 0 else round(float(nunique)/total * 100, 2)
+#     return str(purity)
 
 
 # update pie chart figure based on dropdown's value and df updates
@@ -606,6 +545,7 @@ def update_zaxis(zaxis_column, cluster_col, selectedData, df):
                 zaxis=dict(title=zaxis_title),
             ),
             legend={'x': 0, 'y': 1},
+            showlegend=False,
             autosize=True,
             margin=dict(r=0, b=0, l=0, t=25),
             # title='3D Clustering Visualization',
@@ -633,10 +573,7 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
     }
     xaxis_title = titles[xaxis_column]
     yaxis_title = titles[yaxis_column]
-    # See: https://codeburst.io/notes-from-the-latest-plotly-js-release-b035a5b43e21
-    # contigs = {point['contig'] for point in data}
-    # dff = df[df.contig.isin(contigs)]
-    # selected = dff.index.tolist()
+
     return {
         'data': [
             go.Scattergl(
@@ -658,8 +595,8 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
                 yaxis=dict(title=yaxis_title),
             ),
             legend={'x': 1, 'y': 1},
-            autosize=True,
-            margin=dict(r=0, b=0, l=0, t=25),
+            showlegend=False,
+            margin=dict(r=50, b=50, l=50, t=50),
             # title='2D Clustering Visualization',
             hovermode='closest',
         ),

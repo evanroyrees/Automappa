@@ -1,9 +1,9 @@
 body{
     margin:0;
     padding: 0;
-    background-color: #e5e8e6;
+    background-color: #ffffff;
     font-family: 'Open Sans', sans-serif;
-    color: #506784;
+    color: #ffffff;
     -webkit-user-select: none;  /* Chrome all / Safari all */
     -moz-user-select: none;     /* Firefox all */
     -ms-user-select: none;      /* IE 10+ */
@@ -37,12 +37,13 @@ body{
     color:white;
     font-size:3rem;
     letter-spacing:-.1rem;
-    vertical-align:middle
+    vertical-align:middle;
+    align-content: center;
 }
 
 .header{
     margin:0px;
-    background-color:#c5040d;
+    background-color:#9b0000;
     height:70px;
     color:white;
     padding-right:2%;
@@ -79,9 +80,11 @@ body{
 
 .chart_div{
     background-color: white;
-    border: 1px solid #C8D4E3;
-    border-radius: 3px;
-    height: 320px;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    height: 450px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 
@@ -106,8 +109,12 @@ table{
 }
 
 .tabs_div{
+    height: 40px;
     margin:0px;
-    height:30px;
+    height:0px;
     font-size:13px;
-    margin-top:1px
+    margin-top:1px;
+    background-color:#d40404;
+    border: 1px solid #C8D4E3;
+    border-radius: 3px;
 }

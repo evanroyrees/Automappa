@@ -18,82 +18,87 @@ from plotly import graph_objs as go
 from app import app, server
 from apps import explorer, summary, projects
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    '-i',
-    '--input',
-    help='ML_recruitment.tab or recursive_dbscan.tab.',
-    required=True,
-)
-parser.add_argument(
-    '--port',
-    help='port to expose',
-    default='8050',
-)
-parser.add_argument(
-    '--host',
-    help='host ip address to expose',
-    default='0.0.0.0',
-)
-parser.add_argument(
-    '--production',
-    help='take autometa-app out of debug mode',
-    action='store_false',
-    default=True,
-)
-args = parser.parse_args()
+tab_style = {
+    'borderTop': '3px solid white',
+    'borderBottom': '0px',
+    'borderLeft': '0px',
+    'borderRight': '0px',
+    'backgroundColor': '#9b0000',
+}
 
-df = pd.read_csv(args.input, sep='\t')
+tab_selected_style = {
+    'borderTop': '3px solid #c5040d',
+    'borderBottom': '0px',
+    'borderLeft': '0px',
+    'borderRight': '0px',
+    'fontWeight': 'bold',
+    'color': 'white',
+    'backgroundColor': '#c5040d',
+}
 
-app.layout = html.Div(
-    [
-        # header
-        html.Div([
+def layout(df):
+    app.layout = html.Div(
+        [
+            # header
+            html.Div([
 
-            html.Span("Autometa Dashboard", className='app-title'),
-
-            html.Div(
-                html.Img(src='static/UWlogo.png', height="100%")
-                ,style={"float":"right","height":"100%"})
-            ],
-            className="row header"
-            ),
-
-        # tabs
-        html.Div([
-
-            dcc.Tabs(
-                id="tabs",
-                style={"height":"20","verticalAlign":"middle"},
-                children=[
-                    dcc.Tab(label="Projects", value="projects_tab"),
-                    dcc.Tab(label="Bin Exploration", value="explorer_tab"),
-                    dcc.Tab(id="bin_summary", label="Binning Summary", value="summary_tab"),
+                html.Span("Autometa Dashboard", className='three columns app-title'),
+                html.Div([
+                    dcc.Tabs(
+                        id="tabs",
+                        style={"height":"10","verticalAlign":"middle"},
+                        children=[
+                            dcc.Tab(
+                                label="Projects",
+                                value="projects_tab",
+                                style=tab_style,
+                                selected_style=tab_selected_style,
+                            ),
+                            dcc.Tab(
+                                label="Bin Exploration",
+                                value="explorer_tab",
+                                style=tab_style,
+                                selected_style=tab_selected_style,
+                            ),
+                            dcc.Tab(
+                                id="bin_summary",
+                                label="Binning Summary",
+                                value="summary_tab",
+                                style=tab_style,
+                                selected_style=tab_selected_style,
+                            ),
+                        ],
+                        value="explorer_tab",
+                    ),
                 ],
-                value="explorer_tab",
-            )
-
-            ],
-            className="row tabs_div"
+                className="seven columns row header"
+                ),
+                html.Div(
+                    html.Img(src='static/UWlogo.png', height="100%"),
+                    style={"float":"right","height":"100%"},
+                    className="two columns",
+                    )
+                ],
+                className="row header",
             ),
 
-        # divs that save dataframe for each tab
-        # html.Div(wq_manager.get_projects().to_json(orient="split"), id="projects_df", style={"display": "none"}), # projects df
-        html.Div(df.to_json(orient='split'), id="binning_df", style={"display": "none"}), # leads df
+            # divs that save dataframe for each tab
+            # html.Div(wq_manager.get_projects().to_json(orient="split"), id="projects_df", style={"display": "none"}), # projects df
+            html.Div(df.to_json(orient='split'), id="binning_df", style={"display": "none"}), # leads df
 
-        # Tab content
-        html.Div(id="tab_content", className="row", style={"margin": "2% 3%"}),
+            # Tab content
+            html.Div(id="tab_content", className="row", style={"margin": "2% 3%"}),
 
-        html.Link(href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",rel="stylesheet"),
-        html.Link(href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"),
-        html.Link(href="https://fonts.googleapis.com/css?family=Open+Sans", rel="stylesheet"),
-        html.Link(href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"),
-        html.Link(href="static/dash_crm.css", rel="stylesheet"),
-        html.Link(href="static/stylesheet.css",rel="stylesheet"),
-    ],
-    className="row",
-    style={"margin": "0%"},
-)
+            html.Link(href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",rel="stylesheet"),
+            html.Link(href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"),
+            html.Link(href="https://fonts.googleapis.com/css?family=Open+Sans", rel="stylesheet"),
+            html.Link(href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"),
+            html.Link(href="static/dash_crm.css", rel="stylesheet"),
+            html.Link(href="static/stylesheet.css",rel="stylesheet"),
+        ],
+        className="row",
+        style={"margin": "0%"},
+    )
 
 
 @app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
@@ -111,10 +116,37 @@ def render_content(tab):
         # return opportunities.layout
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-i',
+        '--input',
+        help='ML_recruitment.tab or recursive_dbscan.tab.',
+        required=True,
+    )
+    parser.add_argument(
+        '--port',
+        help='port to expose',
+        default='8050',
+    )
+    parser.add_argument(
+        '--host',
+        help='host ip address to expose',
+        default='0.0.0.0',
+    )
+    parser.add_argument(
+        '--production',
+        help='take autometa-app out of debug mode',
+        action='store_false',
+        default=True,
+    )
+    args = parser.parse_args()
     try:
         PORT = int(args.port)
     except ValueError as err:
         print('Must specify an integer for port!')
         print(f'{args.port} is not an integer')
         exit(1)
+    df = pd.read_csv(args.input, sep='\t')
+    layout(df)
     app.run_server(host=args.host, port=PORT, debug=args.production)
