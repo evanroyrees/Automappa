@@ -38,7 +38,8 @@ body{
     font-size:3rem;
     letter-spacing:-.1rem;
     vertical-align:middle;
-    align-content: center;
+    align-content:center;
+    height:70px;
 }
 
 .header{
@@ -51,23 +52,23 @@ body{
 }
 
 .indicator{
-    border:1px solid #C8D4E3;
+    border:0px;
     border-radius: 3px;
     background-color: white;
-    height:100px;
+    height:10;
     vertical-align:middle;
 }
 
 .indicator_text{
-    text-align: center;
-    float: left;
-    font-size: 15px;
+    text-align: left;
+    float: top;
+    font-size: 18px;
     }
 
 .indicator_value{
-    text-align:center;
+    text-align:left;
     color: #2a3f5f;
-    font-size: 35px;
+    font-size: 15px;
 }
 
 .add{

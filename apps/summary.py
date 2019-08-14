@@ -16,9 +16,12 @@ from app import app, indicator, millify, df_to_table, parse_df_upload, parse_con
 
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
-# accounts = sf_manager.get_accounts()
-# contacts = sf_manager.get_contacts()
-# users = sf_manager.get_users()
+# accounts = am_manager.get_accounts()
+# contacts = am_manager.get_contacts()
+# users = am_manager.get_users()
+# processes = am_manager.workqueue.get_processes()
+# workers = am_manager.workqueue.get_workers()
+# foreman = am_manager.workqueue.get_foreman()
 
 # contacts = {}
 
@@ -29,7 +32,7 @@ def bin_dropdown(df, column):
 
 def pie_chart(df, column, rank, bin):
     if not bin:
-        layout = dict(annotations=[dict(text="Select Bin from Dropdown for Taxa Breakdown", showarrow=False)])
+        layout = dict(annotations=[dict(text="Select bin from dropdown for taxa breakdown", showarrow=False)])
         return {"data": [], "layout": layout}
     dff = df[df[column] == bin]
     n_ctgs = len(dff.index)
@@ -206,318 +209,56 @@ def assembly_stats(df, column):
     })
     return df_to_table(bin_df)
 
-
-# returns modal (hidden by default)
-# def modal():
-#     contacts["Name"] = (
-#         contacts["Salutation"]
-#         + " "
-#         + contacts["FirstName"]
-#         + " "
-#         + contacts["LastName"]
-#     )
-#     return html.Div(
-#         html.Div(
-#             [
-#                 html.Div(
-#                     [
-#                         # modal header
-#                         html.Div(
-#                             [
-#                                 html.Span(
-#                                     "New Case",
-#                                     style={
-#                                         "color": "#506784",
-#                                         "fontWeight": "bold",
-#                                         "fontSize": "20",
-#                                     },
-#                                 ),
-#                                 html.Span(
-#                                     "×",
-#                                     id="cases_modal_close",
-#                                     n_clicks=0,
-#                                     style={
-#                                         "float": "right",
-#                                         "cursor": "pointer",
-#                                         "marginTop": "0",
-#                                         "marginBottom": "17",
-#                                     },
-#                                 ),
-#                             ],
-#                             className="row",
-#                             style={"borderBottom": "1px solid #C8D4E3"},
-#                         ),
-#
-#                         # modal form
-#                         html.Div(
-#                             [
-#
-#                                 # left Div
-#                                 html.Div(
-#                                     [
-#                                         html.P(
-#                                             "Account name",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         html.Div(
-#                                             dcc.Dropdown(
-#                                                 id="new_case_account",
-#                                                 options=[
-#                                                     {
-#                                                         "label": row["Name"],
-#                                                         "value": row["Id"],
-#                                                     }
-#                                                     for index, row in accounts.iterrows()
-#                                                 ],
-#                                                 clearable=False,
-#                                                 value=accounts.iloc[0].Id,
-#                                             )
-#                                         ),
-#                                         html.P(
-#                                             "Priority",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Dropdown(
-#                                             id="new_case_priority",
-#                                             options=[
-#                                                 {"label": "High", "value": "High"},
-#                                                 {"label": "Medium", "value": "Medium"},
-#                                                 {"label": "Low", "value": "Low"},
-#                                             ],
-#                                             value="Medium",
-#                                             clearable=False,
-#                                         ),
-#                                         html.P(
-#                                             "Origin",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Dropdown(
-#                                             id="new_case_origin",
-#                                             options=[
-#                                                 {"label": "Phone", "value": "Phone"},
-#                                                 {"label": "Web", "value": "Web"},
-#                                                 {"label": "Email", "value": "Email"},
-#                                             ],
-#                                             value="Phone",
-#                                             clearable=False,
-#                                         ),
-#                                         html.P(
-#                                             "Reason",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Dropdown(
-#                                             id="new_case_reason",
-#                                             options=[
-#                                                 {
-#                                                     "label": "Installation",
-#                                                     "value": "Installation",
-#                                                 },
-#                                                 {
-#                                                     "label": "Equipment Complexity",
-#                                                     "value": "Equipment Complexity",
-#                                                 },
-#                                                 {
-#                                                     "label": "Performance",
-#                                                     "value": "Performance",
-#                                                 },
-#                                                 {
-#                                                     "label": "Breakdown",
-#                                                     "value": "Breakdown",
-#                                                 },
-#                                                 {
-#                                                     "label": "Equipment Design",
-#                                                     "value": "Equipment Design",
-#                                                 },
-#                                                 {
-#                                                     "label": "Feedback",
-#                                                     "value": "Feedback",
-#                                                 },
-#                                                 {"label": "Other", "value": "Other"},
-#                                             ],
-#                                             value="Installation",
-#                                             clearable=False,
-#                                         ),
-#                                         html.P(
-#                                             "Subject",
-#                                             style={
-#                                                 "float": "left",
-#                                                 "marginTop": "4",
-#                                                 "marginBottom": "2",
-#                                             },
-#                                             className="row",
-#                                         ),
-#                                         dcc.Input(
-#                                             id="new_case_subject",
-#                                             placeholder="The Subject of the case",
-#                                             type="text",
-#                                             value="",
-#                                             style={"width": "100%"},
-#                                         ),
-#                                     ],
-#                                     className="six columns",
-#                                     style={"paddingRight": "15"},
-#                                 ),
-#
-#
-#                                 # right Div
-#                                 html.Div(
-#                                     [
-#                                         html.P(
-#                                             "Contact name",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         html.Div(
-#                                             dcc.Dropdown(
-#                                                 id="new_case_contact",
-#                                                 options=[
-#                                                     {
-#                                                         "label": row["Name"],
-#                                                         "value": row["Id"],
-#                                                     }
-#                                                     for index, row in contacts.iterrows()
-#                                                 ],
-#                                                 clearable=False,
-#                                                 value=contacts.iloc[0].Id,
-#                                             )
-#                                         ),
-#                                         html.P(
-#                                             "Type",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Dropdown(
-#                                             id="new_case_type",
-#                                             options=[
-#                                                 {
-#                                                     "label": "Electrical",
-#                                                     "value": "Electrical",
-#                                                 },
-#                                                 {
-#                                                     "label": "Mechanical",
-#                                                     "value": "Mechanical",
-#                                                 },
-#                                                 {
-#                                                     "label": "Electronic",
-#                                                     "value": "Electronic",
-#                                                 },
-#                                                 {
-#                                                     "label": "Structural",
-#                                                     "value": "Structural",
-#                                                 },
-#                                                 {"label": "Other", "value": "Other"},
-#                                             ],
-#                                             value="Electrical",
-#                                         ),
-#                                         html.P(
-#                                             "Status",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Dropdown(
-#                                             id="new_case_status",
-#                                             options=[
-#                                                 {"label": "New", "value": "New"},
-#                                                 {
-#                                                     "label": "Working",
-#                                                     "value": "Working",
-#                                                 },
-#                                                 {
-#                                                     "label": "Escalated",
-#                                                     "value": "Escalated",
-#                                                 },
-#                                                 {"label": "Closed", "value": "Closed"},
-#                                             ],
-#                                             value="New",
-#                                         ),
-#                                         html.P(
-#                                             "Supplied Email",
-#                                             style={
-#                                                 "textAlign": "left",
-#                                                 "marginBottom": "2",
-#                                                 "marginTop": "4",
-#                                             },
-#                                         ),
-#                                         dcc.Input(
-#                                             id="new_case_email",
-#                                             placeholder="email",
-#                                             type="email",
-#                                             value="",
-#                                             style={"width": "100%"},
-#                                         ),
-#                                         html.P(
-#                                             "Description",
-#                                             style={
-#                                                 "float": "left",
-#                                                 "marginTop": "4",
-#                                                 "marginBottom": "2",
-#                                             },
-#                                             className="row",
-#                                         ),
-#                                         dcc.Textarea(
-#                                             id="new_case_description",
-#                                             placeholder="Description of the case",
-#                                             value="",
-#                                             style={"width": "100%"},
-#                                         ),
-#                                     ],
-#                                     className="six columns",
-#                                     style={"paddingLeft": "15"},
-#                                 ),
-#                             ],
-#                             style={"marginTop": "10", "textAlign": "center"},
-#                             className="row",
-#                         ),
-#
-#                         # submit button
-#                         html.Span(
-#                             "Submit",
-#                             id="submit_new_case",
-#                             n_clicks=0,
-#                             className="button button--primary add"
-#                         ),
-#
-#                     ],
-#                     className="modal-content",
-#                     style={"textAlign": "center", "border": "1px solid #C8D4E3"},
-#                 )
-#             ],
-#             className="modal",
-#         ),
-#         id="cases_modal",
-#         style={"display": "none"},
-#     )
-
-
 layout = [
-    # modal(),
+    # Markdown Summary Report
+    html.Div(
+        className="row twelve columns",
+        children = [
+            html.Div([
+                html.H5('Autometa Binning Report:',id='markdown_summary'),
+            ], className='six columns'),
+            html.Div([
+                indicator(
+                    color="#00cc96",
+                    text="Summary",
+                    id_value="summary_indicator",
+                ),
+            ], className='six columns'),
+        ],
+    ),
+    # Charts
+    html.Div(
+        [
+            # Completeness Purity
+            html.Div(
+                [
+                    html.P("Completeness & Purity"),
+                    dcc.Graph(
+                        id='bins_completness_purity',
+                        config=dict(displayModeBar=False),
+                        style={"height": "89%", "width": "98%"},
+                    ),
 
-    # top controls
+                ],
+                className="six columns chart_div",
+            ),
+            # Bin Taxa Breakdown
+            html.Div(
+                [
+                    html.P("Bin Taxa Breakdown"),
+                    dcc.Graph(
+                        id="bin_taxa_breakdown",
+                        config=dict(displayModeBar=False),
+                        style={"height": "89%", "width": "98%"},
+                    ),
+                ],
+                className="six columns chart_div"
+            ),
+        ],
+        className="row",
+        style={"marginTop": "5px"},
+    ),
+    # dropdowns
     html.Div(
         [
             html.Div(
@@ -531,8 +272,8 @@ layout = [
                     value="cluster",
                     clearable=False,
                 ),
-                className="two columns",
-                style={"marginBottom": "10"},
+                className="six columns",
+                style={"float": "left"},
             ),
             html.Div(
                 dcc.Dropdown(
@@ -549,92 +290,25 @@ layout = [
                     value="phylum",
                     clearable=False,
                 ),
-                className="two columns",
-                style={"marginBottom": "10"},
+                className="three columns",
+                style={"float": "right"},
             ),
             html.Div(
                 dcc.Dropdown(
                     id="bin_dropdown",
                     clearable=False,
                 ),
-                className="two columns",
-                style={"marginBottom": "10"},
-            ),
-            # add button
-            html.Div(
-                html.Span(
-                    "New Analysis",
-                    id="new_analysis",
-                    n_clicks=0,
-                    className="button button--primary add",
-
-                ),
-                className="two columns",
-                style={"float": "right"},
+                className="three columns",
+                style={"floart": "right"},
             ),
         ],
         className="row",
         style={},
     ),
-
-    # indicators div
+    # Taxa Heterogeneity chart and assembly stats table
     html.Div(
         [
-            indicator(
-                "#00cc96",
-                "Recovered Bins",
-                "num_bins_indicator",
-            ),
-            indicator(
-                "#119DFF",
-                "Median Completeness",
-                "median_completeness_indicator",
-            ),
-            indicator(
-                "#EF553B",
-                "Median Purity",
-                "median_purity_indicator",
-            ),
-        ],
-        className="row",
-    ),
-
-
-    html.Div(
-        [
-            html.Div(
-                [
-                    html.P("Completeness & Purity"),
-                    dcc.Graph(
-                        id='bins_completness_purity',
-                        config=dict(displayModeBar=False),
-                        style={"height": "89%", "width": "98%"},
-                    ),
-
-                ],
-                className="six columns chart_div",
-            ),
-
-            html.Div(
-                [
-                    html.P("Bin Taxa Breakdown"),
-
-                    dcc.Graph(
-                        id="bin_taxa_breakdown",
-                        config=dict(displayModeBar=False),
-                        style={"height": "89%", "width": "98%"},
-                    ),
-                ],
-                className="six columns chart_div"
-            ),
-        ],
-        className="row",
-        style={"marginTop": "5px"},
-    ),
-
-
-    html.Div(
-        [
+            # Taxa Heterogeneity
             html.Div(
                 [
                     html.P("Taxa Heterogeneity"),
@@ -646,7 +320,7 @@ layout = [
                 ],
                 className="six columns chart_div"
             ),
-
+            # Assembly Stats Table
             html.Div(
                 [
                     html.P(
@@ -679,56 +353,50 @@ layout = [
 
 ]
 
-
 @app.callback(
-    Output("num_bins_indicator", "children"),
-    [Input("bin_summary_cluster_col", "value"),
-    Input("binning_df", "children"),]
+    Output("summary_indicator", "children"),
+    [
+        Input("bin_summary_cluster_col", "value"),
+        Input("binning_df", "children"),
+    ]
 )
-def num_bins_indicator_callback(clusterCol, df):
+def summary_indicator_callback(clusterCol, df):
+    """
+    Writes
+    Given dataframe and cluster column:
+    Input:
+        - binning dataframe
+        - binning column
+    Returns:
+        n_unique_bins - number of unique bins
+    """
     df = pd.read_json(df, orient="split")
-    indices = [i for i in df[clusterCol].index if df[clusterCol].loc[i] != 'unclustered']
-    return df[clusterCol].take(indices).nunique()
-
-
-@app.callback(
-    Output("median_completeness_indicator", "children"),
-    [Input("bin_summary_cluster_col", "value"),
-    Input("binning_df", "children")]
-)
-def median_completeness_indicator_callback(clusterCol, df):
-    df = pd.read_json(df, orient="split")
+    df.set_index(clusterCol, inplace=True)
+    df.drop('unclustered', inplace=True)
+    n_unique_bins = df.index.nunique()
     clusters = dict(list(df.groupby(clusterCol)))
-    clusters.pop('unclustered', None)
-    clusters_completeness = []
+    completeness_list, purities = [],[]
+    markers = 139
     for cluster, dff in clusters.items():
+        # This will be gene marker set to alter later
         pfams = dff.single_copy_PFAMs.dropna().tolist()
         all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-        markers = 139
+        total = len(all_pfams)
         nunique = len(set(all_pfams))
         completeness = float(nunique)/markers * 100
-        clusters_completeness.append(completeness)
-    return round(np.median(clusters_completeness), 2)
-
-
-@app.callback(
-    Output("median_purity_indicator", "children"),
-    [Input("bin_summary_cluster_col", "value"),
-    Input("binning_df", "children")]
-)
-def median_purity_indicator_callback(clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    clusters = dict(list(df.groupby(clusterCol)))
-    clusters.pop('unclustered', None)
-    purities = []
-    for cluster, dff in clusters.items():
-        pfams = dff.single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-        nunique = len(set(all_pfams))
-        total = len(all_pfams)
+        completeness_list.append(completeness)
         purity = 0 if total == 0 else float(nunique)/total * 100
         purities.append(purity)
-    return round(np.median(purities), 2)
+    median_completeness = round(np.median(completeness_list), 2)
+    median_purity = round(np.median(purities), 2)
+    txt = '\n'.join([
+        '',
+        'Bins: {}'.format(n_unique_bins),
+        'Median Completeness: {}'.format(median_completeness),
+        'Median Purity: {}'.format(median_purity),
+    ])
+    return txt
+
 
 
 @app.callback(
@@ -884,8 +552,8 @@ def close_modal_callback(n, n2):
 #             "Priority": priority,
 #         }
 #
-#         # sf_manager.add_case(query)
-#         # df = sf_manager.get_cases()
+#         # am_manager.add_case(query)
+#         # df = am_manager.get_cases()
 #         return df.to_json(orient="split")
 #
 #     return current_df

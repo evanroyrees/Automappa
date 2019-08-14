@@ -59,12 +59,12 @@ def indicator(color, text, id_value):
                 text,
                 className="twelve columns indicator_text"
             ),
-            html.P(
+            html.Pre(
                 id = id_value,
                 className="indicator_value"
             ),
         ],
-        className="four columns indicator",
+        className="two columns indicator",
 
     )
 

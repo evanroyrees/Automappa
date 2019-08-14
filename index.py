@@ -42,7 +42,7 @@ def layout(df):
             # header
             html.Div([
 
-                html.Span("Autometa Dashboard", className='three columns app-title'),
+                html.Span("Autometa Dashboard", className='two columns app-title'),
                 html.Div([
                     dcc.Tabs(
                         id="tabs",
