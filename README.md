@@ -12,11 +12,11 @@ ___
 
 ## Usage:
 
-### Remote & Docker:
+### Remote & Docker (Easiest and Quickest):
 
-Perhaps the easiest method to start exploring your data will be to run the app from docker image I have made available. This will allow you to skip worrying about the app dependencies and installation and to focus on simply understanding the binning summary provided by AutoMeta.
+ To start exploring your data, run the app from a docker image (`evanrees/autometa-app:latest`) I have made [available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/autometa-app/tags "AutoMeta-App Dockerhub Tags"). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
-If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.
+If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel (`ssh -L localport:localhost:serverport user@hostaddress`).
 
 ```bash
 #ssh -L localport:localhost:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
@@ -33,8 +33,9 @@ docker run \
   evanrees/autometa-app:latest \
     # autometa-app command:
     index.py \
+    # input starts with 'data/' as this is specified with the mount (-v) above
     --input data/</path/to/autometa/output/file> \
-    # Specify the port the container will expose
+    # Specify port to expose from autometa-app [Must be the same port the container will expose]
     --port 8886 \
     #default host name... Should be resolved later for security
     --host 0.0.0.0
@@ -55,10 +56,10 @@ I've numbered the ports here to help illustrate the network communication.
 - You may change **any** of these values as long as you change the respective value.
 - This will be most useful if **multiple users** will need to use the app.
 
-| Bridge | Port Bridge | Communiation Context |
+| Bridge | Port Bridge | Communication Context |
 | :------------- | :------------- | :------------- |
-| remote_server_port:container_port | 8887:8886 | bioinformatics/CHTC server & docker |
-| localhost_port:remote_server_port | 8888:8887 | local machine & bioinformatics/CHTC server |
+| remote_server_port:container_port | 8887:8886 | [bioinformatics\|CHTC server]:docker |
+| localhost_port:remote_server_port | 8888:8887 | local machine:[bioinformatics\|CHTC server] |
 
 ### Local Usage:
 
