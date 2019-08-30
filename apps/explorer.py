@@ -29,121 +29,121 @@ normalizeLen = lambda x: np.ceil(
     (x.length-x.length.min()) / (x.length.max()-x.length.min())
 ) * 2 + 4
 
-def modal():
-    return html.Div(
-        html.Div(
-            [
-                html.Div(
-                    [
-                        # modal header
-                        html.Div(
-                            [
-                                html.Span(
-                                    "Upload Autometa Results Table",
-                                    style={
-                                        "color": "#c5040d",
-                                        "fontWeight": "bold",
-                                        "fontSize": "20",
-                                    },
-                                ),
-                                html.Span(
-                                    "×",
-                                    id="analysis_modal_close",
-                                    n_clicks=0,
-                                    style={
-                                        "float": "right",
-                                        "cursor": "pointer",
-                                        "marginTop": "0",
-                                        "marginBottom": "17",
-                                    },
-                                ),
-                            ],
-                            className="row",
-                            style={"borderBottom": "1px solid #C8D4E3"},
-                        ),
-                        # modal form
-                        html.Div(
-                            [
-                                html.P(
-                                    [
-                                        "Length Cutoff",
-                                    ],
-                                    style={
-                                        "float": "left",
-                                        "marginTop": "4",
-                                        "marginBottom": "2",
-                                    },
-                                    className="row",
-                                ),
-                                dcc.Input(
-                                    id="length_cutoff",
-                                    placeholder="Length Cutoff (default 3000bp)",
-                                    type="text",
-                                    value="3000",
-                                    style={"width": "100%"},
-                                ),
-                                html.P(
-                                    style={
-                                        "textAlign": "left",
-                                        "marginBottom": "2",
-                                        "marginTop": "4",
-                                    },
-                                    id="completeness_display"
-                                ),
-                                dcc.Slider(
-                                    id="completeness_cutoff",
-                                    min=5.0,
-                                    max=100.0,
-                                    value=20.0,
-                                    updatemode="drag",
-                                ),
-                                html.P(
-                                    "Select Metagenome Assembly",
-                                    style={
-                                        "textAlign": "left",
-                                        "marginBottom": "2",
-                                        "marginTop": "4",
-                                    },
-                                ),
-                                dcc.Upload(
-                                    id='upload-data',
-                                    children=['Drag and Drop or ', html.A('Select a File')],
-                                    style={
-                                        'width': '100%',
-                                        'height': '60px',
-                                        'lineHeight':' 60px',
-                                        'borderWidth': 'dashed',
-                                        'borderRadius': '5px',
-                                        'textAlign': 'center',
-                                    },
-
-                                )
-                            ],
-                            className="row",
-                            style={"padding": "2% 8%"},
-                        ),
-                        # submit button
-                        html.Span(
-                            "Submit",
-                            id="submit_new_lead",
-                            n_clicks=0,
-                            className="button button--primary add"
-                        ),
-                    ],
-                    className="modal-content",
-                    style={"textAlign": "center"},
-                )
-            ],
-            className="modal",
-        ),
-        id="analysis_modal",
-        style={"display": "none"},
-    )
+# def modal():
+#     return html.Div(
+#         html.Div(
+#             [
+#                 html.Div(
+#                     [
+#                         # modal header
+#                         html.Div(
+#                             [
+#                                 html.Span(
+#                                     "Export Selections",
+#                                     style={
+#                                         "color": "#c5040d",
+#                                         "fontWeight": "bold",
+#                                         "fontSize": "20",
+#                                     },
+#                                 ),
+#                                 html.Span(
+#                                     "×",
+#                                     id="analysis_modal_close",
+#                                     n_clicks=0,
+#                                     style={
+#                                         "float": "right",
+#                                         "cursor": "pointer",
+#                                         "marginTop": "0",
+#                                         "marginBottom": "17",
+#                                     },
+#                                 ),
+#                             ],
+#                             className="row",
+#                             style={"borderBottom": "1px solid #C8D4E3"},
+#                         ),
+#                         # modal form
+#                         html.Div(
+#                             [
+#                                 html.P(
+#                                     [
+#                                         "Length Cutoff",
+#                                     ],
+#                                     style={
+#                                         "float": "left",
+#                                         "marginTop": "4",
+#                                         "marginBottom": "2",
+#                                     },
+#                                     className="row",
+#                                 ),
+#                                 dcc.Input(
+#                                     id="length_cutoff",
+#                                     placeholder="Length Cutoff (default 3000bp)",
+#                                     type="text",
+#                                     value="3000",
+#                                     style={"width": "100%"},
+#                                 ),
+#                                 html.P(
+#                                     style={
+#                                         "textAlign": "left",
+#                                         "marginBottom": "2",
+#                                         "marginTop": "4",
+#                                     },
+#                                     id="completeness_display"
+#                                 ),
+#                                 dcc.Slider(
+#                                     id="completeness_cutoff",
+#                                     min=5.0,
+#                                     max=100.0,
+#                                     value=20.0,
+#                                     updatemode="drag",
+#                                 ),
+#                                 html.P(
+#                                     "Select Metagenome Assembly",
+#                                     style={
+#                                         "textAlign": "left",
+#                                         "marginBottom": "2",
+#                                         "marginTop": "4",
+#                                     },
+#                                 ),
+#                                 dcc.Upload(
+#                                     id='upload-data',
+#                                     children=['Drag and Drop or ', html.A('Select a File')],
+#                                     style={
+#                                         'width': '100%',
+#                                         'height': '60px',
+#                                         'lineHeight':' 60px',
+#                                         'borderWidth': 'dashed',
+#                                         'borderRadius': '5px',
+#                                         'textAlign': 'center',
+#                                     },
+#
+#                                 )
+#                             ],
+#                             className="row",
+#                             style={"padding": "2% 8%"},
+#                         ),
+#                         # submit button
+#                         html.Span(
+#                             "Submit",
+#                             id="submit_new_lead",
+#                             n_clicks=0,
+#                             className="button button--primary add"
+#                         ),
+#                     ],
+#                     className="modal-content",
+#                     style={"textAlign": "center"},
+#                 )
+#             ],
+#             className="modal",
+#         ),
+#         id="analysis_modal",
+#         style={"display": "none"},
+#     )
 
 
 layout = [
-        # 2D-scatter plot row div
-        html.Div(
+    # 2D-scatter plot row div
+    html.Div(
             [
                 html.Div(
                     [
@@ -189,8 +189,8 @@ layout = [
                         clearable=False,
                     ),
                     # html.Pre('Legend:\nCircle Colors:'),
-                    daq.ToggleSwitch(id='2d-legend', label='Legend', labelPosition='right'),
-                    daq.ToggleSwitch(id='2d-circles', label='Circle bins', labelPosition='right', style={'align':'left'}),
+                    daq.ToggleSwitch(id='2d-legend', label='Legend', labelPosition='right', size=40),
+                    daq.ToggleSwitch(id='2d-circles', label='Circle bins', labelPosition='right', size=40),
                     html.Pre(
                         style={
                             "textAlign": "middle",
@@ -223,20 +223,20 @@ layout = [
                 ],
                 className="ten columns chart_div"
             ),
-            # add button
             html.Div([
-                html.Span(
-                    "Upload Results",
-                    id="new_analysis",
-                    n_clicks=0,
-                    className="button button--primary",
-                    style={
-                        "height": "34",
-                        "background": "#c5040d",
-                        "border": "1px solid #c5040d",
-                        "color": "white",
-                    },
-                ),
+                # add button
+                # html.Span(
+                #     html.A(id="save_link", children="Save Selected"),
+                #     id="save_button",
+                #     n_clicks=0,
+                #     className="button button--primary",
+                #     style={
+                #         "height": "34",
+                #         "background": "#c5040d",
+                #         "border": "1px solid #c5040d",
+                #         "color": "white",
+                #     },
+                # ),
                 html.P("Z-Axis:"),
                 dcc.Dropdown(
                     id="zaxis_column",
@@ -311,7 +311,7 @@ layout = [
     ),
     html.Div(id='uploaded-data'),
 
-    modal(),
+    # modal(),
 ]
 
 # # TODO: See https://plot.ly/python/custom-buttons/ and relayout to remove
@@ -320,7 +320,17 @@ layout = [
 #     Output("2d-figure", ""),
 #     [Input("2d-legend", "value")]
 # )
+# def draw_2d_circles(value):
+#     return circles
 
+# # TODO: DEBUG: Legend Hide/Show See line : 495
+# Hide legend
+@app.callback(
+    Output('scatter2d_graphic','layout'),
+    [Input('2d-legend','value')]
+)
+def hide_2d_legend(value):
+    return dict(showlegend=value)
 
 @app.callback(
     Output("cluster_col", "options"),
@@ -374,75 +384,6 @@ def display_selection_summary(selectedData, clusterCol, df):
         p.append(': '.join([i,l]))
     return '\n'.join(p)
 
-# # updates left indicator based on df updates
-# @app.callback(
-#     Output("marker_sets", "children"),
-#     [Input("scatter2d_graphic", "selectedData"),
-#     Input("cluster_col", "value"),
-#     Input("binning_df", "children")]
-# )
-# def selected_marker_sets_callback(selectedData, clusterCol, df):
-#     if not selectedData:
-#         return '-'
-#     # Update to return total number of bins
-#     df = pd.read_json(df, orient='split')
-#     ctg_list = {point['text'] for point in selectedData['points']}
-#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-#     total = len(all_pfams)
-#     n_marker_sets = round(float(total)/139, 2)
-#     marker_sets = '{} ({} markers)'.format(n_marker_sets, total)
-#     return marker_sets
-#
-#
-# # updates middle indicator based on selected contigs in 2d scatter plot
-# @app.callback(
-#     Output("selected_completeness", "children"),
-#     [Input("scatter2d_graphic", "selectedData"),
-#     Input("binning_df", "children")]
-# )
-# def selected_completeness_callback(selectedData, df):
-#     if not selectedData:
-#         return '-'
-#     df = pd.read_json(df, orient='split')
-#     ctg_list = {point['text'] for point in selectedData['points']}
-#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-#     markers = 139
-#     nunique = len(set(all_pfams))
-#     completeness = round(float(nunique)/markers * 100, 2)
-#     return str(completeness)
-#
-#
-# # updates right indicator based on selected contigs in 2d scatter plot
-# @app.callback(
-#     Output("selected_purity", "children"),
-#     [Input("scatter2d_graphic", "selectedData"),
-#     Input("binning_df", "children")]
-# )
-# def selected_purity_callback(selectedData, df):
-#     if not selectedData:
-#         return '-'
-#     df = pd.read_json(df, orient='split')
-#     ctg_list = {point['text'] for point in selectedData['points']}
-#     pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-#     all_pfams = [p for pfam in pfams for p in pfam.split(',')]
-#     total = len(all_pfams)
-#     nunique = len(set(all_pfams))
-#     purity = '-' if total == 0 else round(float(nunique)/total * 100, 2)
-#     return str(purity)
-
-
-# update pie chart figure based on dropdown's value and df updates
-# @app.callback(
-#     Output("lead_source", "figure"),
-#     [Input("lead_source_dropdown", "value"), Input("leads_df", "children")],
-# )
-# def lead_source_callback(status, df):
-#     df = pd.read_json(df, orient="split")
-#     return lead_source(status, df)
-
-
 @app.callback(
     Output("binning_table", "children"),
     [Input("binning_df", "children")],
@@ -459,7 +400,6 @@ def bin_table_callback(df):
         # pagination_mode=None,
     ),
     return child
-
 
 @app.callback(
     Output("taxa_piechart", "figure"),
@@ -496,7 +436,6 @@ def taxa_piechart_callback(selectedData, selectedRank, df):
         showlegend=False,
     )
     return dict(data=[trace], layout=layout)
-
 
 @app.callback(
     Output('scatter3d_graphic', 'figure'),
@@ -552,8 +491,8 @@ def update_zaxis(zaxis_column, cluster_col, selectedData, df):
             hovermode='closest',
         ),
     }
-
-
+# OPTIMIZE: # DEBUG: # TODO: Figure should be defined in the div section above... Not in callbacks
+# This needs to be refactored as an update layout approach
 @app.callback(
     Output('scatter2d_graphic', 'figure'),
     [Input('2d_xaxis', 'value'),
@@ -602,7 +541,6 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
         ),
     }
 
-
 @app.callback(
     Output('datatable', 'data'),
     [Input('scatter2d_graphic','selectedData'),
@@ -614,86 +552,3 @@ def update_table(selectedData, df):
         return df.to_dict('records')
     selected = {point['text'] for point in selectedData['points']}
     return df[df.contig.isin(selected)].to_dict('records')
-
-# update table based on dropdown's value and df updates
-# @app.callback(
-#     Output("leads_table", "children"),
-#     [Input("lead_source_dropdown", "value"), Input("leads_df", "children")],
-# )
-# def leads_table_callback(status, df):
-#     df = pd.read_json(df, orient="split")
-#     if status == "open":
-#         df = df[
-#             (df["Status"] == "Open - Not Contacted")
-#             | (df["Status"] == "Working - Contacted")
-#         ]
-#     elif status == "converted":
-#         df = df[df["Status"] == "Closed - Converted"]
-#     elif status == "lost":
-#         df = df[df["Status"] == "Closed - Not Converted"]
-#     df = df[["CreatedDate", "Status", "Company", "State", "LeadSource"]]
-#     return df_to_table(df)
-
-
-# update pie chart figure based on dropdown's value and df updates
-# @app.callback(
-#     Output("converted_leads", "figure"),
-#     [Input("converted_leads_dropdown", "value"), Input("leads_df", "children")],
-# )
-# def converted_leads_callback(period, df):
-#     df = pd.read_json(df, orient="split")
-#     return converted_leads_count(period, df)
-
-
-# hide/show modal
-@app.callback(Output("analysis_modal", "style"), [Input("new_analysis", "n_clicks")])
-def display_analysis_modal_callback(n):
-    if n > 0:
-        return {"display": "block"}
-    return {"display": "none"}
-
-
-# reset to 0 add button n_clicks property
-@app.callback(
-    Output("new_analysis", "n_clicks"),
-    [Input("analysis_modal_close", "n_clicks"), Input("submit_new_lead", "n_clicks")],
-)
-def close_modal_callback(n, n2):
-    return 0
-
-@app.callback(
-    Output("completeness_display", "children"),
-    [Input("completeness_cutoff", "value")]
-)
-def display_modal_completeness_cutoff(completeness):
-    return 'Completeness Cutoff:\t{}%'.format(completeness)
-
-# Start new analysis given autometa parameters and new metagenome dataset
-@app.callback(
-    Output("uploaded-data", "children"),
-    [
-        Input("submit_new_lead", "n_clicks"),
-    ],
-    [
-        State("upload-data", "contents"),
-        State("upload-data", "filename"),
-        State("upload-data", "last_modified"),
-        State("completeness_cutoff", "value"),
-        State("length_cutoff", "value"),
-    ],
-)
-def results_upload(n_clicks, contents, fname, last_modified, completeness, length):
-    if n_clicks > 0:
-        query = {
-            "length": length,
-            "completeness": completeness,
-            "filename": fname,
-            "last_modified": last_modified,
-            "contents": contents,
-        }
-        # am_manager.add_project(query)
-        # df = am_manager.get_project(fname)
-        # return df.to_json(orient="split")
-
-        return parse_df_upload(contents,fname,last_modified)
-    return

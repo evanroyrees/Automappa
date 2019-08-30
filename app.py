@@ -40,15 +40,10 @@ def df_to_table(df):
 #returns most significant part of a number
 def millify(n):
     n = float(n)
-    millidx = max(
-        0,
-        min(
-            len(millnames) - 1, int(math.floor(0 if n == 0 else math.log10(abs(n)) / 3))
-        ),
-    )
-
+    stuff = 0 if n == 0 else math.log10(abs(n)) / 3
+    otherstuff = len(millnames) - 1, int(math.floor(stuff))
+    millidx = max(0,min(otherstuff))
     return "{:.0f}{}".format(n / 10 ** (3 * millidx), millnames[millidx])
-
 
 #returns top indicator div
 def indicator(color, text, id_value):

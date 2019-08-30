@@ -505,19 +505,19 @@ def assembly_stats_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return assembly_stats(df, clusterCol)
 
-@app.callback(Output("cases_modal", "style"), [Input("new_case", "n_clicks")])
-def display_cases_modal_callback(n):
-    if n > 0:
-        return {"display": "block"}
-    return {"display": "none"}
-
-
-@app.callback(
-    Output("new_case", "n_clicks"),
-    [Input("cases_modal_close", "n_clicks"), Input("submit_new_case", "n_clicks")],
-)
-def close_modal_callback(n, n2):
-    return 0
+# @app.callback(Output("cases_modal", "style"), [Input("new_case", "n_clicks")])
+# def display_cases_modal_callback(n):
+#     if n > 0:
+#         return {"display": "block"}
+#     return {"display": "none"}
+#
+#
+# @app.callback(
+#     Output("new_case", "n_clicks"),
+#     [Input("cases_modal_close", "n_clicks"), Input("submit_new_case", "n_clicks")],
+# )
+# def close_modal_callback(n, n2):
+#     return 0
 
 
 # @app.callback(
