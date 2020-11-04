@@ -218,11 +218,10 @@ def get_color_by_cols(df):
     Output("selection_summary", "children"),
     [
         Input("scatter2d_graphic", "selectedData"),
-        Input("cluster_col", "value"),
         Input("binning_df", "children"),
     ],
 )
-def display_selection_summary(selectedData, clusterCol, df):
+def display_selection_summary(selectedData, df):
     if not selectedData:
         lines = [
             "Select points to update indicators",
