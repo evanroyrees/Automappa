@@ -2,12 +2,9 @@ import math
 import pandas as pd
 import flask
 import dash
-import dash_core_components as dcc
 import dash_html_components as html
-import dateutil.parser
 import base64
 import io
-import datetime
 
 # from am_credentials import am_manager
 

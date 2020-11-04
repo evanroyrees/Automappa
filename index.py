@@ -33,10 +33,30 @@ tab_selected_style = {
 def layout(df):
     app.layout = html.Div(
         [
+            # Hidden div that saves dataframe for each tab
+            html.Div(
+                df.to_json(orient="split"), id="binning_df", style={"display": "none"}
+            ),  # leads df
+            html.Link(
+                href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
+                rel="stylesheet",
+            ),
+            html.Link(
+                href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"
+            ),
+            html.Link(
+                href="https://fonts.googleapis.com/css?family=Open+Sans",
+                rel="stylesheet",
+            ),
+            html.Link(
+                href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"
+            ),
+            html.Link(href="static/dash_crm.css", rel="stylesheet"),
+            html.Link(href="static/stylesheet.css", rel="stylesheet"),
             # header
             html.Div(
                 [
-                    html.Span(
+                    html.Label(
                         "Autometa Dashboard", className="three columns app-title"
                     ),
                     html.Div(
@@ -72,29 +92,8 @@ def layout(df):
                 ],
                 className="row header",
             ),
-            # divs that save dataframe for each tab
-            # html.Div(wq_manager.get_projects().to_json(orient="split"), id="projects_df", style={"display": "none"}), # projects df
-            html.Div(
-                df.to_json(orient="split"), id="binning_df", style={"display": "none"}
-            ),  # leads df
             # Tab content
             html.Div(id="tab_content", className="row", style={"margin": "0.5% 0.5%"}),
-            html.Link(
-                href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
-                rel="stylesheet",
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Open+Sans",
-                rel="stylesheet",
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"
-            ),
-            html.Link(href="static/dash_crm.css", rel="stylesheet"),
-            html.Link(href="static/stylesheet.css", rel="stylesheet"),
         ],
         className="row",
         style={"margin": "0%"},

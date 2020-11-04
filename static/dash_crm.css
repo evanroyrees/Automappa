@@ -34,10 +34,11 @@ body{
 }
 
 .app-title{
+    transform: translate(0px, 20px);
     color:white;
-    font-size:3rem;
+    font-size:2.5rem;
     letter-spacing:-.1rem;
-    vertical-align:middle;
+    vertical-align:bottom;
     align-content:center;
     height:70px;
 }
@@ -83,9 +84,9 @@ body{
     background-color: white;
     border: 1px solid #ffffff;
     border-radius: 2px;
-    height: 450px;
-    margin-top: 5px;
-    margin-bottom: 5px;
+    height: 500px;
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
 
@@ -95,8 +96,24 @@ body{
     text-align: center;
 }
 
+.threeD_scatter_div{
+    background-color: white;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    height: 350px;
+    margin-top: 0px;
+    margin-bottom: 3px;
+}
 
 
+.taxa_chart_div{
+    background-color: white;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    height: 350px;
+    margin-top: 0px;
+    margin-bottom: 3px;
+}
 
 td{
     text-align: left;

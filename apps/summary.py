@@ -48,81 +48,6 @@ def pie_chart(df, column, rank, bin):
     return {"data": [trace], "layout": layout}
 
 
-def cases_by_period(df, period, priority, origin):
-    df = df.dropna(subset=["Type", "Reason", "Origin"])
-    stages = df["Type"].unique()
-
-    # priority filtering
-    if priority != "all_p":
-        df = df[df["Priority"] == priority]
-
-    # period filtering
-    df["CreatedDate"] = pd.to_datetime(df["CreatedDate"], format="%Y-%m-%d")
-    if period == "W-MON":
-        df["CreatedDate"] = pd.to_datetime(df["CreatedDate"]) - pd.to_timedelta(
-            7, unit="d"
-        )
-    df = df.groupby([pd.Grouper(key="CreatedDate", freq=period), "Type"]).count()
-
-    dates = df.index.get_level_values("CreatedDate").unique()
-    dates = [str(i) for i in dates]
-
-    co = {  # colors for stages
-        "Electrical": "#264e86",
-        "Other": "#0074e4",
-        "Structural": "#74dbef",
-        "Mechanical": "#eff0f4",
-        "Electronic": "rgb(255, 127, 14)",
-    }
-
-    data = []
-    for stage in stages:
-        stage_rows = []
-        for date in dates:
-            try:
-                row = df.loc[(date, stage)]
-                stage_rows.append(row["IsDeleted"])
-            except Exception as e:
-                stage_rows.append(0)
-
-        data_trace = go.Bar(
-            x=dates, y=stage_rows, name=stage, marker=dict(color=co[stage])
-        )
-        data.append(data_trace)
-
-    layout = go.Layout(
-        barmode="stack",
-        margin=dict(l=40, r=25, b=40, t=0, pad=4),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-    )
-
-    return {"data": data, "layout": layout}
-
-
-def cases_by_account(cases):
-    cases = cases.dropna(subset=["AccountId"])
-    cases = pd.merge(cases, accounts, left_on="AccountId", right_on="Id")
-    cases = cases.groupby(["AccountId", "Name"]).count()
-    cases = cases.sort_values("IsDeleted")
-    data = [
-        go.Bar(
-            y=cases.index.get_level_values("Name"),
-            x=cases["IsDeleted"],
-            orientation="h",
-        )
-    ]  # x could be any column value since its a count
-
-    layout = go.Layout(
-        barmode="stack",
-        margin=dict(l=210, r=25, b=20, t=0, pad=4),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-    )
-
-    return {"data": data, "layout": layout}
-
-
 def taxa_by_rank(df, column, rank):
     ranks = {
         "kingdom": "Kingdom",
@@ -501,20 +426,6 @@ def bin_dropdown_callback(clusterCol, df):
 
 
 @app.callback(
-    Output("cases_by_period", "figure"),
-    [
-        Input("cases_period_dropdown", "value"),
-        Input("origin_dropdown", "value"),
-        Input("priority_dropdown", "value"),
-        Input("cases_df", "children"),
-    ],
-)
-def cases_period_callback(period, origin, priority, df):
-    df = pd.read_json(df, orient="split")
-    return cases_by_period(df, period, priority, origin)
-
-
-@app.callback(
     Output("taxa_by_rank", "figure"),
     [
         Input("taxa_by_rank_dropdown", "value"),
@@ -528,75 +439,9 @@ def taxa_by_rank_callback(rank, clusterCol, df):
 
 
 @app.callback(
-    Output("cases_by_account", "figure"),
-    [
-        Input("cases_df", "children"),
-    ],
-)
-def cases_account_callback(df):
-    df = pd.read_json(df, orient="split")
-    return cases_by_account(df)
-
-
-# updates top lost opportunities based on df updates
-@app.callback(
     Output("assembly_stats", "children"),
     [Input("bin_summary_cluster_col", "value"), Input("binning_df", "children")],
 )
 def assembly_stats_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return assembly_stats(df, clusterCol)
-
-
-# @app.callback(Output("cases_modal", "style"), [Input("new_case", "n_clicks")])
-# def display_cases_modal_callback(n):
-#     if n > 0:
-#         return {"display": "block"}
-#     return {"display": "none"}
-#
-#
-# @app.callback(
-#     Output("new_case", "n_clicks"),
-#     [Input("cases_modal_close", "n_clicks"), Input("submit_new_case", "n_clicks")],
-# )
-# def close_modal_callback(n, n2):
-#     return 0
-
-
-# @app.callback(
-#     Output("cases_df", "children"),
-#     [Input("submit_new_case", "n_clicks")],
-#     [
-#         State("new_case_account", "value"),
-#         State("new_case_origin", "value"),
-#         State("new_case_reason", "value"),
-#         State("new_case_subject", "value"),
-#         State("new_case_contact", "value"),
-#         State("new_case_type", "value"),
-#         State("new_case_status", "value"),
-#         State("new_case_description", "value"),
-#         State("new_case_priority", "value"),
-#         State("cases_df", "children"),
-#     ],
-# )
-# def add_case_callback(
-#     n_clicks, account_id, origin, reason, subject, contact_id, case_type, status, description, priority, current_df
-#     ):
-#     if n_clicks > 0:
-#         query = {
-#             "AccountId": account_id,
-#             "Origin": origin,
-#             "Reason": reason,
-#             "Subject": subject,
-#             "ContactId": contact_id,
-#             "Type": case_type,
-#             "Status": status,
-#             "Description": description,
-#             "Priority": priority,
-#         }
-#
-#         # am_manager.add_case(query)
-#         # df = am_manager.get_cases()
-#         return df.to_json(orient="split")
-#
-#     return current_df

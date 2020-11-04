@@ -33,6 +33,23 @@ layout = [
             ),
             html.Div(
                 [
+                    html.Span(
+                        html.A(
+                            id="save_refinement_file",
+                            children="Save Refinement",
+                            style={"color": "white"},
+                        ),
+                        id="save_button",
+                        n_clicks=0,
+                        className="button button--primary",
+                        style={
+                            "height": "34",
+                            "background": "#c5040d",
+                            "border": "1px solid #c5040d",
+                            "color": "white",
+                        },
+                    ),
+                    html.Br(),
                     html.Label("Color By:"),
                     dcc.Dropdown(
                         id="cluster_col",
@@ -70,6 +87,16 @@ layout = [
                         },
                         id="selection_summary",
                     ),
+                    # add save selection toggle
+                    daq.ToggleSwitch(
+                        id="save-selection-toggle",
+                        size=40,
+                        color="#c5040d",
+                        label="New clustering toggle:",
+                        labelPosition="top",
+                        vertical=False,
+                        value=False,
+                    ),
                 ],
                 className="two columns",
             ),
@@ -93,28 +120,11 @@ layout = [
                         },
                     ),
                 ],
-                className="ten columns chart_div",
+                className="five columns threeD_scatter_div",
             ),
             html.Div(
                 [
-                    # add button
-                    html.Span(
-                        html.A(
-                            id="save_link",
-                            children="Save Selected",
-                            style={"color": "white"},
-                        ),
-                        id="save_button",
-                        n_clicks=0,
-                        className="button button--primary",
-                        style={
-                            "height": "34",
-                            "background": "#c5040d",
-                            "border": "1px solid #c5040d",
-                            "color": "white",
-                        },
-                    ),
-                    html.Label("Change Z-Axis:"),
+                    html.Label("<-- Change 3D plot Z-axis:"),
                     dcc.Dropdown(
                         id="zaxis_column",
                         options=[
@@ -125,30 +135,7 @@ layout = [
                         value="cov",
                         clearable=False,
                     ),
-                ],
-                className="two columns",
-            ),
-        ],
-        className="row",
-        style={"marginTop": "0", "marginBottom": "2"},
-    ),
-    # Taxa Distribution plot row div
-    html.Div(
-        [
-            html.Div(
-                [
-                    html.Label("Taxonomic Distribution"),
-                    dcc.Graph(
-                        id="taxa_piechart",
-                        style={"height": "90%", "width": "98%"},
-                        config=dict(displayModeBar=False),
-                    ),
-                ],
-                className="ten columns chart_div",
-            ),
-            html.Div(
-                [
-                    html.P("Rank:"),
+                    html.Label("Distribute Taxa by Rank: -->"),
                     dcc.Dropdown(
                         id="rank_dropdown",
                         options=[
@@ -164,10 +151,24 @@ layout = [
                         clearable=False,
                     ),
                 ],
-                className="row two columns",
+                className="two columns",
             ),
-        ]
+            html.Div(
+                [
+                    html.Label("Taxonomic Distribution"),
+                    dcc.Graph(
+                        id="taxa_piechart",
+                        style={"height": "90%", "width": "98%"},
+                        config=dict(displayModeBar=False),
+                    ),
+                ],
+                className="five columns taxa_chart_div",
+            ),
+        ],
+        className="row",
+        style={"marginTop": "0", "marginBottom": "2"},
     ),
+    # Taxa Distribution plot row div
     # table div
     html.Div(
         className="row twelve columns",
@@ -222,34 +223,33 @@ def get_color_by_cols(df):
     ],
 )
 def display_selection_summary(selectedData, df):
+    num_expected_markers = 139
     if not selectedData:
-        lines = [
-            "Select points to update indicators",
-            "Marker Set: N/A",
-            "Completeness: N/A",
-            "Purity: N/A",
-            "Selected: 0",
-        ]
-        return "\n".join(lines)
-    # Update to return total number of bins
-    df = pd.read_json(df, orient="split")
-    ctg_list = {point["text"] for point in selectedData["points"]}
-    n_selected = len(selectedData["points"])
-    pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-    all_pfams = [p for pfam in pfams for p in pfam.split(",")]
-    total = len(all_pfams)
-    markers = 139
-    n_marker_sets = round(float(total) / markers, 2)
-    marker_sets = f"{n_marker_sets} ({total} markers)"
-    nunique = len(set(all_pfams))
-    completeness = round(float(nunique) / markers * 100, 2)
-    purity = "N/A" if not total else round(float(nunique) / total * 100, 2)
-    indicators = ["Marker Set(s)", "Completeness", "Purity", "Selected"]
-    lines = [str(line) for line in [marker_sets, completeness, purity, n_selected]]
-    p = []
-    for indicator, line in zip(indicators, lines):
-        p.append(": ".join([indicator, line]))
-    return "\n".join(p)
+        completeness = "N/A"
+        purity = "N/A"
+        n_marker_sets = "N/A"
+        n_selected = 0
+    else:
+        df = pd.read_json(df, orient="split")
+        ctg_list = {point["text"] for point in selectedData["points"]}
+        n_selected = len(selectedData["points"])
+        pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
+        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
+        total = len(all_pfams)
+        n_marker_sets = round(float(total) / num_expected_markers, 2)
+        nunique = len(set(all_pfams))
+        completeness = round(float(nunique) / num_expected_markers * 100, 2)
+        purity = "N/A" if not total else round(float(nunique) / total * 100, 2)
+    return f"""
+    Selection Binning Metrics:
+    -----------------------
+|    Markers Expected:\t{num_expected_markers}\t|
+|    Marker Set(s):\t{n_marker_sets}\t|
+|    Completeness:\t{completeness}\t|
+|    Purity:\t\t{purity}\t|
+|    Contigs Selected:\t{n_selected}\t|
+    -----------------------
+    """
 
 
 @app.callback(
