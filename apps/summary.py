@@ -1,29 +1,16 @@
 # -*- coding: utf-8 -*-
 import math
-import json
 
 import pandas as pd
 import numpy as np
-import flask
-import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
-import plotly.plotly as py
 from plotly import graph_objs as go
 
-from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
+from app import app, indicator, df_to_table
 
 colors = {"background": "#F3F6FA", "background_div": "white"}
-
-# accounts = am_manager.get_accounts()
-# contacts = am_manager.get_contacts()
-# users = am_manager.get_users()
-# processes = am_manager.workqueue.get_processes()
-# workers = am_manager.workqueue.get_workers()
-# foreman = am_manager.workqueue.get_foreman()
-
-# contacts = {}
 
 def bin_dropdown(df, column):
     options = [{"label":bin, "value": bin} for bin in df[column].unique()]

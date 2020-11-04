@@ -1,146 +1,19 @@
 # -*- coding: utf-8 -*-
-
-
-import os
-import sys
-import json
-import math
-import base64
-import datetime
-import io
-
 import pandas as pd
 import numpy as np
-import flask
 
-import dash
-# import dash_cytoscape as cyto
 import dash_table
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_daq as daq
 from plotly import graph_objs as go
-import plotly.plotly as py
 
 from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
 
 normalizeLen = lambda x: np.ceil(
     (x.length-x.length.min()) / (x.length.max()-x.length.min())
 ) * 2 + 4
-
-# def modal():
-#     return html.Div(
-#         html.Div(
-#             [
-#                 html.Div(
-#                     [
-#                         # modal header
-#                         html.Div(
-#                             [
-#                                 html.Span(
-#                                     "Export Selections",
-#                                     style={
-#                                         "color": "#c5040d",
-#                                         "fontWeight": "bold",
-#                                         "fontSize": "20",
-#                                     },
-#                                 ),
-#                                 html.Span(
-#                                     "×",
-#                                     id="analysis_modal_close",
-#                                     n_clicks=0,
-#                                     style={
-#                                         "float": "right",
-#                                         "cursor": "pointer",
-#                                         "marginTop": "0",
-#                                         "marginBottom": "17",
-#                                     },
-#                                 ),
-#                             ],
-#                             className="row",
-#                             style={"borderBottom": "1px solid #C8D4E3"},
-#                         ),
-#                         # modal form
-#                         html.Div(
-#                             [
-#                                 html.P(
-#                                     [
-#                                         "Length Cutoff",
-#                                     ],
-#                                     style={
-#                                         "float": "left",
-#                                         "marginTop": "4",
-#                                         "marginBottom": "2",
-#                                     },
-#                                     className="row",
-#                                 ),
-#                                 dcc.Input(
-#                                     id="length_cutoff",
-#                                     placeholder="Length Cutoff (default 3000bp)",
-#                                     type="text",
-#                                     value="3000",
-#                                     style={"width": "100%"},
-#                                 ),
-#                                 html.P(
-#                                     style={
-#                                         "textAlign": "left",
-#                                         "marginBottom": "2",
-#                                         "marginTop": "4",
-#                                     },
-#                                     id="completeness_display"
-#                                 ),
-#                                 dcc.Slider(
-#                                     id="completeness_cutoff",
-#                                     min=5.0,
-#                                     max=100.0,
-#                                     value=20.0,
-#                                     updatemode="drag",
-#                                 ),
-#                                 html.P(
-#                                     "Select Metagenome Assembly",
-#                                     style={
-#                                         "textAlign": "left",
-#                                         "marginBottom": "2",
-#                                         "marginTop": "4",
-#                                     },
-#                                 ),
-#                                 dcc.Upload(
-#                                     id='upload-data',
-#                                     children=['Drag and Drop or ', html.A('Select a File')],
-#                                     style={
-#                                         'width': '100%',
-#                                         'height': '60px',
-#                                         'lineHeight':' 60px',
-#                                         'borderWidth': 'dashed',
-#                                         'borderRadius': '5px',
-#                                         'textAlign': 'center',
-#                                     },
-#
-#                                 )
-#                             ],
-#                             className="row",
-#                             style={"padding": "2% 8%"},
-#                         ),
-#                         # submit button
-#                         html.Span(
-#                             "Submit",
-#                             id="submit_new_lead",
-#                             n_clicks=0,
-#                             className="button button--primary add"
-#                         ),
-#                     ],
-#                     className="modal-content",
-#                     style={"textAlign": "center"},
-#                 )
-#             ],
-#             className="modal",
-#         ),
-#         id="analysis_modal",
-#         style={"display": "none"},
-#     )
-
-
 layout = [
     # 2D-scatter plot row div
     html.Div(

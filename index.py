@@ -1,19 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import math
-import sys
-import base64
-import dash
 import argparse
 
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
-import flask
-import plotly.plotly as py
-from plotly import graph_objs as go
 
 from app import app, server
 from apps import explorer, summary, projects
