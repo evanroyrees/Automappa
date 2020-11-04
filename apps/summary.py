@@ -12,14 +12,21 @@ from app import app, indicator, df_to_table
 
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
+
 def bin_dropdown(df, column):
-    options = [{"label":bin, "value": bin} for bin in df[column].unique()]
+    options = [{"label": bin, "value": bin} for bin in df[column].unique()]
     return options
 
 
 def pie_chart(df, column, rank, bin):
     if not bin:
-        layout = dict(annotations=[dict(text="Select bin from dropdown for taxa breakdown", showarrow=False)])
+        layout = dict(
+            annotations=[
+                dict(
+                    text="Select bin from dropdown for taxa breakdown", showarrow=False
+                )
+            ]
+        )
         return {"data": [], "layout": layout}
     dff = df[df[column] == bin]
     n_ctgs = len(dff.index)
@@ -34,10 +41,9 @@ def pie_chart(df, column, rank, bin):
     trace = go.Pie(
         labels=labels,
         values=values,
-        hoverinfo='label+percent',
-        textinfo='label',
+        hoverinfo="label+percent",
+        textinfo="label",
         showlegend=False,
-
     )
     return {"data": [trace], "layout": layout}
 
@@ -61,7 +67,7 @@ def cases_by_period(df, period, priority, origin):
     dates = df.index.get_level_values("CreatedDate").unique()
     dates = [str(i) for i in dates]
 
-    co = { # colors for stages
+    co = {  # colors for stages
         "Electrical": "#264e86",
         "Other": "#0074e4",
         "Structural": "#74dbef",
@@ -96,10 +102,16 @@ def cases_by_period(df, period, priority, origin):
 
 def cases_by_account(cases):
     cases = cases.dropna(subset=["AccountId"])
-    cases = pd.merge(cases, accounts,left_on="AccountId",right_on="Id")
-    cases = cases.groupby(["AccountId","Name"]).count()
-    cases = cases.sort_values('IsDeleted')
-    data = [go.Bar(y=cases.index.get_level_values('Name'), x=cases["IsDeleted"], orientation="h")] # x could be any column value since its a count
+    cases = pd.merge(cases, accounts, left_on="AccountId", right_on="Id")
+    cases = cases.groupby(["AccountId", "Name"]).count()
+    cases = cases.sort_values("IsDeleted")
+    data = [
+        go.Bar(
+            y=cases.index.get_level_values("Name"),
+            x=cases["IsDeleted"],
+            orientation="h",
+        )
+    ]  # x could be any column value since its a count
 
     layout = go.Layout(
         barmode="stack",
@@ -113,19 +125,21 @@ def cases_by_account(cases):
 
 def taxa_by_rank(df, column, rank):
     ranks = {
-        'kingdom':'Kingdom',
-        'phylum':'Phylum',
-        'class':'Class',
-        'order':'Order',
-        'family':'Family',
-        'genus':'Genus',
-        'species':'Species',
+        "kingdom": "Kingdom",
+        "phylum": "Phylum",
+        "class": "Class",
+        "order": "Order",
+        "family": "Family",
+        "genus": "Genus",
+        "species": "Species",
     }
     clusters = dict(list(df.groupby(column)))
     clusters = df[column].unique().tolist()
-    clusters.pop(clusters.index('unclustered'))
+    clusters.pop(clusters.index("unclustered"))
     nuniques = [df[df[column] == cluster][rank].nunique() for cluster in clusters]
-    data = [go.Bar(y=clusters, x=nuniques, orientation="h")] # x could be any column value since its a count
+    data = [
+        go.Bar(y=clusters, x=nuniques, orientation="h")
+    ]  # x could be any column value since its a count
 
     layout = go.Layout(
         barmode="stack",
@@ -138,7 +152,7 @@ def taxa_by_rank(df, column, rank):
 
 
 def assembly_stats(df, column):
-    metrics = {'n50':{}, 'clusters':{}}
+    metrics = {"n50": {}, "clusters": {}}
     bins = dict(list(df.groupby(column)))
     for cluster, dff in bins.items():
         # 1. Determine cluster n50
@@ -150,67 +164,102 @@ def assembly_stats(df, column):
             if total >= half_size:
                 n50 = l
                 break
-        metrics['n50'].update({cluster:n50})
-        metrics['clusters'].update({cluster:cluster})
-    ftuples = [('n_ctgs', 'count'), ('size', 'sum'), ('max_len', 'max')]
+        metrics["n50"].update({cluster: n50})
+        metrics["clusters"].update({cluster: cluster})
+    ftuples = [("n_ctgs", "count"), ("size", "sum"), ("max_len", "max")]
     clusters = df.groupby(column)
-    agg_stats = clusters['length'].agg(ftuples)
+    agg_stats = clusters["length"].agg(ftuples)
     metrics.update(agg_stats.to_dict())
     # Get weighted averages of GC percentages
-    get_gc_wtdavg = lambda g: round(np.average(g['gc'], weights=(g.length / g.length.sum())), 2)
+    get_gc_wtdavg = lambda g: round(
+        np.average(g["gc"], weights=(g.length / g.length.sum())), 2
+    )
     wtd_gcs = clusters.apply(get_gc_wtdavg)
     # Get weighted standard deviation
-    get_wtd_gcs_sdpc = lambda g: round((math.sqrt(
-        np.average(
-            (g['gc'] - np.average(g['gc'], weights=(g.length/g.length.sum())))**2,
-            weights=(g.length / g.length.sum()))
+    get_wtd_gcs_sdpc = lambda g: round(
+        (
+            math.sqrt(
+                np.average(
+                    (g["gc"] - np.average(g["gc"], weights=(g.length / g.length.sum())))
+                    ** 2,
+                    weights=(g.length / g.length.sum()),
+                )
+            )
+            / np.average(g["gc"], weights=(g.length / g.length.sum()))
         )
-        / np.average(g['gc'], weights=(g.length/g.length.sum()))) \
-        * 100, 2)
+        * 100,
+        2,
+    )
     wtd_gcs_sdpc = clusters.apply(get_wtd_gcs_sdpc)
     # weighted_gc_sdpc = (weighted_gc_stdev / weighted_gc_av)*100
-    metrics.update({'wtd_gcs': wtd_gcs.to_dict(), 'wtd_gc_sdpc': wtd_gcs_sdpc.to_dict()})
+    metrics.update(
+        {"wtd_gcs": wtd_gcs.to_dict(), "wtd_gc_sdpc": wtd_gcs_sdpc.to_dict()}
+    )
 
     # Get weighted average of Coverages
-    get_cov_wtdavg = lambda g: round(np.average(g['cov'], weights=(g.length / g.length.sum())), 2)
+    get_cov_wtdavg = lambda g: round(
+        np.average(g["cov"], weights=(g.length / g.length.sum())), 2
+    )
     wtd_covs = clusters.apply(get_cov_wtdavg)
     # Get weighted standard deviation and calculate z-score...
-    get_wtd_covs_sdpc = lambda g: round((math.sqrt(
-        np.average(
-            (g['cov'] - np.average(g['cov'], weights=(g.length/g.length.sum())))**2,
-            weights=(g.length / g.length.sum())))
-        / np.average(g['cov'], weights=(g.length/g.length.sum()))) \
-        * 100, 2)
+    get_wtd_covs_sdpc = lambda g: round(
+        (
+            math.sqrt(
+                np.average(
+                    (
+                        g["cov"]
+                        - np.average(g["cov"], weights=(g.length / g.length.sum()))
+                    )
+                    ** 2,
+                    weights=(g.length / g.length.sum()),
+                )
+            )
+            / np.average(g["cov"], weights=(g.length / g.length.sum()))
+        )
+        * 100,
+        2,
+    )
     wtd_covs_sdpc = clusters.apply(get_wtd_covs_sdpc)
-    metrics.update({'wtd_covs': wtd_covs.to_dict(), 'wtd_cov_sdpc':wtd_covs_sdpc.to_dict()})
-    bin_df = pd.DataFrame({
-        'cluster': metrics['clusters'],
-        'size': metrics['size'],
-        'longest_contig': metrics['max_len'],
-        'n50': metrics['n50'],
-        'number_contigs': metrics['n_ctgs'],
-        'wtd_cov': metrics['wtd_covs'],
-        'wtd_cov_sdpc': metrics['wtd_cov_sdpc'],
-        'wtd_gc': metrics['wtd_gcs'],
-        'wtd_gc_sdpc': metrics['wtd_gc_sdpc'],
-    })
+    metrics.update(
+        {"wtd_covs": wtd_covs.to_dict(), "wtd_cov_sdpc": wtd_covs_sdpc.to_dict()}
+    )
+    bin_df = pd.DataFrame(
+        {
+            "cluster": metrics["clusters"],
+            "size": metrics["size"],
+            "longest_contig": metrics["max_len"],
+            "n50": metrics["n50"],
+            "number_contigs": metrics["n_ctgs"],
+            "wtd_cov": metrics["wtd_covs"],
+            "wtd_cov_sdpc": metrics["wtd_cov_sdpc"],
+            "wtd_gc": metrics["wtd_gcs"],
+            "wtd_gc_sdpc": metrics["wtd_gc_sdpc"],
+        }
+    )
     return df_to_table(bin_df)
+
 
 layout = [
     # Markdown Summary Report
     html.Div(
         className="row twelve columns",
-        children = [
-            html.Div([
-                html.H5('Autometa Binning Report:',id='markdown_summary'),
-            ], className='six columns'),
-            html.Div([
-                indicator(
-                    color="#00cc96",
-                    text="Summary",
-                    id_value="summary_indicator",
-                ),
-            ], className='six columns'),
+        children=[
+            html.Div(
+                [
+                    html.H5("Autometa Binning Report:", id="markdown_summary"),
+                ],
+                className="six columns",
+            ),
+            html.Div(
+                [
+                    indicator(
+                        color="#00cc96",
+                        text="Summary",
+                        id_value="summary_indicator",
+                    ),
+                ],
+                className="six columns",
+            ),
         ],
     ),
     # Charts
@@ -221,11 +270,10 @@ layout = [
                 [
                     html.P("Completeness & Purity"),
                     dcc.Graph(
-                        id='bins_completness_purity',
+                        id="bins_completness_purity",
                         config=dict(displayModeBar=False),
                         style={"height": "89%", "width": "98%"},
                     ),
-
                 ],
                 className="six columns chart_div",
             ),
@@ -239,7 +287,7 @@ layout = [
                         style={"height": "89%", "width": "98%"},
                     ),
                 ],
-                className="six columns chart_div"
+                className="six columns chart_div",
             ),
         ],
         className="row",
@@ -253,8 +301,14 @@ layout = [
                     id="bin_summary_cluster_col",
                     options=[
                         {"label": "Cluster", "value": "cluster"},
-                        {"label": "Decision Tree Classifier", "value": "ML_expanded_clustering"},
-                        {"label": "Paired-end Refinement", "value": "paired_end_refined_bin"},
+                        {
+                            "label": "Decision Tree Classifier",
+                            "value": "ML_expanded_clustering",
+                        },
+                        {
+                            "label": "Paired-end Refinement",
+                            "value": "paired_end_refined_bin",
+                        },
                     ],
                     value="cluster",
                     clearable=False,
@@ -305,7 +359,7 @@ layout = [
                         style={"height": "89%", "width": "98%"},
                     ),
                 ],
-                className="six columns chart_div"
+                className="six columns chart_div",
             ),
             # Assembly Stats Table
             html.Div(
@@ -322,7 +376,7 @@ layout = [
                     html.Div(
                         id="assembly_stats",
                         style={"padding": "0px 13px 5px 13px", "marginBottom": "5"},
-                    )
+                    ),
                 ],
                 className="six columns",
                 style={
@@ -337,15 +391,15 @@ layout = [
         className="row",
         style={"marginTop": "5px"},
     ),
-
 ]
+
 
 @app.callback(
     Output("summary_indicator", "children"),
     [
         Input("bin_summary_cluster_col", "value"),
         Input("binning_df", "children"),
-    ]
+    ],
 )
 def summary_indicator_callback(clusterCol, df):
     """
@@ -359,31 +413,32 @@ def summary_indicator_callback(clusterCol, df):
     """
     df = pd.read_json(df, orient="split")
     df.set_index(clusterCol, inplace=True)
-    df.drop('unclustered', inplace=True)
+    df.drop("unclustered", inplace=True)
     n_unique_bins = df.index.nunique()
     clusters = dict(list(df.groupby(clusterCol)))
-    completeness_list, purities = [],[]
+    completeness_list, purities = [], []
     markers = 139
     for cluster, dff in clusters.items():
         # This will be gene marker set to alter later
         pfams = dff.single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(',')]
+        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
         total = len(all_pfams)
         nunique = len(set(all_pfams))
-        completeness = float(nunique)/markers * 100
+        completeness = float(nunique) / markers * 100
         completeness_list.append(completeness)
-        purity = 0 if total == 0 else float(nunique)/total * 100
+        purity = 0 if total == 0 else float(nunique) / total * 100
         purities.append(purity)
     median_completeness = round(np.median(completeness_list), 2)
     median_purity = round(np.median(purities), 2)
-    txt = '\n'.join([
-        '',
-        'Bins: {}'.format(n_unique_bins),
-        'Median Completeness: {}'.format(median_completeness),
-        'Median Purity: {}'.format(median_purity),
-    ])
+    txt = "\n".join(
+        [
+            "",
+            "Bins: {}".format(n_unique_bins),
+            "Median Completeness: {}".format(median_completeness),
+            "Median Purity: {}".format(median_purity),
+        ]
+    )
     return txt
-
 
 
 @app.callback(
@@ -402,20 +457,20 @@ def bins_completness_purity_callback(clusterCol, df):
     completes = []
     for cluster in clusters:
         pfams = clusters[cluster].single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(',')]
+        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
         total = len(all_pfams)
         nunique = len(set(all_pfams))
-        completeness = float(nunique)/markers * 100
-        purity = float(nunique)/total * 100
+        completeness = float(nunique) / markers * 100
+        purity = float(nunique) / total * 100
         completes.append(completeness)
         purities.append(purity)
         cluster_names.append(cluster)
     return {
-        'data': [
-            {'x':cluster_names, 'y':completes, 'type':'bar', 'name':'Completeness'},
-            {'x':cluster_names, 'y':purities, 'type':'bar', 'name':'Purity'},
+        "data": [
+            {"x": cluster_names, "y": completes, "type": "bar", "name": "Completeness"},
+            {"x": cluster_names, "y": purities, "type": "bar", "name": "Purity"},
         ],
-        'layout': {'animate':True}
+        "layout": {"animate": True},
     }
 
 
@@ -432,6 +487,7 @@ def bin_taxa_breakdown_callback(selectedBin, selectedRank, clusterCol, df):
     df = pd.read_json(df, orient="split")
     return pie_chart(df, clusterCol, selectedRank, selectedBin)
 
+
 @app.callback(
     Output("bin_dropdown", "options"),
     [
@@ -442,7 +498,6 @@ def bin_taxa_breakdown_callback(selectedBin, selectedRank, clusterCol, df):
 def bin_dropdown_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return bin_dropdown(df, clusterCol)
-
 
 
 @app.callback(
@@ -482,15 +537,16 @@ def cases_account_callback(df):
     df = pd.read_json(df, orient="split")
     return cases_by_account(df)
 
+
 # updates top lost opportunities based on df updates
 @app.callback(
     Output("assembly_stats", "children"),
-    [Input("bin_summary_cluster_col", "value"),
-    Input("binning_df", "children")],
+    [Input("bin_summary_cluster_col", "value"), Input("binning_df", "children")],
 )
 def assembly_stats_callback(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return assembly_stats(df, clusterCol)
+
 
 # @app.callback(Output("cases_modal", "style"), [Input("new_case", "n_clicks")])
 # def display_cases_modal_callback(n):
