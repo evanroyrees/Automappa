@@ -3,13 +3,15 @@ import pandas as pd
 import numpy as np
 
 import dash_table
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_daq as daq
 from plotly import graph_objs as go
 
-from app import app, indicator, millify, df_to_table, parse_df_upload, parse_contents
+from app import app
+
 
 normalizeLen = (
     lambda x: np.ceil((x.length - x.length.min()) / (x.length.max() - x.length.min()))
@@ -17,6 +19,10 @@ normalizeLen = (
     + 4
 )
 layout = [
+    # Hidden div to store refinement selections
+    html.Div(id="intermediate-selections", style={"display": "none"}),
+    html.Div(dash_table.DataTable(id="refinement-table"), style={"display": "none"}),
+    html.Div(id="selection_df", style={"display": "none"}),
     # 2D-scatter plot row div
     html.Div(
         [
@@ -33,23 +39,11 @@ layout = [
             ),
             html.Div(
                 [
-                    html.Span(
-                        html.A(
-                            id="save_refinement_file",
-                            children="Save Refinement",
-                            style={"color": "white"},
-                        ),
+                    html.Button("Save Refinement",
                         id="save_button",
                         n_clicks=0,
                         className="button button--primary",
-                        style={
-                            "height": "34",
-                            "background": "#c5040d",
-                            "border": "1px solid #c5040d",
-                            "color": "white",
-                        },
                     ),
-                    html.Br(),
                     html.Label("Color By:"),
                     dcc.Dropdown(
                         id="cluster_col",
@@ -87,16 +81,27 @@ layout = [
                         },
                         id="selection_summary",
                     ),
-                    # add save selection toggle
+                    # add hide selection toggle
                     daq.ToggleSwitch(
-                        id="save-selection-toggle",
+                        id="hide-selections-toggle",
                         size=40,
                         color="#c5040d",
-                        label="New clustering toggle:",
+                        label="Hide Selections",
                         labelPosition="top",
                         vertical=False,
                         value=False,
                     ),
+                    # add save selection toggle
+                    daq.ToggleSwitch(
+                        id="save-selections-toggle",
+                        size=40,
+                        color="#c5040d",
+                        label="Save Selections",
+                        labelPosition="top",
+                        vertical=False,
+                        value=False,
+                    ),
+                    html.P("Note: Untoggling save toggle will discard all selections"),
                 ],
                 className="two columns",
             ),
@@ -107,7 +112,7 @@ layout = [
         [
             html.Div(
                 [
-                    html.Label("3D Binning Overview"),
+                    html.Label("Figure 2: 3D Binning Overview"),
                     dcc.Graph(
                         id="scatter3d_graphic",
                         clear_on_unhover=True,
@@ -120,11 +125,22 @@ layout = [
                         },
                     ),
                 ],
-                className="five columns threeD_scatter_div",
+                className="seven columns threeD_scatter_div",
             ),
             html.Div(
                 [
-                    html.Label("<-- Change 3D plot Z-axis:"),
+                    html.Label("Figure 3: Taxonomic Distribution"),
+                    dcc.Graph(
+                        id="taxa_piechart",
+                        style={"height": "90%", "width": "98%"},
+                        config=dict(displayModeBar=False),
+                    ),
+                ],
+                className="three columns taxa_chart_div",
+            ),
+            html.Div(
+                [
+                    html.Label("Fig. 2: Z-axis"),
                     dcc.Dropdown(
                         id="zaxis_column",
                         options=[
@@ -135,7 +151,7 @@ layout = [
                         value="cov",
                         clearable=False,
                     ),
-                    html.Label("Distribute Taxa by Rank: -->"),
+                    html.Label("Fig. 3: Distribute Taxa by Rank"),
                     dcc.Dropdown(
                         id="rank_dropdown",
                         options=[
@@ -153,54 +169,18 @@ layout = [
                 ],
                 className="two columns",
             ),
-            html.Div(
-                [
-                    html.Label("Taxonomic Distribution"),
-                    dcc.Graph(
-                        id="taxa_piechart",
-                        style={"height": "90%", "width": "98%"},
-                        config=dict(displayModeBar=False),
-                    ),
-                ],
-                className="five columns taxa_chart_div",
-            ),
         ],
         className="row",
         style={"marginTop": "0", "marginBottom": "2"},
     ),
-    # Taxa Distribution plot row div
+    html.Label("Current Manual Refinement Table"),
     # table div
     html.Div(
-        className="row twelve columns",
-        style={
-            "maxHeight": "350px",
-            "overflowY": "scroll",
-            "padding": "8",
-            "marginTop": "5",
-            "backgroundColor": "white",
-            "border": "1px solid #C8D4E3",
-            "borderRadius": "3px",
-        },
+        className="row twelve columns binning_table",
         id="binning_table",
     ),
     html.Div(id="uploaded-data"),
-    # modal(),
 ]
-
-# # TODO: See https://plot.ly/python/custom-buttons/ and relayout to remove
-# legend and draw circles (or convex hulls) over clusters
-# @app.callback(
-#     Output("2d-figure", ""),
-#     [Input("2d-legend", "value")]
-# )
-# def draw_2d_circles(value):
-#     return circles
-
-# # TODO: DEBUG: Legend Hide/Show See line : 495
-# Hide legend
-@app.callback(Output("scatter2d_graphic", "layout"), [Input("2d-legend", "value")])
-def hide_2d_legend(value):
-    return dict(showlegend=value)
 
 
 @app.callback(Output("cluster_col", "options"), [Input("binning_df", "children")])
@@ -210,7 +190,7 @@ def get_color_by_cols(df):
     options = [
         {"label": col.title().replace("_", " "), "value": col}
         for col in df.columns
-        if df[col].dtype.name not in {"float64", "int64"}
+        if df[col].dtype.name not in {"float64", "int64"} and col != "contig"
     ]
     return options
 
@@ -250,26 +230,6 @@ def display_selection_summary(selectedData, df):
 |    Contigs Selected:\t{n_selected}\t|
     -----------------------
     """
-
-
-@app.callback(
-    Output("binning_table", "children"),
-    [Input("binning_df", "children")],
-)
-def bin_table_callback(df):
-    df = pd.read_json(df, orient="split")
-    child = (
-        dash_table.DataTable(
-            id="datatable",
-            data=df.to_dict("records"),
-            columns=[{"name": col, "id": col} for col in df.columns],
-            # sorting=True,
-            # filtering=True,
-            virtualization=True,
-            # pagination_mode=None,
-        ),
-    )
-    return child
 
 
 @app.callback(
@@ -381,11 +341,12 @@ def update_zaxis(zaxis_column, cluster_col, selectedData, df):
         Input("2d_yaxis", "value"),
         Input("cluster_col", "value"),
         Input("binning_df", "children"),
-        # Input('datatable', 'data')]
+        Input("intermediate-selections", "children"),
+        Input("hide-selections-toggle", "value"),
     ],
 )
-def update_axes(xaxis_column, yaxis_column, cluster_col, df):
-    df = pd.read_json(df, orient="split")
+def update_axes(xaxis_column, yaxis_column, cluster_col, binning, refinement, hide_selection_toggle):
+    df = pd.read_json(binning, orient="split")
     titles = {
         "bh_tsne_x": "bh-tsne-x",
         "bh_tsne_y": "bh-tsne-y",
@@ -396,6 +357,14 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
     xaxis_title = titles[xaxis_column]
     yaxis_title = titles[yaxis_column]
 
+    # Subset binning_df by selections iff selections have been made
+    if hide_selection_toggle:
+        refine_df = pd.read_json(refinement, orient="split")
+        refine_cols = [col for col in refine_df.columns if "refinement" in col]
+        if refine_cols:
+            refine_col = refine_cols.pop()
+            # Retrieve only contigs that have not already been refined...
+            df = df[~refine_df[refine_col].str.contains("refinement")]
     return {
         "data": [
             go.Scattergl(
@@ -428,7 +397,7 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, df):
 
 @app.callback(
     Output("datatable", "data"),
-    [Input("scatter2d_graphic", "selectedData"), Input("binning_df", "children")],
+    [Input("scatter2d_graphic", "selectedData"), Input("intermediate-selections", "children")],
 )
 def update_table(selectedData, df):
     df = pd.read_json(df, orient="split")
@@ -436,3 +405,48 @@ def update_table(selectedData, df):
         return df.to_dict("records")
     selected = {point["text"] for point in selectedData["points"]}
     return df[df.contig.isin(selected)].to_dict("records")
+
+
+@app.callback(
+    Output("binning_table", "children"),
+    [Input("intermediate-selections", "children")],
+)
+def bin_table_callback(df):
+    df = pd.read_json(df, orient="split")
+    return dash_table.DataTable(
+            id="datatable",
+            data=df.to_dict("records"),
+            columns=[{"name": col, "id": col} for col in df.columns],
+            style_cell={'textAlign': 'center'},
+            style_cell_conditional=[
+                {
+                    'if': {'column_id': 'contig'},
+                    'textAlign': 'right'
+                }
+            ],
+            virtualization=True)
+
+
+@app.callback(
+    Output("intermediate-selections", "children"),
+    [
+        Input("scatter2d_graphic", "selectedData"),
+        Input("refinement-data", "children"),
+        Input("save-selections-toggle", "value"),
+    ],
+    [State("intermediate-selections", "children")],
+)
+def store_binning_refinement_selections(selected_data, refinement_data, save_toggle, intermediate_selections):
+    if not selected_data or not save_toggle:
+        bin_df = pd.read_json(refinement_data, orient="split")
+        return bin_df.to_json(orient="split")
+    contigs = {point["text"] for point in selected_data["points"]}
+    pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
+    refinement_cols = [col for col in pdf.columns if "refinement" in col]
+    refinement_num = len(refinement_cols) + 1
+    group_name = f"refinement_{refinement_num}"
+    pdf.loc[contigs, group_name] = group_name
+    pdf = pdf.fillna(axis="columns", method="ffill")
+    pdf.reset_index(inplace=True)
+    # print(pdf.head(3))
+    return pdf.to_json(orient="split")

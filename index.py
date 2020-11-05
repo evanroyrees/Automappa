@@ -30,13 +30,18 @@ tab_selected_style = {
 }
 
 
-def layout(df):
+def layout(df, cluster_columns):
     app.layout = html.Div(
         [
             # Hidden div that saves dataframe for each tab
             html.Div(
                 df.to_json(orient="split"), id="binning_df", style={"display": "none"}
-            ),  # leads df
+            ),
+            html.Div(
+                df[cluster_columns].to_json(orient="split"),
+                id="refinement-data",
+                style={"display": "none"},
+            ),
             html.Link(
                 href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
                 rel="stylesheet",
@@ -143,5 +148,10 @@ if __name__ == "__main__":
         print(f"{args.port} is not an integer")
         exit(1)
     df = pd.read_csv(args.input, sep="\t")
-    layout(df)
+    cols = [
+        col
+        for col in df.columns
+        if "refinement_" in col or "cluster" in col or "contig" in col
+    ]
+    layout(df, cluster_columns=cols)
     app.run_server(host=args.host, port=PORT, debug=args.production)
