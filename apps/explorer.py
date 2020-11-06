@@ -437,12 +437,11 @@ def bin_table_callback(df):
         Input("intermediate-selections", "children")
     ]
 )
-def download_refinements(n_clicks, intermediate_selections, filename="refinements.csv"):
+def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:
         raise PreventUpdate
     df = pd.read_json(intermediate_selections, orient="split")
-    filename = filename if filename.endswith(".csv") else os.path.splitext(filename)[0]+".csv"
-    return send_data_frame(df.to_csv, filename, index=False)
+    return send_data_frame(df.to_csv, "refinements.csv", index=False)
 
 @app.callback(
     Output("intermediate-selections", "children"),
