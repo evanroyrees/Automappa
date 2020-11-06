@@ -1,5 +1,6 @@
 .PHONY: clean test env help
 
+
 help:
 	@echo "Please read the 'Makefile' file for available commands"
 
@@ -14,3 +15,8 @@ env:
 install: ./requirements.txt
 	@echo "Installing dependencies"
 	pip3 install --user -r $<
+
+
+clean:
+	@rm -rf __pycache__
+	@rm -rf apps/__pycache__
