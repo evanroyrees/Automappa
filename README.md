@@ -31,6 +31,7 @@ Now that all of the dependencies are installed, you may run the app on your loca
 ### Local Usage:
 
 ```bash
+cd $HOME/Automappa
 python index.py -i <path/to/recursive_dbscan_output.tab>
 ```
 
@@ -44,7 +45,7 @@ If you'd like to run the app on the server but view the output on your local mac
 ssh -L 6920:127.0.0.1:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
 ```
 
-Now once you're on the server, navigate to your autometa-app repository and start the autometa-app server.
+Now once you're on the server, navigate to your Automappa repository and start the Automappa server.
 
 ```bash
 cd $HOME/Automappa && python index.py -i <path/to/recursive_dbscan_output.tab>
