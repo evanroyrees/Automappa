@@ -1,16 +1,58 @@
-# Autometa App
+Automappa
+=========
 
-## An interactive interface for exploration of highly complex metagenomes.
+An interactive interface for exploration of highly complex metagenomes
+----------------------------------------------------------------------
 
-___
+## Installation
 
-## Feature Requests, Issues, Bugs
+You can install all of Automappa's dependencies using the Makefile found within the repository.
 
-I've integrated [Trello boards](https://trello.com/b/8LClJVKA "Link to Autometa-App Trello Board") into the bitbucket repository for noting any feature requests or bugs.
+```bash
+cd $HOME
+git clone https://github.com/WiscEvan/Automappa.git
+cd $HOME/Automappa
 
-___
+# Note: make env assumes you have conda installed.
+# automappa env will be created.
+make env
+
+# Now activate automappa env for installation of dependencies.
+conda activate automappa
+
+# Finally install dependencies using Makefile install command.
+make install
+```
+
+Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
 
 ## Usage:
+
+### Local Usage:
+
+```bash
+python index.py -i <path/to/recursive_dbscan_output.tab>
+```
+
+### Remote:
+
+If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.
+
+```bash
+#ssh -L localport:127.0.0.1:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
+#example
+ssh -L 6920:127.0.0.1:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
+```
+
+Now once you're on the server, navigate to your autometa-app repository and start the autometa-app server.
+
+```bash
+cd $HOME/Automappa && python index.py -i <path/to/recursive_dbscan_output.tab>
+```
+
+Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `localhost:6920`.
+
+# [BELOW IS DEPRECATED: This docker image no longer corresponds to the current version of Automappa]
 
 ### Remote & Docker (Easiest and Quickest):
 
@@ -60,35 +102,3 @@ I've numbered the ports here to help illustrate the network communication.
 | :------------- | :------------- | :------------- |
 | remote_server_port:container_port | 8887:8886 | [bioinformatics\|CHTC server]:docker |
 | localhost_port:remote_server_port | 8888:8887 | local machine:[bioinformatics\|CHTC server] |
-
-### Local Usage:
-
-Right now the autometa-app requires specific python libraries with specific versions of these libraries. There is a `requirements.txt` file within the repo that should be used to make sure the appropriate dependencies are satisfied.
-
-You can install all of these requirements with `pip`:
-
-- `pip install -r requirements.txt`
-
-Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
-
-### Remote:
-
-If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.
-
-```bash
-#ssh -L localport:127.0.0.1:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
-#example
-ssh -L 6920:127.0.0.1:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
-```
-
-Now once you're on the server, navigate to your autometa-app repository and start the autometa-app server.
-
-```bash
-cd </path/to/autometa-app> && python index.py -i </path/to/autometa_output.tsv>
-```
-
-Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `localhost:6920`.
-
-### Navigation and Functionality Display
-
-![dashboard](images/autometaDashboard.gif "Autometa Dashboard")
