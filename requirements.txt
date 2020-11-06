@@ -1,4 +1,6 @@
 dash
+dash_daq
+dash-extensions==0.0.31
 Flask==1.0.2
 Flask-Compress==1.4.0
 gunicorn==19.9.0
