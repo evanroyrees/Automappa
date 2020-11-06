@@ -53,6 +53,9 @@ cd $HOME/Automappa && python index.py -i <path/to/recursive_dbscan_output.tab>
 
 Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `localhost:6920`.
 
+![automappa](images/automappa.gif)
+
+
 # [BELOW IS DEPRECATED: This docker image no longer corresponds to the current version of Automappa]
 
 ### Remote & Docker (Easiest and Quickest):
