@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 
 import dash_table
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
@@ -101,7 +102,9 @@ layout = [
                         vertical=False,
                         value=False,
                     ),
-                    html.P("Note: Untoggling save toggle will discard all selections"),
+                    html.P("NOTE"),
+                    html.Br(),
+                    html.P("Toggling save with contigs selected will save them as a refinement group."),
                 ],
                 className="two columns",
             ),
@@ -179,7 +182,6 @@ layout = [
         className="row twelve columns binning_table",
         id="binning_table",
     ),
-    html.Div(id="uploaded-data"),
 ]
 
 
@@ -427,6 +429,13 @@ def bin_table_callback(df):
             virtualization=True)
 
 
+# @app.callback(Output(""),
+# [Input("save_button", "n_clicks")]
+# )
+# def callback_save_refinement(intermediate_selections):
+#     pass
+
+
 @app.callback(
     Output("intermediate-selections", "children"),
     [
@@ -437,9 +446,15 @@ def bin_table_callback(df):
     [State("intermediate-selections", "children")],
 )
 def store_binning_refinement_selections(selected_data, refinement_data, save_toggle, intermediate_selections):
-    if not selected_data or not save_toggle:
+    if not selected_data and not intermediate_selections:
+        # We first load in our binning information for refinement
+        # Note: this callback should trigger on initial load
+        # TODO: Could also remove and construct dataframes from selected contigs
+        # Then perform merge when intermediate selections are downloaded.
         bin_df = pd.read_json(refinement_data, orient="split")
         return bin_df.to_json(orient="split")
+    if not save_toggle:
+        raise PreventUpdate
     contigs = {point["text"] for point in selected_data["points"]}
     pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
     refinement_cols = [col for col in pdf.columns if "refinement" in col]
