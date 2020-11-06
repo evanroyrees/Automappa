@@ -8,8 +8,8 @@ test:
 	python index.py -i test/bins.tsv
 
 env:
-	@echo "Creating env name: magmap"
-	conda create -n magmap python=3.7 -y
+	@echo "Creating env name: automappa"
+	conda create -n automappa python=3.7 -y
 	@echo "(Note: You will need to activate your environment before proceeding with make install"
 
 install: ./requirements.txt
