@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
 import numpy as np
 
 import dash_table
-import dash_bootstrap_components as dbc
+from dash_extensions import Download
+from dash_extensions.snippets import send_data_frame
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
@@ -22,8 +24,6 @@ normalizeLen = (
 layout = [
     # Hidden div to store refinement selections
     html.Div(id="intermediate-selections", style={"display": "none"}),
-    html.Div(dash_table.DataTable(id="refinement-table"), style={"display": "none"}),
-    html.Div(id="selection_df", style={"display": "none"}),
     # 2D-scatter plot row div
     html.Div(
         [
@@ -45,6 +45,7 @@ layout = [
                         n_clicks=0,
                         className="button button--primary",
                     ),
+                    Download(id='download-refinement'),
                     html.Label("Color By:"),
                     dcc.Dropdown(
                         id="cluster_col",
@@ -429,12 +430,19 @@ def bin_table_callback(df):
             virtualization=True)
 
 
-# @app.callback(Output(""),
-# [Input("save_button", "n_clicks")]
-# )
-# def callback_save_refinement(intermediate_selections):
-#     pass
-
+@app.callback(
+    Output("download-refinement", "data"),
+    [
+        Input("save_button", "n_clicks"),
+        Input("intermediate-selections", "children")
+    ]
+)
+def download_refinements(n_clicks, intermediate_selections, filename="refinements.csv"):
+    if not n_clicks:
+        raise PreventUpdate
+    df = pd.read_json(intermediate_selections, orient="split")
+    filename = filename if filename.endswith(".csv") else os.path.splitext(filename)[0]+".csv"
+    return send_data_frame(df.to_csv, filename, index=False)
 
 @app.callback(
     Output("intermediate-selections", "children"),
