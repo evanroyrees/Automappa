@@ -1,7 +1,7 @@
 Automappa
 =========
 
-![docker CI/CD](https://github.com/WiscEvan/Automappa/workflows/docker%20CI/CD/badge.svg)
+![docker CI/CD](https://github.com/WiscEvan/Automappa/workflows/docker%20CI/CD/badge.svg "evanrees/automappa:latest")
 
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
