@@ -1,3 +1,4 @@
+biopython
 dash
 dash_daq
 dash-extensions==0.0.31
@@ -7,7 +8,6 @@ gunicorn==19.9.0
 Jinja2>=2.10.1
 jsonschema==2.6.0
 jupyter-core==4.4.0
-MarkupSafe==1.0
 nbformat==4.4.0
 numpy
 pandas

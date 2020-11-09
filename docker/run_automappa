@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -o errexit
+set -o nounset
+
+function realpath() {
+    echo $(readlink -f $1 2>/dev/null || python -c "import sys; import os; print(os.path.realpath(os.path.expanduser(sys.argv[1])))" $1)
+}
+
+# handle input file
+readonly INPUT_FILE=$(basename $1)
+readonly INPUT_DIR=$(dirname $(realpath $1))
+
+# Links within the container
+# readonly CONTAINER_SRC_DIR=/input
+
+LOCAL_PORT=8050
+echo ":================== NOTICE ====================:"
+echo
+echo "Attention Automappa User: IGNORE Dash port 8886."
+echo "Navigate to ---> http://localhost:${LOCAL_PORT}"
+echo
+echo ":----------------------------------------------:"
+
+docker run \
+    --publish $LOCAL_PORT:8886 \
+    --detach=false \
+    --rm \
+    evanrees/automappa:latest \
+    -i $1 \
+    --port 8886 \
+    --host 0.0.0.0

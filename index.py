@@ -62,7 +62,7 @@ def layout(df, cluster_columns):
             html.Div(
                 [
                     html.Label(
-                        "Autometa Dashboard", className="three columns app-title"
+                        "Automappa Dashboard", className="three columns app-title"
                     ),
                     html.Div(
                         [
@@ -135,10 +135,10 @@ if __name__ == "__main__":
         default="0.0.0.0",
     )
     parser.add_argument(
-        "--production",
-        help="take autometa-app out of debug mode",
-        action="store_false",
-        default=True,
+        "--debug",
+        help="Turn on debug mode",
+        action="store_true",
+        default=False,
     )
     args = parser.parse_args()
     try:
@@ -154,4 +154,4 @@ if __name__ == "__main__":
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
     layout(df, cluster_columns=cols)
-    app.run_server(host=args.host, port=PORT, debug=args.production)
+    app.run_server(host=args.host, port=PORT, debug=args.debug)

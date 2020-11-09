@@ -8,10 +8,33 @@ import dash_core_components as dcc
 import dash_html_components as html
 from plotly import graph_objs as go
 
-from app import app, indicator, df_to_table
+from app import app
 
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
+# return html Table with dataframe values
+def df_to_table(df):
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in df.columns])]
+        +
+        # Body
+        [
+            html.Tr([html.Td(df.iloc[i][col]) for col in df.columns])
+            for i in range(len(df))
+        ]
+    )
+
+
+# returns top indicator div
+def indicator(color, text, id_value):
+    return html.Div(
+        [
+            html.P(text, className="twelve columns indicator_text"),
+            html.Pre(id=id_value, className="indicator_value"),
+        ],
+        className="two columns indicator",
+    )
 
 def bin_dropdown(df, column):
     options = [{"label": bin, "value": bin} for bin in df[column].unique()]

@@ -4,7 +4,23 @@ Automappa
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
 
-## Installation
+![automappa](images/automappa.gif)
+
+### Quickstart using Docker (Easiest and Quickest):
+
+ To start quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
+
+```bash
+# Wrapper available to run docker with port-forwarding.
+curl -o run_automappa https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa
+chmod a+x run_automappa
+
+# Now run automappa using wrapper script: `run_automappa`
+# NOTE: This will pull the automappa docker image if it is not already available.
+./run_automappa <path/to/recursive_dbscan_output.tsv>
+```
+
+### Installation
 
 You can install all of Automappa's dependencies using the Makefile found within the repository.
 
@@ -13,15 +29,21 @@ cd $HOME
 git clone https://github.com/WiscEvan/Automappa.git
 cd $HOME/Automappa
 
-# Note: make env assumes you have conda installed.
-# automappa env will be created.
-make env
+# List available commands
+make
+# pull docker image
+make docker
+```
 
-# Now activate automappa env for installation of dependencies.
-conda activate automappa
+### Quickstart from source
 
-# Finally install dependencies using Makefile install command.
-make install
+```bash
+# First create environment
+make create_environment
+# Activate environment
+source activate automappa
+# The following will install dependencies and download test data then start automappa
+make test
 ```
 
 Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
@@ -53,41 +75,22 @@ cd $HOME/Automappa && python index.py -i <path/to/recursive_dbscan_output.tab>
 
 Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `localhost:6920`.
 
-![automappa](images/automappa.gif)
-
-
-# [BELOW IS DEPRECATED: This docker image no longer corresponds to the current version of Automappa]
-
-### Remote & Docker (Easiest and Quickest):
-
- To start exploring your data, run the app from a docker image (`evanrees/autometa-app:latest`) I have made [available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/autometa-app/tags "AutoMeta-App Dockerhub Tags"). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
-
 If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel (`ssh -L localport:localhost:serverport user@hostaddress`).
 
 ```bash
 #ssh -L localport:localhost:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
-ssh -L 8888:localhost:8887 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
+ssh -L 8888:localhost:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
 
-docker run \
-  # Removes the container once you've exited with 'control+C'
-  --rm \
-  # Data directory to mount inside container
-  -v </path/to/data/dir>:/data \
-  # Here we are forwarding the port exposed by the container to the host machine
-  -p 8887:8886
-  # run container from image
-  evanrees/autometa-app:latest \
-    # autometa-app command:
-    index.py \
-    # input starts with 'data/' as this is specified with the mount (-v) above
-    --input data/</path/to/autometa/output/file> \
-    # Specify port to expose from autometa-app [Must be the same port the container will expose]
-    --port 8886 \
-    #default host name... Should be resolved later for security
-    --host 0.0.0.0
+# Wrapper available to run docker with port-forwarding.
+curl -o run_automappa https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa
+chmod a+x run_automappa
+
+# Now run automappa using wrapper script: `run_automappa`
+# NOTE: This will pull the automappa docker image if it is not already available.
+./run_automappa <path/to/recursive_dbscan_output.tsv>
 ```
 
-Navigate to `localhost:8888` and you will see the loaded data.
+Now navigate to `http://localhost:8888` and you will see the loaded data.
 
 I've numbered the ports here to help illustrate the network communication.
 
