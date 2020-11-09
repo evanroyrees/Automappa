@@ -1,4 +1,3 @@
-biopython
 dash
 dash_daq
 dash-extensions==0.0.31

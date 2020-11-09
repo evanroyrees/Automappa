@@ -3,6 +3,16 @@
 set -o errexit
 set -o nounset
 
+if [ $# -eq 0 ]
+  then
+    echo "Usage: run_automappa <path/to/recursive_dbscan_output.tab>"
+    exit 0
+fi
+
+if [[ "$*" == *-h* ]];then
+    docker run --rm evanrees/automappa:latest -h
+    exit 0
+fi
 function realpath() {
     echo $(readlink -f $1 2>/dev/null || python -c "import sys; import os; print(os.path.realpath(os.path.expanduser(sys.argv[1])))" $1)
 }
@@ -27,6 +37,6 @@ docker run \
     --detach=false \
     --rm \
     evanrees/automappa:latest \
-    -i $1 \
+    --input $1 \
     --port 8886 \
     --host 0.0.0.0

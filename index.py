@@ -117,11 +117,13 @@ def render_content(tab):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Automappa: An interactive interface for exploration of metagenomes"
+    )
     parser.add_argument(
         "-i",
         "--input",
-        help="ML_recruitment.tab or recursive_dbscan.tab.",
+        help="Path to recursive_dbscan.tab or ML_recruitment.tab",
         required=True,
     )
     parser.add_argument(

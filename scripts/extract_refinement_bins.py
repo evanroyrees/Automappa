@@ -1,14 +1,41 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from io import TextIOWrapper
 from sys import exit
-from typing import List
+from typing import List, Tuple
 import argparse
 import os
 import pandas as pd
 
-from Bio import SeqIO
 
+def fasta_parser(handle: TextIOWrapper):
+    for line in handle:
+        if line[0] == ">":
+            title = line[1:].rstrip()
+            contig_id = title.split(None, 1)[0]
+            break
+    else:
+        # no break encountered - probably an empty file
+        return
+    lines = []
+    for line in handle:
+        if line[0] == ">":
+            yield title, "".join(lines).replace(" ", "").replace("\r", "")
+            lines = []
+            title = line[1:].rstrip()
+            contig_id = title.split(None, 1)[0]
+            continue
+        lines.append(line.rstrip())
+
+    yield contig_id, "".join(lines).replace(" ", "").replace("\r", "")
+
+def fasta_writer(records:List[Tuple[str,str]], out:str) -> None:
+    lines = ""
+    for record,seq in records:
+        lines += f">{record}\n{seq}\n"
+    with open(out, "w") as fh:
+        fh.write(lines)
 
 def get_contigs(df: pd.DataFrame, column: str) -> List:
     columns = df.columns.tolist()
@@ -17,7 +44,7 @@ def get_contigs(df: pd.DataFrame, column: str) -> List:
         print(f"Available columns are: {', '.join(columns)}")
         return []
     else:
-        return df[column].index.tolist()
+        return set(df[column].index.tolist())
 
 
 def main():
@@ -58,14 +85,15 @@ def main():
     contigs = get_contigs(df, column=column)
     if not contigs:
         exit(1)
-    records = [
-        record for record in SeqIO.parse(args.fasta, "fasta") if record.id in contigs
-    ]
+    records = {
+        record:seq for record,seq in fasta_parser(args.fasta, "fasta") if record in contigs
+    }
     outdir = args.output if args.output else column
     for refined_bin, dff in df.groupby(column):
-        bin_records = [record for record in records if record.id in dff.index.tolist()]
+        bin_contigs = set(dff.index.tolist())
+        bin_records = [(record,seq) for record,seq in records.items() if record in bin_contigs]
         out = os.path.join(outdir, f"{refined_bin}.fasta")
-        SeqIO.write(bin_records, out, "fasta")
+        fasta_writer(records=bin_records, out=out)
     
     print(f"wrote refinement groupings to {outdir}")
 
