@@ -10,33 +10,22 @@ if [ $# -eq 0 ]
 fi
 
 if [[ "$*" == *-h* ]];then
-    docker run --rm evanrees/automappa:latest -h
+    docker run --detach=false --rm evanrees/automappa:latest -h
     exit 0
 fi
-function realpath() {
-    echo $(readlink -f $1 2>/dev/null || python -c "import sys; import os; print(os.path.realpath(os.path.expanduser(sys.argv[1])))" $1)
-}
-
-# handle input file
-readonly INPUT_FILE=$(basename $1)
-readonly INPUT_DIR=$(dirname $(realpath $1))
-
-# Links within the container
-# readonly CONTAINER_SRC_DIR=/input
 
 LOCAL_PORT=8050
+CONTAINER_PORT=8886
+
 echo ":================== NOTICE ====================:"
 echo
-echo "Attention Automappa User: IGNORE Dash port 8886."
+echo "Attention Automappa User: IGNORE Dash port ${CONTAINER_PORT}."
 echo "Navigate to ---> http://localhost:${LOCAL_PORT}"
 echo
 echo ":----------------------------------------------:"
 
 docker run \
-    --publish $LOCAL_PORT:8886 \
+    --publish $LOCAL_PORT:$CONTAINER_PORT \
     --detach=false \
     --rm \
-    evanrees/automappa:latest \
-    --input $1 \
-    --port 8886 \
-    --host 0.0.0.0
+    evanrees/automappa:latest --input $1 --port $CONTAINER_PORT --host 0.0.0.0
