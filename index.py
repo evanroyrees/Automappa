@@ -130,6 +130,7 @@ if __name__ == "__main__":
         "--port",
         help="port to expose",
         default="8050",
+        type=int,
     )
     parser.add_argument(
         "--host",
@@ -143,12 +144,6 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
-    try:
-        PORT = int(args.port)
-    except ValueError as err:
-        print("Must specify an integer for port!")
-        print(f"{args.port} is not an integer")
-        exit(1)
     df = pd.read_csv(args.input, sep="\t")
     cols = [
         col
@@ -156,4 +151,17 @@ if __name__ == "__main__":
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
     layout(df, cluster_columns=cols)
-    app.run_server(host=args.host, port=PORT, debug=args.debug)
+    try:
+        app.run_server(host=args.host, port=args.port, debug=args.debug)
+    except OSError as exc:
+        print(exc)
+        print("It looks like Automappa is having trouble starting...")
+        print(
+            f"""Is port {args.port} available?
+\nAre you running Automappa in another terminal?
+\nPerhaps you are running another server on docker?
+\tYou can check using `docker ps -a`.
+\tYou can stop your container using `docker container stop <container-hash>`
+\tYou can also remove your stopped containers with `docker rm <container-hash>`"""
+        )
+        exit(1)

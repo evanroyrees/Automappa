@@ -40,8 +40,8 @@ layout = [
             ),
             html.Div(
                 [
-                    html.Button("Save Refinement",
-                        id="save_button",
+                    html.Button("Download Refinements",
+                        id="download-button",
                         n_clicks=0,
                         className="button button--primary",
                     ),
@@ -85,6 +85,15 @@ layout = [
                     ),
                     # add hide selection toggle
                     daq.ToggleSwitch(
+                        id="show-legend-toggle",
+                        size=40,
+                        color="#c5040d",
+                        label="Show Legend",
+                        labelPosition="top",
+                        vertical=False,
+                        value=False,
+                    ),
+                    daq.ToggleSwitch(
                         id="hide-selections-toggle",
                         size=40,
                         color="#c5040d",
@@ -98,7 +107,7 @@ layout = [
                         id="save-selections-toggle",
                         size=40,
                         color="#c5040d",
-                        label="Save Selections",
+                        label="Store Selections",
                         labelPosition="top",
                         vertical=False,
                         value=False,
@@ -342,13 +351,14 @@ def update_zaxis(zaxis_column, cluster_col, selectedData, df):
     [
         Input("2d_xaxis", "value"),
         Input("2d_yaxis", "value"),
+        Input("show-legend-toggle", "value"),
         Input("cluster_col", "value"),
         Input("binning_df", "children"),
         Input("intermediate-selections", "children"),
         Input("hide-selections-toggle", "value"),
     ],
 )
-def update_axes(xaxis_column, yaxis_column, cluster_col, binning, refinement, hide_selection_toggle):
+def update_axes(xaxis_column, yaxis_column, show_legend, cluster_col, binning, refinement, hide_selection_toggle):
     df = pd.read_json(binning, orient="split")
     titles = {
         "bh_tsne_x": "bh-tsne-x",
@@ -390,7 +400,7 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, binning, refinement, hi
                 yaxis=dict(title=yaxis_title),
             ),
             legend={"x": 1, "y": 1},
-            showlegend=False,
+            showlegend=show_legend,
             margin=dict(r=50, b=50, l=50, t=50),
             # title='2D Clustering Visualization',
             hovermode="closest",
@@ -433,7 +443,7 @@ def bin_table_callback(df):
 @app.callback(
     Output("download-refinement", "data"),
     [
-        Input("save_button", "n_clicks"),
+        Input("download-button", "n_clicks"),
         Input("intermediate-selections", "children")
     ]
 )
