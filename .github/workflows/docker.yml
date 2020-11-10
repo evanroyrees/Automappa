@@ -21,7 +21,8 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v1
         with:
           images: evanrees/automappa # list of Docker images to use as base name for tags
-          tag-sha: false # Do not add git short SHA as Docker tag
+          tag-match: true
+          tag-match-group: 1
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
