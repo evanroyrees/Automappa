@@ -1,11 +1,16 @@
 #!/bin/bash
 
 set -o errexit
-set -o nounset
 
 if [ $# -eq 0 ]
   then
-    echo "Usage: run_automappa <path/to/recursive_dbscan_output.tab>"
+    echo "====================================="
+    echo " (optional) run_automappa arguments"
+    echo "--containerport   :   default => 8886"
+    echo "--localport       :   default => 8050"
+    echo "====================================="
+    echo 
+    docker run --detach=false --rm evanrees/automappa:latest
     exit 0
 fi
 
@@ -14,18 +19,27 @@ if [[ "$*" == *-h* ]];then
     exit 0
 fi
 
-LOCAL_PORT=8050
-CONTAINER_PORT=8886
+localport=${localport:-8050}
+containerport=${containerport:-8886}
+# https://brianchildress.co/named-parameters-in-bash/
+while [ $# -gt 0 ]; do
 
-echo ":================== NOTICE ====================:"
-echo
-echo "Attention Automappa User: IGNORE Dash port ${CONTAINER_PORT}."
-echo "Navigate to ---> http://localhost:${LOCAL_PORT}"
-echo
-echo ":----------------------------------------------:"
+   if [[ $1 == *"--"* ]]; then
+        param="${1/--/}"
+        declare $param="$2"
+        # echo $1 $2 // Optional to see the parameter:value result
+   fi
+
+  shift
+done
+
+echo ":=================== Attention Automappa User ====================:"
+echo "              *IGNORE*           : http://localhost:${containerport} "
+echo "Navigate to server at local port : http://localhost:${localport}"
+echo ":----------------------------------------------------------------:"
 
 docker run \
-    --publish $LOCAL_PORT:$CONTAINER_PORT \
+    --publish $localport:$containerport \
     --detach=false \
     --rm \
-    evanrees/automappa:latest --input $1 --port $CONTAINER_PORT --host 0.0.0.0
+    evanrees/automappa:latest --input $1 --port $containerport --host 0.0.0.0
