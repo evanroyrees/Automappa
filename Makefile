@@ -31,6 +31,7 @@ requirements:
 
 ## Retrieve test dataset for testing Automappa
 test_data: requirements
+	mkdir -p test
 	$(PYTHON_INTERPRETER) -m pip install -U gdown
 	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
 
@@ -54,7 +55,7 @@ clean:
 
 ## Test python environment is setup correctly
 test_environment: requirements
-	$(PYTHON_INTERPRETER) test/test_environment.py
+	$(PYTHON_INTERPRETER) scripts/test_environment.py
 
 ## Set up python interpreter environment
 create_environment:
