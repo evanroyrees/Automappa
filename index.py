@@ -51,17 +51,17 @@ def layout(
             ),
             html.Div(
                 markers.to_json(orient="split"),
-                id="markers_df",
+                id="kingdom-markers",
                 style={"display": "none"},
             ),
             html.Div(
                 taxonomy.to_json(orient="split"),
-                id="taxonomy_df",
+                id="metagenome-taxonomy",
                 style={"display": "none"},
             ),
             html.Div(
                 annotations.to_json(orient="split"),
-                id="annotations_df",
+                id="metagenome-annotations",
                 style={"display": "none"},
             ),
             html.Div(
@@ -213,6 +213,7 @@ if __name__ == "__main__":
     print(f"taxonomy shape:\t\t{taxonomy.shape}")
     print(f"annotations shape:\t{annotations.shape}")
 
+    print("Data loaded. It may take a minute or two to construct all interactive graphs...")
     layout(binning=binning, markers=markers, taxonomy=taxonomy, annotations=annotations)
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)

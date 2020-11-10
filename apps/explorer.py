@@ -23,15 +23,15 @@ normalizeLen = (
 )
 layout = [
     # Hidden div to store refinement selections
-    html.Div(id="refinement-selections", style={"display": "none"}),
+    html.Div(id="refinements-clusters", style={"display": "none"}),
     # 2D-scatter plot row div
     html.Div(
         [
             html.Div(
                 [
-                    html.Label("2D Binning Overview"),
+                    html.Label("Figure 1: 2D Binning Overview"),
                     dcc.Graph(
-                        id="scatter2d_graphic",
+                        id="scatterplot-2d",
                         style={"height": "90%", "width": "98%"},
                         clear_on_unhover=True,
                     ),
@@ -41,22 +41,22 @@ layout = [
             html.Div(
                 [
                     html.Button(
-                        "Save Refinement",
-                        id="save_button",
+                        "Download Refinements",
+                        id="refinements-download-button",
                         n_clicks=0,
                         className="button button--primary",
                     ),
-                    Download(id="download-refinement"),
-                    html.Label("Color By:"),
+                    Download(id="refinements-download"),
+                    html.Label("Color contigs by:"),
                     dcc.Dropdown(
-                        id="cluster_col",
+                        id="color-by-column",
                         options=[],
                         value="cluster",
                         clearable=False,
                     ),
                     html.Label("X-Axis:"),
                     dcc.Dropdown(
-                        id="2d_xaxis",
+                        id="x-axis-2d",
                         options=[
                             {"label": "Kmers-X", "value": "x"},
                             {"label": "Coverage", "value": "coverage"},
@@ -68,7 +68,7 @@ layout = [
                     ),
                     html.Label("Y-Axis:"),
                     dcc.Dropdown(
-                        id="2d_yaxis",
+                        id="y-axis-2d",
                         options=[
                             {"label": "Kmers-Y", "value": "y"},
                             {"label": "Coverage", "value": "coverage"},
@@ -82,7 +82,17 @@ layout = [
                         style={
                             "textAlign": "middle",
                         },
-                        id="selection_summary",
+                        id="selection-binning-metrics",
+                    ),
+                    # add show-legend-toggle
+                    daq.ToggleSwitch(
+                        id="show-legend-toggle",
+                        size=40,
+                        color="#c5040d",
+                        label="Show/Hide 2D Legend",
+                        labelPosition="top",
+                        vertical=False,
+                        value=True,
                     ),
                     # add hide selection toggle
                     daq.ToggleSwitch(
@@ -99,7 +109,7 @@ layout = [
                         id="save-selections-toggle",
                         size=40,
                         color="#c5040d",
-                        label="Save Selections",
+                        label="Store Selections",
                         labelPosition="top",
                         vertical=False,
                         value=False,
@@ -121,7 +131,7 @@ layout = [
                 [
                     html.Label("Figure 2: 3D Binning Overview"),
                     dcc.Graph(
-                        id="scatter3d_graphic",
+                        id="scatterplot-3d",
                         clear_on_unhover=True,
                         style={"height": "90%", "width": "98%"},
                         config={
@@ -138,7 +148,7 @@ layout = [
                 [
                     html.Label("Figure 3: Taxonomic Distribution"),
                     dcc.Graph(
-                        id="taxa_piechart",
+                        id="taxonomy-piechart",
                         style={"height": "90%", "width": "98%"},
                         config=dict(displayModeBar=False),
                     ),
@@ -147,9 +157,9 @@ layout = [
             ),
             html.Div(
                 [
-                    html.Label("Fig. 2: Z-axis"),
+                    html.Label("Fig. 2: Change Z-axis"),
                     dcc.Dropdown(
-                        id="zaxis_column",
+                        id="scatterplot-3d-zaxis-dropdown",
                         options=[
                             {"label": "Coverage", "value": "coverage"},
                             {"label": "GC%", "value": "GC"},
@@ -158,9 +168,20 @@ layout = [
                         value="coverage",
                         clearable=False,
                     ),
+                    # add scatterplot-3d-legend-toggle
+                    daq.ToggleSwitch(
+                        id="scatterplot-3d-legend-toggle",
+                        size=40,
+                        color="#c5040d",
+                        label="Show/Hide 3D scatterplot Legend",
+                        labelPosition="top",
+                        vertical=False,
+                        value=True,
+                    ),
+                    
                     html.Label("Fig. 3: Distribute Taxa by Rank"),
                     dcc.Dropdown(
-                        id="rank_dropdown",
+                        id="taxonomy-piechart-dropdown",
                         options=[
                             {"label": "Kingdom", "value": "superkingdom"},
                             {"label": "Phylum", "value": "phylum"},
@@ -184,12 +205,12 @@ layout = [
     # table div
     html.Div(
         className="row twelve columns binning_table",
-        id="binning_table",
+        id="refinements-table",
     ),
 ]
 
 
-@app.callback(Output("cluster_col", "options"), [Input("annotations_df", "children")])
+@app.callback(Output("color-by-column", "options"), [Input("metagenome-annotations", "children")])
 def get_color_by_cols(annotations):
     df = pd.read_json(annotations, orient="split")
     return [
@@ -200,10 +221,10 @@ def get_color_by_cols(annotations):
 
 
 @app.callback(
-    Output("selection_summary", "children"),
+    Output("selection-binning-metrics", "children"),
     [
-        Input("markers_df", "children"),
-        Input("scatter2d_graphic", "selectedData"),
+        Input("kingdom-markers", "children"),
+        Input("scatterplot-2d", "selectedData"),
     ],
 )
 def display_selection_summary(markers, selected_contigs):
@@ -235,26 +256,27 @@ def display_selection_summary(markers, selected_contigs):
             completeness = num_markers_present / num_expected_markers * 100
             purity = num_single_copy_markers / num_markers_present * 100
             n_marker_sets = total_markers / num_expected_markers
+    # TODO: Create cleaner table for Sam to read completeness/purity etc.
     return f"""
     Selection Binning Metrics:
     -----------------------
 |    Markers Expected:\t{num_expected_markers}\t|
 |    Unique Markers:\t{num_markers_present}\t|
-|    Total Markers:\t{total_markers}\t|
-|    Marker Set(s):\t{n_marker_sets:.02f}\t|
+|    Total Markers:\t{total_markers:,}\t|
+|    Marker Set(s):\t{n_marker_sets:.02f:,}\t|
 |    Completeness:\t{completeness:.02f}\t|
 |    Purity:\t\t{purity:.02f}\t|
-|    Contigs Selected:\t{n_selected}\t|
+|    Contigs Selected:\t{n_selected:,}\t|
     -----------------------
     """
 
 
 @app.callback(
-    Output("taxa_piechart", "figure"),
+    Output("taxonomy-piechart", "figure"),
     [
-        Input("taxonomy_df", "children"),
-        Input("scatter2d_graphic", "selectedData"),
-        Input("rank_dropdown", "value"),
+        Input("metagenome-taxonomy", "children"),
+        Input("scatterplot-2d", "selectedData"),
+        Input("taxonomy-piechart-dropdown", "value"),
     ],
 )
 def taxa_piechart_callback(taxonomy, selected_contigs, selected_rank):
@@ -291,36 +313,37 @@ def taxa_piechart_callback(taxonomy, selected_contigs, selected_rank):
 
 
 @app.callback(
-    Output("scatter3d_graphic", "figure"),
+    Output("scatterplot-3d", "figure"),
     [
-        Input("annotations_df", "children"),
-        Input("zaxis_column", "value"),
-        Input("cluster_col", "value"),
-        Input("scatter2d_graphic", "selectedData"),
+        Input("metagenome-annotations", "children"),
+        Input("scatterplot-3d-zaxis-dropdown", "value"),
+        Input("scatterplot-3d-legend-toggle", "value"),
+        Input("color-by-column", "value"),
+        Input("scatterplot-2d", "selectedData"),
     ],
 )
-def update_zaxis(annotations, zaxis_column, cluster_col, selected_contigs):
+def update_zaxis(annotations, zaxis, show_legend, groupby_col, selected_contigs):
     df = pd.read_json(annotations, orient="split")
     titles = {
         "coverage": "Coverage",
         "GC": "GC%",
         "length": "Length",
     }
-    zaxis_title = titles[zaxis_column]
+    zaxis_title = titles[zaxis]
     if not selected_contigs:
         contigs = df.contig.tolist()
     else:
         contigs = {point["text"] for point in selected_contigs["points"]}
     # Subset DataFrame by selected contigs
     df = df[df.contig.isin(contigs)]
-    df[cluster_col].fillna("unclustered", inplace=True)
+    df[groupby_col].fillna("unclustered", inplace=True)
     return {
         "data": [
             go.Scatter3d(
-                x=df[df[cluster_col] == cluster]["x"],
-                y=df[df[cluster_col] == cluster]["y"],
-                z=df[df[cluster_col] == cluster][zaxis_column],
-                text=df[df[cluster_col] == cluster]["contig"],
+                x=df[df[groupby_col] == cluster]["x"],
+                y=df[df[groupby_col] == cluster]["y"],
+                z=df[df[groupby_col] == cluster][zaxis],
+                text=df[df[groupby_col] == cluster]["contig"],
                 mode="markers",
                 textposition="top center",
                 opacity=0.45,
@@ -331,7 +354,7 @@ def update_zaxis(annotations, zaxis_column, cluster_col, selected_contigs):
                 },
                 name=cluster,
             )
-            for cluster in df[cluster_col].unique()
+            for cluster in df[groupby_col].unique()
         ],
         "layout": go.Layout(
             scene=dict(
@@ -340,7 +363,7 @@ def update_zaxis(annotations, zaxis_column, cluster_col, selected_contigs):
                 zaxis=dict(title=zaxis_title),
             ),
             legend={"x": 0, "y": 1},
-            showlegend=False,
+            showlegend=show_legend,
             autosize=True,
             margin=dict(r=0, b=0, l=0, t=25),
             hovermode="closest",
@@ -349,13 +372,14 @@ def update_zaxis(annotations, zaxis_column, cluster_col, selected_contigs):
 
 
 @app.callback(
-    Output("scatter2d_graphic", "figure"),
+    Output("scatterplot-2d", "figure"),
     [
-        Input("annotations_df", "children"),
-        Input("2d_xaxis", "value"),
-        Input("2d_yaxis", "value"),
-        Input("cluster_col", "value"),
-        Input("refinement-selections", "children"),
+        Input("metagenome-annotations", "children"),
+        Input("x-axis-2d", "value"),
+        Input("y-axis-2d", "value"),
+        Input("show-legend-toggle", "value"),
+        Input("color-by-column", "value"),
+        Input("refinements-clusters", "children"),
         Input("hide-selections-toggle", "value"),
     ],
 )
@@ -363,6 +387,7 @@ def update_axes(
     annotations,
     xaxis_column,
     yaxis_column,
+    show_legend,
     cluster_col,
     refinement,
     hide_selection_toggle,
@@ -377,7 +402,7 @@ def update_axes(
     }
     xaxis_title = titles[xaxis_column]
     yaxis_title = titles[yaxis_column]
-    # Subset annotations_df by selections iff selections have been made
+    # Subset metagenome-annotations by selections iff selections have been made
     df[cluster_col].fillna("unclustered", inplace=True)
     if hide_selection_toggle:
         refine_df = pd.read_json(refinement, orient="split").set_index("contig")
@@ -413,7 +438,7 @@ def update_axes(
                 yaxis=dict(title=yaxis_title),
             ),
             legend={"x": 1, "y": 1},
-            showlegend=False,
+            showlegend=show_legend,
             margin=dict(r=50, b=50, l=50, t=50),
             # title='2D Clustering Visualization',
             hovermode="closest",
@@ -424,8 +449,8 @@ def update_axes(
 @app.callback(
     Output("datatable", "data"),
     [
-        Input("scatter2d_graphic", "selectedData"),
-        Input("refinement-selections", "children"),
+        Input("scatterplot-2d", "selectedData"),
+        Input("refinements-clusters", "children"),
     ],
 )
 def update_table(selected_data, refinements):
@@ -437,8 +462,8 @@ def update_table(selected_data, refinements):
 
 
 @app.callback(
-    Output("binning_table", "children"),
-    [Input("refinement-selections", "children")],
+    Output("refinements-table", "children"),
+    [Input("refinements-clusters", "children")],
 )
 def bin_table_callback(df):
     df = pd.read_json(df, orient="split")
@@ -453,8 +478,8 @@ def bin_table_callback(df):
 
 
 @app.callback(
-    Output("download-refinement", "data"),
-    [Input("save_button", "n_clicks"), Input("refinement-selections", "children")],
+    Output("refinements-download", "data"),
+    [Input("refinements-download-button", "n_clicks"), Input("refinements-clusters", "children")],
 )
 def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:
@@ -464,13 +489,13 @@ def download_refinements(n_clicks, intermediate_selections):
 
 
 @app.callback(
-    Output("refinement-selections", "children"),
+    Output("refinements-clusters", "children"),
     [
-        Input("scatter2d_graphic", "selectedData"),
+        Input("scatterplot-2d", "selectedData"),
         Input("refinement-data", "children"),
         Input("save-selections-toggle", "value"),
     ],
-    [State("refinement-selections", "children")],
+    [State("refinements-clusters", "children")],
 )
 def store_binning_refinement_selections(
     selected_data, refinement_data, save_toggle, intermediate_selections

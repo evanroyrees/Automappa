@@ -1,4 +1,4 @@
-.PHONY: clean data requirements
+.PHONY: clean docker test_environment create_environment requirements
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -43,7 +43,7 @@ else
 	@echo ">>> Docker not detected. Please install docker to use the Automappa docker image"
 endif
 
-## Run Automapp on test data
+## Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
 
@@ -54,7 +54,7 @@ clean:
 
 ## Test python environment is setup correctly
 test_environment: requirements
-	$(PYTHON_INTERPRETER) test/test_environment.py
+	$(PYTHON_INTERPRETER) scripts/test_environment.py
 
 ## Set up python interpreter environment
 create_environment:
