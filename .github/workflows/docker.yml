@@ -21,7 +21,7 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v1
         with:
           images: evanrees/automappa # list of Docker images to use as base name for tags
-          tag-match: true
+          tag-match: v(.*)
           tag-match-group: 1
       -
         name: Set up QEMU
