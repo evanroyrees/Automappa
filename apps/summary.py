@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+from typing import Any, Dict, List
 
 import pandas as pd
 import numpy as np
@@ -10,6 +11,7 @@ from plotly import graph_objs as go
 
 from app import app
 
+JSONDict = Dict[str, Any]
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
 # return html Table with dataframe values
@@ -36,25 +38,19 @@ def indicator(color, text, id_value):
         className="two columns indicator",
     )
 
+
 def bin_dropdown(df, column):
     options = [{"label": bin, "value": bin} for bin in df[column].unique()]
     return options
 
 
-def pie_chart(df, column, rank, bin):
-    if not bin:
-        layout = dict(
-            annotations=[
-                dict(
-                    text="Select bin from dropdown for taxa breakdown", showarrow=False
-                )
-            ]
-        )
-        return {"data": [], "layout": layout}
-    dff = df[df[column] == bin]
-    n_ctgs = len(dff.index)
-    values = [float(c) / n_ctgs for c in dff.groupby(rank)[rank].count().tolist()]
-    labels = dff.groupby(rank)[rank].count().index.tolist()
+def plot_pie_chart(taxonomy: JSONDict, rank: str) -> Dict:
+    df = pd.read_json(taxonomy, orient="split")
+    total_contigs = df.shape[0]
+    values = [
+        contig / total_contigs for contig in df.groupby(rank)[rank].count().tolist()
+    ]
+    labels = df.groupby(rank)[rank].count().index.tolist()
     layout = go.Layout(
         margin=dict(l=0, r=0, b=0, t=4, pad=8),
         legend=dict(orientation="h"),
@@ -425,15 +421,12 @@ def bins_completness_purity_callback(clusterCol, df):
 @app.callback(
     Output("bin_taxa_breakdown", "figure"),
     [
-        Input("bin_dropdown", "value"),
         Input("taxa_by_rank_dropdown", "value"),
-        Input("bin_summary_cluster_col", "value"),
-        Input("binning_df", "children"),
+        Input("taxonomy_df", "children"),
     ],
 )
-def bin_taxa_breakdown_callback(selectedBin, selectedRank, clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    return pie_chart(df, clusterCol, selectedRank, selectedBin)
+def bin_taxa_breakdown_callback(taxonomy, selected_rank):
+    return plot_pie_chart(taxonomy, selected_rank)
 
 
 @app.callback(

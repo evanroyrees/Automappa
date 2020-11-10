@@ -8,7 +8,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
 
-from app import app
+from app import app, gc_length_dataframe_from_fasta, load_markers
 from apps import explorer, summary
 
 tab_style = {
@@ -30,18 +30,46 @@ tab_selected_style = {
 }
 
 
-def layout(df, cluster_columns):
+def layout(
+    binning: pd.DataFrame,
+    markers: pd.DataFrame,
+    taxonomy: pd.DataFrame,
+    annotations: pd.DataFrame,
+):
+    cluster_columns = [
+        col
+        for col in binning.columns
+        if "refinement_" in col or "cluster" in col or "contig" in col
+    ]
     app.layout = html.Div(
         [
-            # Hidden div that saves dataframe for each tab
+            #### Send data to hidden divs for use in explorer.py and summary.py
             html.Div(
-                df.to_json(orient="split"), id="binning_df", style={"display": "none"}
+                binning.to_json(orient="split"),
+                id="binning_df",
+                style={"display": "none"},
             ),
             html.Div(
-                df[cluster_columns].to_json(orient="split"),
+                markers.to_json(orient="split"),
+                id="markers_df",
+                style={"display": "none"},
+            ),
+            html.Div(
+                taxonomy.to_json(orient="split"),
+                id="taxonomy_df",
+                style={"display": "none"},
+            ),
+            html.Div(
+                annotations.to_json(orient="split"),
+                id="annotations_df",
+                style={"display": "none"},
+            ),
+            html.Div(
+                binning[cluster_columns].to_json(orient="split"),
                 id="refinement-data",
                 style={"display": "none"},
             ),
+            #### Add links to external style sheets
             html.Link(
                 href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
                 rel="stylesheet",
@@ -58,7 +86,7 @@ def layout(df, cluster_columns):
             ),
             html.Link(href="static/dash_crm.css", rel="stylesheet"),
             html.Link(href="static/stylesheet.css", rel="stylesheet"),
-            # header
+            #### Navbar div with Automappa tabs and School Logo
             html.Div(
                 [
                     html.Label(
@@ -71,7 +99,7 @@ def layout(df, cluster_columns):
                                 style={"height": "10", "verticalAlign": "middle"},
                                 children=[
                                     dcc.Tab(
-                                        label="Bin Exploration",
+                                        label="Refine Bins",
                                         value="explorer_tab",
                                         style=tab_style,
                                         selected_style=tab_selected_style,
@@ -97,7 +125,7 @@ def layout(df, cluster_columns):
                 ],
                 className="row header",
             ),
-            # Tab content
+            #### Below Navbar where we render selected tab content
             html.Div(id="tab_content", className="row", style={"margin": "0.5% 0.5%"}),
         ],
         className="row",
@@ -121,16 +149,36 @@ if __name__ == "__main__":
         description="Automappa: An interactive interface for exploration of metagenomes"
     )
     parser.add_argument(
-        "-i",
-        "--input",
-        help="Path to recursive_dbscan.tab or ML_recruitment.tab",
+        "--binning",
+        help="Path to binning.tsv",
         required=True,
     )
     parser.add_argument(
-        "--port",
-        help="port to expose",
-        default="8050",
+        "--kmers",
+        help="Path to embedded kmers.tsv",
+        required=True,
     )
+    parser.add_argument(
+        "--coverages",
+        help="Path to coverages.tsv",
+        required=True,
+    )
+    parser.add_argument(
+        "--fasta",
+        help="Path to metagenome.fasta",
+        required=True,
+    )
+    parser.add_argument(
+        "--markers",
+        help="Path to `kingdom`.markers.tsv",
+        required=True,
+    )
+    parser.add_argument(
+        "--taxonomy",
+        help="Path to taxonomy.tsv",
+        required=True,
+    )
+    parser.add_argument("--port", help="port to expose", default=8050, type=int)
     parser.add_argument(
         "--host",
         help="host ip address to expose",
@@ -143,17 +191,28 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
-    try:
-        PORT = int(args.port)
-    except ValueError as err:
-        print("Must specify an integer for port!")
-        print(f"{args.port} is not an integer")
-        exit(1)
-    df = pd.read_csv(args.input, sep="\t")
-    cols = [
-        col
-        for col in df.columns
-        if "refinement_" in col or "cluster" in col or "contig" in col
-    ]
-    layout(df, cluster_columns=cols)
-    app.run_server(host=args.host, port=PORT, debug=args.debug)
+
+    print("Please wait a moment while all of the data is loaded.")
+    # Needed separately for binning refinement selections.
+    binning = pd.read_csv(args.binning, sep="\t")
+    # Needed for completeness/purity calculations
+    markers = load_markers(args.markers)
+    # Store for taxonomy vizualizations
+    taxonomy = pd.read_csv(args.taxonomy, sep="\t")
+    # Store these annotations together, b/c they will be used for same visualizations
+    kmers = pd.read_csv(args.kmers, sep="\t")
+    coverages = pd.read_csv(args.coverages, sep="\t")
+    annotations = gc_length_dataframe_from_fasta(args.fasta)
+    # binning and taxonomy are added here to color contigs
+    # Kingdom-specific Binning will subset entire dataframe to kingdom binned.
+    for annotation in [kmers, coverages, binning, taxonomy]:
+        annotations = pd.merge(annotations, annotation, on="contig", how="inner")
+
+    print(f"binning shape:\t\t{binning.shape}")
+    print(f"markers shape:\t\t{markers.shape}")
+    print(f"taxonomy shape:\t\t{taxonomy.shape}")
+    print(f"annotations shape:\t{annotations.shape}")
+
+    layout(binning=binning, markers=markers, taxonomy=taxonomy, annotations=annotations)
+
+    app.run_server(host=args.host, port=args.port, debug=args.debug)

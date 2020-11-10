@@ -30,9 +30,9 @@ requirements:
 	$(PYTHON_INTERPRETER) -m pip install -U -r requirements.txt
 
 ## Retrieve test dataset for testing Automappa
-test_data: requirements
-	$(PYTHON_INTERPRETER) -m pip install -U gdown
-	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
+# test_data: requirements
+# 	$(PYTHON_INTERPRETER) -m pip install -U gdown
+# 	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
 
 ## Retrieve automappa docker image
 docker:
@@ -44,8 +44,8 @@ else
 endif
 
 ## Run Automapp on test data
-test: test_data
-	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
+# test: test_data
+# 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
 
 ## Delete all compiled Python files
 clean:

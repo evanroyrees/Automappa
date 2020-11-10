@@ -23,7 +23,7 @@ normalizeLen = (
 )
 layout = [
     # Hidden div to store refinement selections
-    html.Div(id="intermediate-selections", style={"display": "none"}),
+    html.Div(id="refinement-selections", style={"display": "none"}),
     # 2D-scatter plot row div
     html.Div(
         [
@@ -40,12 +40,13 @@ layout = [
             ),
             html.Div(
                 [
-                    html.Button("Save Refinement",
+                    html.Button(
+                        "Save Refinement",
                         id="save_button",
                         n_clicks=0,
                         className="button button--primary",
                     ),
-                    Download(id='download-refinement'),
+                    Download(id="download-refinement"),
                     html.Label("Color By:"),
                     dcc.Dropdown(
                         id="cluster_col",
@@ -57,24 +58,24 @@ layout = [
                     dcc.Dropdown(
                         id="2d_xaxis",
                         options=[
-                            {"label": "bh-tsne-x", "value": "bh_tsne_x"},
-                            {"label": "Coverage", "value": "cov"},
-                            {"label": "GC%", "value": "gc"},
+                            {"label": "Kmers-X", "value": "x"},
+                            {"label": "Coverage", "value": "coverage"},
+                            {"label": "GC%", "value": "GC"},
                             {"label": "Length", "value": "length"},
                         ],
-                        value="bh_tsne_x",
+                        value="x",
                         clearable=False,
                     ),
                     html.Label("Y-Axis:"),
                     dcc.Dropdown(
                         id="2d_yaxis",
                         options=[
-                            {"label": "bh-tsne-y", "value": "bh_tsne_y"},
-                            {"label": "Coverage", "value": "cov"},
-                            {"label": "GC%", "value": "gc"},
+                            {"label": "Kmers-Y", "value": "y"},
+                            {"label": "Coverage", "value": "coverage"},
+                            {"label": "GC%", "value": "GC"},
                             {"label": "Length", "value": "length"},
                         ],
-                        value="bh_tsne_y",
+                        value="y",
                         clearable=False,
                     ),
                     html.Pre(
@@ -105,7 +106,9 @@ layout = [
                     ),
                     html.P("NOTE"),
                     html.Br(),
-                    html.P("Toggling save with contigs selected will save them as a refinement group."),
+                    html.P(
+                        "Toggling save with contigs selected will save them as a refinement group."
+                    ),
                 ],
                 className="two columns",
             ),
@@ -148,18 +151,18 @@ layout = [
                     dcc.Dropdown(
                         id="zaxis_column",
                         options=[
-                            {"label": "Coverage", "value": "cov"},
-                            {"label": "GC%", "value": "gc"},
+                            {"label": "Coverage", "value": "coverage"},
+                            {"label": "GC%", "value": "GC"},
                             {"label": "Length", "value": "length"},
                         ],
-                        value="cov",
+                        value="coverage",
                         clearable=False,
                     ),
                     html.Label("Fig. 3: Distribute Taxa by Rank"),
                     dcc.Dropdown(
                         id="rank_dropdown",
                         options=[
-                            {"label": "Kingdom", "value": "kingdom"},
+                            {"label": "Kingdom", "value": "superkingdom"},
                             {"label": "Phylum", "value": "phylum"},
                             {"label": "Class", "value": "class"},
                             {"label": "Order", "value": "order"},
@@ -167,7 +170,7 @@ layout = [
                             {"label": "Genus", "value": "genus"},
                             {"label": "Species", "value": "species"},
                         ],
-                        value="phylum",
+                        value="superkingdom",
                         clearable=False,
                     ),
                 ],
@@ -186,50 +189,61 @@ layout = [
 ]
 
 
-@app.callback(Output("cluster_col", "options"), [Input("binning_df", "children")])
-def get_color_by_cols(df):
-    df = pd.read_json(df, orient="split")
-    df.drop(axis=1, labels=["single_copy_PFAMs"], inplace=True)
-    options = [
+@app.callback(Output("cluster_col", "options"), [Input("annotations_df", "children")])
+def get_color_by_cols(annotations):
+    df = pd.read_json(annotations, orient="split")
+    return [
         {"label": col.title().replace("_", " "), "value": col}
         for col in df.columns
         if df[col].dtype.name not in {"float64", "int64"} and col != "contig"
     ]
-    return options
 
 
 @app.callback(
     Output("selection_summary", "children"),
     [
+        Input("markers_df", "children"),
         Input("scatter2d_graphic", "selectedData"),
-        Input("binning_df", "children"),
     ],
 )
-def display_selection_summary(selectedData, df):
-    num_expected_markers = 139
-    if not selectedData:
-        completeness = "N/A"
-        purity = "N/A"
-        n_marker_sets = "N/A"
+def display_selection_summary(markers, selected_contigs):
+    if not selected_contigs:
+        num_expected_markers = pd.NA
+        num_markers_present = pd.NA
+        total_markers = pd.NA
+        n_marker_sets = pd.NA
+        completeness = pd.NA
+        purity = pd.NA
         n_selected = 0
     else:
-        df = pd.read_json(df, orient="split")
-        ctg_list = {point["text"] for point in selectedData["points"]}
-        n_selected = len(selectedData["points"])
-        pfams = df[df.contig.isin(ctg_list)].single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
-        total = len(all_pfams)
-        n_marker_sets = round(float(total) / num_expected_markers, 2)
-        nunique = len(set(all_pfams))
-        completeness = round(float(nunique) / num_expected_markers * 100, 2)
-        purity = "N/A" if not total else round(float(nunique) / total * 100, 2)
+        df = pd.read_json(markers, orient="split").set_index("contig")
+        contigs = {point["text"] for point in selected_contigs["points"]}
+        n_selected = len(selected_contigs["points"])
+        num_expected_markers = df.shape[1]
+        pfam_counts = df.loc[df.index.isin(contigs)].sum()
+        if pfam_counts.empty:
+            total_markers = 0
+            num_single_copy_markers = 0
+            num_markers_present = 0
+            completeness = pd.NA
+            purity = pd.NA
+            n_marker_sets = pd.NA
+        else:
+            total_markers = pfam_counts.sum()
+            num_single_copy_markers = pfam_counts[pfam_counts == 1].count()
+            num_markers_present = pfam_counts[pfam_counts >= 1].count()
+            completeness = num_markers_present / num_expected_markers * 100
+            purity = num_single_copy_markers / num_markers_present * 100
+            n_marker_sets = total_markers / num_expected_markers
     return f"""
     Selection Binning Metrics:
     -----------------------
 |    Markers Expected:\t{num_expected_markers}\t|
-|    Marker Set(s):\t{n_marker_sets}\t|
-|    Completeness:\t{completeness}\t|
-|    Purity:\t\t{purity}\t|
+|    Unique Markers:\t{num_markers_present}\t|
+|    Total Markers:\t{total_markers}\t|
+|    Marker Set(s):\t{n_marker_sets:.02f}\t|
+|    Completeness:\t{completeness:.02f}\t|
+|    Purity:\t\t{purity:.02f}\t|
 |    Contigs Selected:\t{n_selected}\t|
     -----------------------
     """
@@ -238,19 +252,19 @@ def display_selection_summary(selectedData, df):
 @app.callback(
     Output("taxa_piechart", "figure"),
     [
+        Input("taxonomy_df", "children"),
         Input("scatter2d_graphic", "selectedData"),
         Input("rank_dropdown", "value"),
-        Input("binning_df", "children"),
     ],
 )
-def taxa_piechart_callback(selectedData, selectedRank, df):
-    df = pd.read_json(df, orient="split")
+def taxa_piechart_callback(taxonomy, selected_contigs, selected_rank):
+    df = pd.read_json(taxonomy, orient="split")
     layout = dict(margin=dict(l=15, r=10, t=35, b=45))
-    if not selectedData:
+    if not selected_contigs:
         n_ctgs = len(df.index)
-        labels = df[selectedRank].unique().tolist()
+        labels = df[selected_rank].unique().tolist()
         values = [
-            len(df[df[selectedRank] == label]) / float(n_ctgs) for label in labels
+            len(df[df[selected_rank] == label]) / float(n_ctgs) for label in labels
         ]
         trace = go.Pie(
             labels=labels,
@@ -261,11 +275,11 @@ def taxa_piechart_callback(selectedData, selectedRank, df):
         )
         return dict(data=[trace], layout=layout)
 
-    ctg_list = {point["text"] for point in selectedData["points"]}
+    ctg_list = {point["text"] for point in selected_contigs["points"]}
     dff = df[df.contig.isin(ctg_list)]
     n_ctgs = len(dff.index)
-    labels = dff[selectedRank].unique().tolist()
-    values = [len(dff[dff[selectedRank] == label]) / float(n_ctgs) for label in labels]
+    labels = dff[selected_rank].unique().tolist()
+    values = [len(dff[dff[selected_rank] == label]) / float(n_ctgs) for label in labels]
     trace = go.Pie(
         labels=labels,
         values=values,
@@ -279,110 +293,119 @@ def taxa_piechart_callback(selectedData, selectedRank, df):
 @app.callback(
     Output("scatter3d_graphic", "figure"),
     [
+        Input("annotations_df", "children"),
         Input("zaxis_column", "value"),
         Input("cluster_col", "value"),
         Input("scatter2d_graphic", "selectedData"),
-        Input("binning_df", "children"),
     ],
 )
-def update_zaxis(zaxis_column, cluster_col, selectedData, df):
-    df = pd.read_json(df, orient="split")
+def update_zaxis(annotations, zaxis_column, cluster_col, selected_contigs):
+    df = pd.read_json(annotations, orient="split")
     titles = {
-        "cov": "Coverage",
-        "gc": "GC%",
+        "coverage": "Coverage",
+        "GC": "GC%",
         "length": "Length",
     }
     zaxis_title = titles[zaxis_column]
-    if selectedData is None:
-        selected = df.contig.tolist()
+    if not selected_contigs:
+        contigs = df.contig.tolist()
     else:
-        selected = {point["text"] for point in selectedData["points"]}
-
-    dff = df[df.contig.isin(selected)]
-
+        contigs = {point["text"] for point in selected_contigs["points"]}
+    # Subset DataFrame by selected contigs
+    df = df[df.contig.isin(contigs)]
+    df[cluster_col].fillna("unclustered", inplace=True)
     return {
         "data": [
             go.Scatter3d(
-                x=dff[dff[cluster_col] == i]["bh_tsne_x"],
-                y=dff[dff[cluster_col] == i]["bh_tsne_y"],
-                z=dff[dff[cluster_col] == i][zaxis_column],
-                text=dff[dff[cluster_col] == i]["contig"],
+                x=df[df[cluster_col] == cluster]["x"],
+                y=df[df[cluster_col] == cluster]["y"],
+                z=df[df[cluster_col] == cluster][zaxis_column],
+                text=df[df[cluster_col] == cluster]["contig"],
                 mode="markers",
                 textposition="top center",
                 opacity=0.45,
                 hoverinfo="all",
                 marker={
-                    "size": dff.assign(normLen=normalizeLen)["normLen"],
+                    "size": df.assign(normLen=normalizeLen)["normLen"],
                     "line": {"width": 0.1, "color": "black"},
                 },
-                name=i,
+                name=cluster,
             )
-            for i in dff[cluster_col].unique()
+            for cluster in df[cluster_col].unique()
         ],
         "layout": go.Layout(
             scene=dict(
-                xaxis=dict(title="bh-tsne-x"),
-                yaxis=dict(title="bh-tsne-y"),
+                xaxis=dict(title="Kmers-X"),
+                yaxis=dict(title="Kmers-Y"),
                 zaxis=dict(title=zaxis_title),
             ),
             legend={"x": 0, "y": 1},
             showlegend=False,
             autosize=True,
             margin=dict(r=0, b=0, l=0, t=25),
-            # title='3D Clustering Visualization',
             hovermode="closest",
         ),
     }
 
 
-# OPTIMIZE: # DEBUG: # TODO: Figure should be defined in the div section above... Not in callbacks
-# This needs to be refactored as an update layout approach
 @app.callback(
     Output("scatter2d_graphic", "figure"),
     [
+        Input("annotations_df", "children"),
         Input("2d_xaxis", "value"),
         Input("2d_yaxis", "value"),
         Input("cluster_col", "value"),
-        Input("binning_df", "children"),
-        Input("intermediate-selections", "children"),
+        Input("refinement-selections", "children"),
         Input("hide-selections-toggle", "value"),
     ],
 )
-def update_axes(xaxis_column, yaxis_column, cluster_col, binning, refinement, hide_selection_toggle):
-    df = pd.read_json(binning, orient="split")
+def update_axes(
+    annotations,
+    xaxis_column,
+    yaxis_column,
+    cluster_col,
+    refinement,
+    hide_selection_toggle,
+):
+    df = pd.read_json(annotations, orient="split").set_index("contig")
     titles = {
-        "bh_tsne_x": "bh-tsne-x",
-        "bh_tsne_y": "bh-tsne-y",
-        "cov": "Coverage",
-        "gc": "GC%",
+        "x": "Kmers-X",
+        "y": "Kmers-Y",
+        "coverage": "Coverage",
+        "GC": "GC%",
         "length": "Length",
     }
     xaxis_title = titles[xaxis_column]
     yaxis_title = titles[yaxis_column]
-
-    # Subset binning_df by selections iff selections have been made
+    # Subset annotations_df by selections iff selections have been made
+    df[cluster_col].fillna("unclustered", inplace=True)
     if hide_selection_toggle:
-        refine_df = pd.read_json(refinement, orient="split")
+        refine_df = pd.read_json(refinement, orient="split").set_index("contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
         if refine_cols:
             refine_col = refine_cols.pop()
-            # Retrieve only contigs that have not already been refined...
-            df = df[~refine_df[refine_col].str.contains("refinement")]
+            # Retrieve only contigs that have already been refined...
+            refined_contigs_index = refine_df[
+                refine_df[refine_col].str.contains("refinement")
+            ].index
+            # print(f"refined df shape: {refine_df.shape}, df shape: {df.shape}")
+            df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
+            # print(f"new df shape: {df.shape}")
     return {
         "data": [
             go.Scattergl(
-                x=df[df[cluster_col] == i][xaxis_column],
-                y=df[df[cluster_col] == i][yaxis_column],
-                text=df[df[cluster_col] == i]["contig"],
+                x=df[df[cluster_col] == cluster][xaxis_column],
+                y=df[df[cluster_col] == cluster][yaxis_column],
+                text=df[df[cluster_col] == cluster].index,
                 mode="markers",
                 opacity=0.45,
                 marker={
                     "size": df.assign(normLen=normalizeLen)["normLen"],
                     "line": {"width": 0.1, "color": "black"},
                 },
-                name=i,
+                name=cluster,
             )
-            for i in df[cluster_col].unique()
+            for cluster in df[cluster_col].unique()
         ],
         "layout": go.Layout(
             scene=dict(
@@ -400,42 +423,38 @@ def update_axes(xaxis_column, yaxis_column, cluster_col, binning, refinement, hi
 
 @app.callback(
     Output("datatable", "data"),
-    [Input("scatter2d_graphic", "selectedData"), Input("intermediate-selections", "children")],
+    [
+        Input("scatter2d_graphic", "selectedData"),
+        Input("refinement-selections", "children"),
+    ],
 )
-def update_table(selectedData, df):
-    df = pd.read_json(df, orient="split")
-    if selectedData is None:
+def update_table(selected_data, refinements):
+    df = pd.read_json(refinements, orient="split")
+    if not selected_data:
         return df.to_dict("records")
-    selected = {point["text"] for point in selectedData["points"]}
-    return df[df.contig.isin(selected)].to_dict("records")
+    contigs = {point["text"] for point in selected_data["points"]}
+    return df[df.contig.isin(contigs)].to_dict("records")
 
 
 @app.callback(
     Output("binning_table", "children"),
-    [Input("intermediate-selections", "children")],
+    [Input("refinement-selections", "children")],
 )
 def bin_table_callback(df):
     df = pd.read_json(df, orient="split")
     return dash_table.DataTable(
-            id="datatable",
-            data=df.to_dict("records"),
-            columns=[{"name": col, "id": col} for col in df.columns],
-            style_cell={'textAlign': 'center'},
-            style_cell_conditional=[
-                {
-                    'if': {'column_id': 'contig'},
-                    'textAlign': 'right'
-                }
-            ],
-            virtualization=True)
+        id="datatable",
+        data=df.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in df.columns],
+        style_cell={"textAlign": "center"},
+        style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
+        virtualization=True,
+    )
 
 
 @app.callback(
     Output("download-refinement", "data"),
-    [
-        Input("save_button", "n_clicks"),
-        Input("intermediate-selections", "children")
-    ]
+    [Input("save_button", "n_clicks"), Input("refinement-selections", "children")],
 )
 def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:
@@ -443,24 +462,28 @@ def download_refinements(n_clicks, intermediate_selections):
     df = pd.read_json(intermediate_selections, orient="split")
     return send_data_frame(df.to_csv, "refinements.csv", index=False)
 
+
 @app.callback(
-    Output("intermediate-selections", "children"),
+    Output("refinement-selections", "children"),
     [
         Input("scatter2d_graphic", "selectedData"),
         Input("refinement-data", "children"),
         Input("save-selections-toggle", "value"),
     ],
-    [State("intermediate-selections", "children")],
+    [State("refinement-selections", "children")],
 )
-def store_binning_refinement_selections(selected_data, refinement_data, save_toggle, intermediate_selections):
+def store_binning_refinement_selections(
+    selected_data, refinement_data, save_toggle, intermediate_selections
+):
     if not selected_data and not intermediate_selections:
         # We first load in our binning information for refinement
         # Note: this callback should trigger on initial load
         # TODO: Could also remove and construct dataframes from selected contigs
         # Then perform merge when intermediate selections are downloaded.
         bin_df = pd.read_json(refinement_data, orient="split")
+        bin_df["cluster"].fillna("unclustered", inplace=True)
         return bin_df.to_json(orient="split")
-    if not save_toggle:
+    if not save_toggle or not selected_data:
         raise PreventUpdate
     contigs = {point["text"] for point in selected_data["points"]}
     pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
@@ -470,5 +493,4 @@ def store_binning_refinement_selections(selected_data, refinement_data, save_tog
     pdf.loc[contigs, group_name] = group_name
     pdf = pdf.fillna(axis="columns", method="ffill")
     pdf.reset_index(inplace=True)
-    # print(pdf.head(3))
     return pdf.to_json(orient="split")
