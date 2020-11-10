@@ -10,7 +10,7 @@ An interactive interface for exploration of highly complex metagenomes
 
 ### Quickstart using Docker (Easiest and Quickest):
 
- To start quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
+ To quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
 ```bash
 # Wrapper available to run docker with port-forwarding.
@@ -99,7 +99,7 @@ I've numbered the ports here to help illustrate the network communication.
 #### Example port forwarding breakdown
 | Server | Port |
 | :------------- | :------------- |
-| Docker container | 8886 |
+| Docker container | 8050 |
 | Remote Server | 8887 |
 | Local Computer | 8888 |
 
@@ -109,5 +109,5 @@ I've numbered the ports here to help illustrate the network communication.
 
 | Bridge | Port Bridge | Communication Context |
 | :------------- | :------------- | :------------- |
-| remote_server_port:container_port | 8887:8886 | [bioinformatics\|CHTC server]:docker |
+| remote_server_port:container_port | 8887:8050 | [bioinformatics\|CHTC server]:docker |
 | localhost_port:remote_server_port | 8888:8887 | local machine:[bioinformatics\|CHTC server] |
