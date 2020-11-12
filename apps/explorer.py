@@ -263,7 +263,7 @@ def display_selection_summary(markers, selected_contigs):
 |    Markers Expected:\t{num_expected_markers}\t|
 |    Unique Markers:\t{num_markers_present}\t|
 |    Total Markers:\t{total_markers:,}\t|
-|    Marker Set(s):\t{n_marker_sets:.02f:,}\t|
+|    Marker Set(s):\t{n_marker_sets:.02f}\t|
 |    Completeness:\t{completeness:.02f}\t|
 |    Purity:\t\t{purity:.02f}\t|
 |    Contigs Selected:\t{n_selected:,}\t|
