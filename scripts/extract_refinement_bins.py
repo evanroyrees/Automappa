@@ -30,12 +30,14 @@ def fasta_parser(handle: TextIOWrapper):
 
     yield contig_id, "".join(lines).replace(" ", "").replace("\r", "")
 
-def fasta_writer(records:List[Tuple[str,str]], out:str) -> None:
+
+def fasta_writer(records: List[Tuple[str, str]], out: str) -> None:
     lines = ""
-    for record,seq in records:
+    for record, seq in records:
         lines += f">{record}\n{seq}\n"
     with open(out, "w") as fh:
         fh.write(lines)
+
 
 def get_contigs(df: pd.DataFrame, column: str) -> List:
     columns = df.columns.tolist()
@@ -86,16 +88,21 @@ def main():
     if not contigs:
         exit(1)
     records = {
-        record:seq for record,seq in fasta_parser(args.fasta, "fasta") if record in contigs
+        record: seq for record, seq in fasta_parser(args.fasta) if record in contigs
     }
     outdir = args.output if args.output else column
+    if not os.path.isdir(outdir):
+        os.makedirs(outdir)
     for refined_bin, dff in df.groupby(column):
         bin_contigs = set(dff.index.tolist())
-        bin_records = [(record,seq) for record,seq in records.items() if record in bin_contigs]
+        bin_records = [
+            (record, seq) for record, seq in records.items() if record in bin_contigs
+        ]
         out = os.path.join(outdir, f"{refined_bin}.fasta")
         fasta_writer(records=bin_records, out=out)
-    
+
     print(f"wrote refinement groupings to {outdir}")
+
 
 if __name__ == "__main__":
     main()
