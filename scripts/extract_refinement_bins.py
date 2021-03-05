@@ -92,7 +92,7 @@ def main():
         exit(1)
     with open(args.fasta) as fh:
         records = {record: seq for record, seq in fasta_parser(fh) if record in contigs}
-    print(f"{len(records):,} records in {args.fasta}")
+    print(f"# {len(records):,} records in {args.fasta}")
     outdir = args.output if args.output else column
     print(f"# Writing refinement groupings to {outdir}")
     if not os.path.isdir(outdir):
