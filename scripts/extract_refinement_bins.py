@@ -87,11 +87,12 @@ def main():
     contigs = get_contigs(df, column=column)
     if not contigs:
         exit(1)
-    records = {
-        record: seq
-        for record, seq in fasta_parser(args.fasta)
-        if record in contigs
-    }
+    with open(args.fasta) as fh:
+        records = {
+            record: seq
+            for record, seq in fasta_parser(fh)
+            if record in contigs
+        }
     outdir = args.output if args.output else column
     for refined_bin, dff in df.groupby(column):
         bin_contigs = set(dff.index.tolist())
