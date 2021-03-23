@@ -89,7 +89,7 @@ def main():
         exit(1)
     records = {
         record: seq
-        for record, seq in fasta_parser(args.fasta, "fasta")
+        for record, seq in fasta_parser(args.fasta)
         if record in contigs
     }
     outdir = args.output if args.output else column
