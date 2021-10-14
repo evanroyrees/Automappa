@@ -5,8 +5,8 @@ set -o nounset
 
 if [ $# -eq 0 ]
   then
-    echo "For more help information run:"
-    echo "  \$cmd: run_automappa --help"
+    echo -e "For more help information run:\n\t\trun_automappa --help"
+    echo -e "\nExample command:\n\t\trun_automappa bacteria.binning.main.tsv bacteria.markers.tsv"
     exit 0
 fi
 
@@ -24,9 +24,18 @@ echo "Attention Automappa User: IGNORE Dash port ${CONTAINER_PORT}."
 echo "Navigate to ---> http://localhost:${LOCAL_PORT}"
 echo
 echo ":----------------------------------------------:"
+binning_dirname=$(dirname $(readlink $1))
+binning_filename=$(basename $1)
+markers_dirname=$(dirname $(readlink $2))
+markers_filename=$(basename $2)
 
 docker run \
     --publish $LOCAL_PORT:$CONTAINER_PORT \
     --detach=false \
+    -v $binning_dirname:/binning:rw \
+    -v $markers_dirname:/markers:ro \
     --rm \
-    evanrees/automappa:latest --input $1 --port $CONTAINER_PORT --host 0.0.0.0
+    evanrees/automappa:develop \
+      --binning-main /binning/$binning_filename \
+      --markers /markers/$markers_filename \
+      --port $CONTAINER_PORT --host 0.0.0.0
