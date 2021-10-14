@@ -10,8 +10,10 @@ if [ $# -eq 0 ]
     exit 0
 fi
 
+IMAGE_TAG="develop"
+
 if [[ "$*" == *-h* ]];then
-    docker run --detach=false --rm evanrees/automappa:latest -h
+    docker run --detach=false --rm evanrees/automappa:$IMAGE_TAG -h
     exit 0
 fi
 
@@ -35,7 +37,7 @@ docker run \
     -v $binning_dirname:/binning:rw \
     -v $markers_dirname:/markers:ro \
     --rm \
-    evanrees/automappa:develop \
+    evanrees/automappa:$IMAGE_TAG \
       --binning-main /binning/$binning_filename \
       --markers /markers/$markers_filename \
       --port $CONTAINER_PORT --host 0.0.0.0

@@ -5,11 +5,8 @@ import argparse
 import pandas as pd
 
 from dash.dependencies import Input, Output
-import dash_core_components as dcc
-# TODO: from dash import dcc
-import dash_html_components as html
-# TODO: from dash import html
-
+from dash import dcc
+from dash import html
 
 from app import app, load_markers
 from apps import mag_refinement, mag_summary
