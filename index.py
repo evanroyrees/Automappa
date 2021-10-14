@@ -127,10 +127,7 @@ def layout(
     )
 
 
-@app.callback(
-    Output("tab_content", "children"),
-    [Input("tabs", "value")]
-)
+@app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
 def render_content(tab):
     if tab == "mag_refinement":
         return mag_refinement.layout
@@ -187,7 +184,9 @@ if __name__ == "__main__":
     print(f"binning shape:\t\t{binning.shape}")
     print(f"markers shape:\t\t{markers.shape}")
 
-    print("Data loaded. It may take a minute or two to construct all interactive graphs...")
+    print(
+        "Data loaded. It may take a minute or two to construct all interactive graphs..."
+    )
     layout(binning=binning, markers=markers)
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)

@@ -88,11 +88,7 @@ def main():
     if not contigs:
         exit(1)
     with open(args.fasta) as fh:
-        records = {
-            record: seq
-            for record, seq in fasta_parser(fh)
-            if record in contigs
-        }
+        records = {record: seq for record, seq in fasta_parser(fh) if record in contigs}
     outdir = args.output if args.output else column
     for refined_bin, dff in df.groupby(column):
         bin_contigs = set(dff.index.tolist())

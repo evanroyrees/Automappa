@@ -8,24 +8,28 @@ from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+import dash_core_components as dcc
 from dash import dcc
 from dash import html
+
+import dash_html_components as html
 import dash_daq as daq
 from plotly import graph_objs as go
 
 from app import app
 
 
-def marker_size_scaler(x: pd.DataFrame, scale_by:str="length") -> int:
+def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
     x_min_scaler = x[scale_by] - x[scale_by].min()
     x_max_scaler = x[scale_by].max() - x[scale_by].min()
     if not x_max_scaler:
         # Protect Division by 0
-        x_ceil = np.ceil(x_min_scaler / x_max_scaler+1)
+        x_ceil = np.ceil(x_min_scaler / x_max_scaler + 1)
     else:
         x_ceil = np.ceil(x_min_scaler / x_max_scaler)
     x_scaled = x_ceil * 2 + 4
     return x_scaled
+
 
 layout = [
     # Hidden div to store refinement selections
@@ -184,7 +188,6 @@ layout = [
                         vertical=False,
                         value=True,
                     ),
-                    
                     html.Label("Fig. 3: Distribute Taxa by Rank"),
                     dcc.Dropdown(
                         id="taxonomy-piechart-dropdown",
@@ -216,7 +219,9 @@ layout = [
 ]
 
 
-@app.callback(Output("color-by-column", "options"), [Input("metagenome-annotations", "children")])
+@app.callback(
+    Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
+)
 def get_color_by_cols(annotations):
     df = pd.read_json(annotations, orient="split")
     return [
@@ -367,7 +372,7 @@ def update_zaxis(annotations, zaxis, show_legend, colorby_col, selected_contigs)
                 },
                 name=colorby_col_value,
             )
-            for colorby_col_value,dff in df.groupby(colorby_col)
+            for colorby_col_value, dff in df.groupby(colorby_col)
         ],
         "layout": go.Layout(
             scene=dict(
@@ -430,8 +435,8 @@ def update_axes(
             df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
             # print(f"new df shape: {df.shape}")
     return {
-: from dash import dcc
-ash TODO: import html
+        "data": [
+            go.Scattergl(
                 x=df[df[cluster_col] == cluster][xaxis_column],
                 y=df[df[cluster_col] == cluster][yaxis_column],
                 text=df[df[cluster_col] == cluster].index,
@@ -492,7 +497,10 @@ def bin_table_callback(df):
 
 @app.callback(
     Output("refinements-download", "data"),
-    [Input("refinements-download-button", "n_clicks"), Input("refinements-clusters", "children")],
+    [
+        Input("refinements-download-button", "n_clicks"),
+        Input("refinements-clusters", "children"),
+    ],
 )
 def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:
