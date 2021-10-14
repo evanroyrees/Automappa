@@ -9,7 +9,9 @@ from dash_extensions.snippets import send_data_frame
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
+# TODO: from dash import dcc
 import dash_html_components as html
+# TODO: from dash import html
 import dash_daq as daq
 from plotly import graph_objs as go
 
@@ -355,14 +357,16 @@ def update_zaxis(annotations, zaxis, show_legend, colorby_col, selected_contigs)
             go.Scatter3d(
                 x=dff.x_1,
                 y=dff.x_2,
+                # TODO: from dash import dcc
                 z=dff[zaxis],
+# from dash TODO: import html
                 text=dff.contig,
                 mode="markers",
                 textposition="top center",
                 opacity=0.45,
                 hoverinfo="all",
                 marker={
-                    "size": dff.assign(marker_size=marker_size_scaler).marker_size.fillna(1),
+                    "size": dff.assign(normLen=marker_size_scaler)["normLen"].fillna(1),
                     "line": {"width": 0.1, "color": "black"},
                 },
                 name=colorby_col_value,
@@ -431,14 +435,16 @@ def update_axes(
             # print(f"new df shape: {df.shape}")
     return {
         "data": [
+            # TODO: from dash import dcc
             go.Scattergl(
+# from dash TODO: import html
                 x=df[df[cluster_col] == cluster][xaxis_column],
                 y=df[df[cluster_col] == cluster][yaxis_column],
                 text=df[df[cluster_col] == cluster].index,
                 mode="markers",
                 opacity=0.45,
                 marker={
-                    "size": df.assign(marker_size=marker_size_scaler).marker_size,
+                    "size": df.assign(normLen=marker_size_scaler)["normLen"],
                     "line": {"width": 0.1, "color": "black"},
                 },
                 name=cluster,
