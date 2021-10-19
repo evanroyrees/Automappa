@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-
-from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
 import pandas as pd
 
-from app import app, gc_length_dataframe_from_fasta, load_markers
-from apps import explorer, summary
+from dash.dependencies import Input, Output
+from dash import dcc
+from dash import html
+
+from app import app, load_markers
+from apps import mag_refinement, mag_summary
 
 tab_style = {
     "borderTop": "3px solid white",
@@ -33,10 +33,9 @@ tab_selected_style = {
 def layout(
     binning: pd.DataFrame,
     markers: pd.DataFrame,
-    taxonomy: pd.DataFrame,
-    annotations: pd.DataFrame,
 ):
-    cluster_columns = [
+    # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
+    binning_cols = [
         col
         for col in binning.columns
         if "refinement_" in col or "cluster" in col or "contig" in col
@@ -55,17 +54,12 @@ def layout(
                 style={"display": "none"},
             ),
             html.Div(
-                taxonomy.to_json(orient="split"),
-                id="metagenome-taxonomy",
-                style={"display": "none"},
-            ),
-            html.Div(
-                annotations.to_json(orient="split"),
+                binning.to_json(orient="split"),
                 id="metagenome-annotations",
                 style={"display": "none"},
             ),
             html.Div(
-                binning[cluster_columns].to_json(orient="split"),
+                binning[binning_cols].to_json(orient="split"),
                 id="refinement-data",
                 style={"display": "none"},
             ),
@@ -99,20 +93,20 @@ def layout(
                                 style={"height": "10", "verticalAlign": "middle"},
                                 children=[
                                     dcc.Tab(
-                                        label="Refine Bins",
-                                        value="explorer_tab",
+                                        label="MAG Refinement",
+                                        value="mag_refinement",
                                         style=tab_style,
                                         selected_style=tab_selected_style,
                                     ),
                                     dcc.Tab(
-                                        id="bin_summary",
-                                        label="Binning Summary",
-                                        value="summary_tab",
+                                        id="mag_summary",
+                                        label="MAG Summary",
+                                        value="mag_summary",
                                         style=tab_style,
                                         selected_style=tab_selected_style,
                                     ),
                                 ],
-                                value="explorer_tab",
+                                value="mag_refinement",
                             ),
                         ],
                         className="seven columns row header",
@@ -135,12 +129,12 @@ def layout(
 
 @app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
 def render_content(tab):
-    if tab == "explorer_tab":
-        return explorer.layout
-    elif tab == "summary_tab":
-        return summary.layout
+    if tab == "mag_refinement":
+        return mag_refinement.layout
+    elif tab == "mag_summary":
+        return mag_summary.layout
     else:
-        return explorer.layout
+        return mag_refinement.layout
 
 
 if __name__ == "__main__":
@@ -149,34 +143,19 @@ if __name__ == "__main__":
         description="Automappa: An interactive interface for exploration of metagenomes"
     )
     parser.add_argument(
-        "--binning",
-        help="Path to binning.tsv",
-        required=True,
-    )
-    parser.add_argument(
-        "--kmers",
-        help="Path to embedded kmers.tsv",
-        required=True,
-    )
-    parser.add_argument(
-        "--coverages",
-        help="Path to coverages.tsv",
-        required=True,
-    )
-    parser.add_argument(
-        "--fasta",
-        help="Path to metagenome.fasta",
+        "--binning-main",
+        help="Path to --binning-main output of Autometa binning/recruitment results",
         required=True,
     )
     parser.add_argument(
         "--markers",
-        help="Path to `kingdom`.markers.tsv",
-        required=True,
+        help="Path to Autometa-formatted markers table (may be taxon-specific)",
+        required=False,
     )
     parser.add_argument(
-        "--taxonomy",
-        help="Path to taxonomy.tsv",
-        required=True,
+        "--fasta",
+        help="Path to metagenome.fasta",
+        required=False,
     )
     parser.add_argument("--port", help="port to expose", default=8050, type=int)
     parser.add_argument(
@@ -194,26 +173,20 @@ if __name__ == "__main__":
 
     print("Please wait a moment while all of the data is loaded.")
     # Needed separately for binning refinement selections.
-    binning = pd.read_csv(args.binning, sep="\t")
+    binning = pd.read_csv(args.binning_main, sep="\t")
     # Needed for completeness/purity calculations
     markers = load_markers(args.markers)
-    # Store for taxonomy vizualizations
-    taxonomy = pd.read_csv(args.taxonomy, sep="\t")
-    # Store these annotations together, b/c they will be used for same visualizations
-    kmers = pd.read_csv(args.kmers, sep="\t")
-    coverages = pd.read_csv(args.coverages, sep="\t")
-    annotations = gc_length_dataframe_from_fasta(args.fasta)
+
     # binning and taxonomy are added here to color contigs
-    # Kingdom-specific Binning will subset entire dataframe to kingdom binned.
-    for annotation in [kmers, coverages, binning, taxonomy]:
-        annotations = pd.merge(annotations, annotation, on="contig", how="inner")
+    # NOTE: (Optional) parameter of fasta in case the user would like to
+    # export the MAG refinements as a fasta file
 
     print(f"binning shape:\t\t{binning.shape}")
     print(f"markers shape:\t\t{markers.shape}")
-    print(f"taxonomy shape:\t\t{taxonomy.shape}")
-    print(f"annotations shape:\t{annotations.shape}")
 
-    print("Data loaded. It may take a minute or two to construct all interactive graphs...")
-    layout(binning=binning, markers=markers, taxonomy=taxonomy, annotations=annotations)
+    print(
+        "Data loaded. It may take a minute or two to construct all interactive graphs..."
+    )
+    layout(binning=binning, markers=markers)
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)

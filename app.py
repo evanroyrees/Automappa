@@ -69,23 +69,14 @@ def fasta_parser(handle: TextIOWrapper):
     else:
         # no break encountered - probably an empty file
         return
-    lines = []
+    seq_lines = ""
     for line in handle:
         if line[0] == ">":
-            yield title, "".join(lines).replace(" ", "").replace("\r", "")
-            lines = []
+            yield title, seq_lines
+            seq_lines = ""
             title = line[1:].rstrip()
             contig_id = title.split(None, 1)[0]
             continue
-        lines.append(line.rstrip())
-
-    yield contig_id, "".join(lines).replace(" ", "").replace("\r", "")
-
-
-def gc_length_dataframe_from_fasta(fasta):
-    fh = open(fasta)
-    annotations = [
-        {"contig": record, "length": len(seq), "GC": GC(seq)}
-        for record, seq in fasta_parser(fh)
-    ]
-    return pd.DataFrame(annotations)
+        else:
+            seq_lines += line.strip().replace(" ", "").replace("\r", "")
+    yield contig_id, seq_lines

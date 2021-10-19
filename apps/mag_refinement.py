@@ -9,6 +9,9 @@ from dash_extensions.snippets import send_data_frame
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
+from dash import dcc
+from dash import html
+
 import dash_html_components as html
 import dash_daq as daq
 from plotly import graph_objs as go
@@ -16,11 +19,18 @@ from plotly import graph_objs as go
 from app import app
 
 
-normalizeLen = (
-    lambda x: np.ceil((x.length - x.length.min()) / (x.length.max() - x.length.min()))
-    * 2
-    + 4
-)
+def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
+    x_min_scaler = x[scale_by] - x[scale_by].min()
+    x_max_scaler = x[scale_by].max() - x[scale_by].min()
+    if not x_max_scaler:
+        # Protect Division by 0
+        x_ceil = np.ceil(x_min_scaler / x_max_scaler + 1)
+    else:
+        x_ceil = np.ceil(x_min_scaler / x_max_scaler)
+    x_scaled = x_ceil * 2 + 4
+    return x_scaled
+
+
 layout = [
     # Hidden div to store refinement selections
     html.Div(id="refinements-clusters", style={"display": "none"}),
@@ -58,24 +68,24 @@ layout = [
                     dcc.Dropdown(
                         id="x-axis-2d",
                         options=[
-                            {"label": "Kmers-X", "value": "x"},
+                            {"label": "X_1", "value": "x_1"},
                             {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
+                            {"label": "GC Content", "value": "gc_content"},
                             {"label": "Length", "value": "length"},
                         ],
-                        value="x",
+                        value="x_1",
                         clearable=False,
                     ),
                     html.Label("Y-Axis:"),
                     dcc.Dropdown(
                         id="y-axis-2d",
                         options=[
-                            {"label": "Kmers-Y", "value": "y"},
+                            {"label": "X_2", "value": "x_2"},
                             {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
+                            {"label": "GC Content", "value": "gc_content"},
                             {"label": "Length", "value": "length"},
                         ],
-                        value="y",
+                        value="x_2",
                         clearable=False,
                     ),
                     html.Pre(
@@ -146,7 +156,7 @@ layout = [
             ),
             html.Div(
                 [
-                    html.Label("Figure 3: Taxonomic Distribution"),
+                    html.Label("Figure 3: Taxon Distribution"),
                     dcc.Graph(
                         id="taxonomy-piechart",
                         style={"height": "90%", "width": "98%"},
@@ -162,7 +172,7 @@ layout = [
                         id="scatterplot-3d-zaxis-dropdown",
                         options=[
                             {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
+                            {"label": "GC Content", "value": "gc_content"},
                             {"label": "Length", "value": "length"},
                         ],
                         value="coverage",
@@ -178,7 +188,6 @@ layout = [
                         vertical=False,
                         value=True,
                     ),
-                    
                     html.Label("Fig. 3: Distribute Taxa by Rank"),
                     dcc.Dropdown(
                         id="taxonomy-piechart-dropdown",
@@ -210,7 +219,9 @@ layout = [
 ]
 
 
-@app.callback(Output("color-by-column", "options"), [Input("metagenome-annotations", "children")])
+@app.callback(
+    Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
+)
 def get_color_by_cols(annotations):
     df = pd.read_json(annotations, orient="split")
     return [
@@ -251,8 +262,8 @@ def display_selection_summary(markers, selected_contigs):
             n_marker_sets = pd.NA
         else:
             total_markers = pfam_counts.sum()
-            num_single_copy_markers = pfam_counts[pfam_counts == 1].count()
-            num_markers_present = pfam_counts[pfam_counts >= 1].count()
+            num_single_copy_markers = pfam_counts.eq(1).count()
+            num_markers_present = pfam_counts.ge(1).count()
             completeness = num_markers_present / num_expected_markers * 100
             purity = num_single_copy_markers / num_markers_present * 100
             n_marker_sets = total_markers / num_expected_markers
@@ -274,20 +285,22 @@ def display_selection_summary(markers, selected_contigs):
 @app.callback(
     Output("taxonomy-piechart", "figure"),
     [
-        Input("metagenome-taxonomy", "children"),
+        Input("metagenome-annotations", "children"),
         Input("scatterplot-2d", "selectedData"),
         Input("taxonomy-piechart-dropdown", "value"),
     ],
 )
-def taxa_piechart_callback(taxonomy, selected_contigs, selected_rank):
-    df = pd.read_json(taxonomy, orient="split")
+def taxa_piechart_callback(annotations, selected_contigs, selected_rank):
+    df = pd.read_json(annotations, orient="split")
     layout = dict(margin=dict(l=15, r=10, t=35, b=45))
     if not selected_contigs:
         n_ctgs = len(df.index)
+        # Get taxa and their respective count at selected canonical-rank
         labels = df[selected_rank].unique().tolist()
         values = [
             len(df[df[selected_rank] == label]) / float(n_ctgs) for label in labels
         ]
+        # Add in to pie chart... Sankey (go.Sankey) diagram or Parallel Categories plot (go.ParCat)
         trace = go.Pie(
             labels=labels,
             values=values,
@@ -322,11 +335,11 @@ def taxa_piechart_callback(taxonomy, selected_contigs, selected_rank):
         Input("scatterplot-2d", "selectedData"),
     ],
 )
-def update_zaxis(annotations, zaxis, show_legend, groupby_col, selected_contigs):
+def update_zaxis(annotations, zaxis, show_legend, colorby_col, selected_contigs):
     df = pd.read_json(annotations, orient="split")
     titles = {
         "coverage": "Coverage",
-        "GC": "GC%",
+        "gc_content": "GC Content",
         "length": "Length",
     }
     zaxis_title = titles[zaxis]
@@ -336,30 +349,35 @@ def update_zaxis(annotations, zaxis, show_legend, groupby_col, selected_contigs)
         contigs = {point["text"] for point in selected_contigs["points"]}
     # Subset DataFrame by selected contigs
     df = df[df.contig.isin(contigs)]
-    df[groupby_col].fillna("unclustered", inplace=True)
+    if colorby_col == "cluster":
+        # Categoricals for binning
+        df[colorby_col] = df[colorby_col].fillna("unclustered")
+    else:
+        # Other possible categorical columns all relate to taxonomy
+        df[colorby_col] = df[colorby_col].fillna("unclassified")
     return {
         "data": [
             go.Scatter3d(
-                x=df[df[groupby_col] == cluster]["x"],
-                y=df[df[groupby_col] == cluster]["y"],
-                z=df[df[groupby_col] == cluster][zaxis],
-                text=df[df[groupby_col] == cluster]["contig"],
+                x=dff.x_1,
+                y=dff.x_2,
+                z=dff[zaxis],
+                text=dff.contig,
                 mode="markers",
                 textposition="top center",
                 opacity=0.45,
                 hoverinfo="all",
                 marker={
-                    "size": df.assign(normLen=normalizeLen)["normLen"],
+                    "size": dff.assign(normLen=marker_size_scaler)["normLen"].fillna(1),
                     "line": {"width": 0.1, "color": "black"},
                 },
-                name=cluster,
+                name=colorby_col_value,
             )
-            for cluster in df[groupby_col].unique()
+            for colorby_col_value, dff in df.groupby(colorby_col)
         ],
         "layout": go.Layout(
             scene=dict(
-                xaxis=dict(title="Kmers-X"),
-                yaxis=dict(title="Kmers-Y"),
+                xaxis=dict(title="X_1"),
+                yaxis=dict(title="X_2"),
                 zaxis=dict(title=zaxis_title),
             ),
             legend={"x": 0, "y": 1},
@@ -394,16 +412,16 @@ def update_axes(
 ):
     df = pd.read_json(annotations, orient="split").set_index("contig")
     titles = {
-        "x": "Kmers-X",
-        "y": "Kmers-Y",
+        "x_1": "X_1",
+        "x_2": "X_2",
         "coverage": "Coverage",
-        "GC": "GC%",
+        "gc_content": "GC Content",
         "length": "Length",
     }
     xaxis_title = titles[xaxis_column]
     yaxis_title = titles[yaxis_column]
     # Subset metagenome-annotations by selections iff selections have been made
-    df[cluster_col].fillna("unclustered", inplace=True)
+    df[cluster_col] = df[cluster_col].fillna("unclustered")
     if hide_selection_toggle:
         refine_df = pd.read_json(refinement, orient="split").set_index("contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
@@ -425,7 +443,7 @@ def update_axes(
                 mode="markers",
                 opacity=0.45,
                 marker={
-                    "size": df.assign(normLen=normalizeLen)["normLen"],
+                    "size": df.assign(normLen=marker_size_scaler)["normLen"],
                     "line": {"width": 0.1, "color": "black"},
                 },
                 name=cluster,
@@ -479,7 +497,10 @@ def bin_table_callback(df):
 
 @app.callback(
     Output("refinements-download", "data"),
-    [Input("refinements-download-button", "n_clicks"), Input("refinements-clusters", "children")],
+    [
+        Input("refinements-download-button", "n_clicks"),
+        Input("refinements-clusters", "children"),
+    ],
 )
 def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:

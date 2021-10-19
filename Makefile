@@ -43,6 +43,10 @@ else
 	@echo ">>> Docker not detected. Please install docker to use the Automappa docker image"
 endif
 
+## Build docker image from Dockerfile (auto-taggged as evanrees/automappa:<current-branch>)
+image: docker/Dockerfile
+	docker build . -f $< -t evanrees/automappa:`git branch --show-current`
+
 ## Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
