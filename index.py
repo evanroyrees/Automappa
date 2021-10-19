@@ -4,8 +4,8 @@
 import argparse
 
 from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import dcc, html
+import dash_bootstrap_components as dbc
 import pandas as pd
 
 from app import app, gc_length_dataframe_from_fasta, load_markers
@@ -41,6 +41,7 @@ def layout(
         for col in binning.columns
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
+    
     app.layout = html.Div(
         [
             #### Send data to hidden divs for use in explorer.py and summary.py

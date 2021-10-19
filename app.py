@@ -2,11 +2,12 @@ import os
 import flask
 import dash
 from io import TextIOWrapper
+import dash_bootstrap_components.themes as dbct
 
 import pandas as pd
 
 server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server)
+app = dash.Dash(__name__, server=server, external_stylesheets=[dbct.BOOTSTRAP])
 app.config.suppress_callback_exceptions = True
 
 

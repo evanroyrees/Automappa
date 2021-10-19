@@ -1,216 +1,410 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
+import dash_bootstrap_components as dbc
+import dash_daq as daq
 import numpy as np
-
-import dash_table
-from dash_extensions import Download
-from dash_extensions.snippets import send_data_frame
+import pandas as pd
+from app import app
+from dash import dash_table, dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_daq as daq
+from dash_extensions import Download
+from dash_extensions.snippets import send_data_frame
 from plotly import graph_objs as go
-
-from app import app
-
 
 normalizeLen = (
     lambda x: np.ceil((x.length - x.length.min()) / (x.length.max() - x.length.min()))
     * 2
     + 4
 )
-layout = [
-    # Hidden div to store refinement selections
-    html.Div(id="refinements-clusters", style={"display": "none"}),
-    # 2D-scatter plot row div
-    html.Div(
-        [
-            html.Div(
-                [
-                    html.Label("Figure 1: 2D Binning Overview"),
-                    dcc.Graph(
-                        id="scatterplot-2d",
-                        style={"height": "90%", "width": "98%"},
-                        clear_on_unhover=True,
-                    ),
-                ],
-                className="ten columns chart_div",
+hidden_div_refinement_selection = html.Div(
+    id="refinements-clusters", style={"display": "none"}
+)
+toggles = dbc.Row(
+    [
+        dbc.Col(
+            daq.ToggleSwitch(
+                id="show-legend-toggle",
+                size=40,
+                color="#c5040d",
+                label="Show/Hide 2D Legend",
+                labelPosition="top",
+                vertical=False,
+                value=True,
             ),
-            html.Div(
-                [
-                    html.Button(
-                        "Download Refinements",
-                        id="refinements-download-button",
-                        n_clicks=0,
-                        className="button button--primary",
-                    ),
-                    Download(id="refinements-download"),
-                    html.Label("Color contigs by:"),
-                    dcc.Dropdown(
-                        id="color-by-column",
-                        options=[],
-                        value="cluster",
-                        clearable=False,
-                    ),
-                    html.Label("X-Axis:"),
-                    dcc.Dropdown(
-                        id="x-axis-2d",
-                        options=[
-                            {"label": "Kmers-X", "value": "x"},
-                            {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
-                            {"label": "Length", "value": "length"},
-                        ],
-                        value="x",
-                        clearable=False,
-                    ),
-                    html.Label("Y-Axis:"),
-                    dcc.Dropdown(
-                        id="y-axis-2d",
-                        options=[
-                            {"label": "Kmers-Y", "value": "y"},
-                            {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
-                            {"label": "Length", "value": "length"},
-                        ],
-                        value="y",
-                        clearable=False,
-                    ),
-                    html.Pre(
-                        style={
-                            "textAlign": "middle",
-                        },
-                        id="selection-binning-metrics",
-                    ),
-                    # add show-legend-toggle
-                    daq.ToggleSwitch(
-                        id="show-legend-toggle",
-                        size=40,
-                        color="#c5040d",
-                        label="Show/Hide 2D Legend",
-                        labelPosition="top",
-                        vertical=False,
-                        value=True,
-                    ),
-                    # add hide selection toggle
-                    daq.ToggleSwitch(
-                        id="hide-selections-toggle",
-                        size=40,
-                        color="#c5040d",
-                        label="Hide Selections",
-                        labelPosition="top",
-                        vertical=False,
-                        value=False,
-                    ),
-                    # add save selection toggle
-                    daq.ToggleSwitch(
-                        id="save-selections-toggle",
-                        size=40,
-                        color="#c5040d",
-                        label="Store Selections",
-                        labelPosition="top",
-                        vertical=False,
-                        value=False,
-                    ),
-                    html.P("NOTE"),
-                    html.Br(),
-                    html.P(
-                        "Toggling save with contigs selected will save them as a refinement group."
-                    ),
-                ],
-                className="two columns",
+        ),
+        dbc.Col(
+            # add hide selection toggle
+            daq.ToggleSwitch(
+                id="hide-selections-toggle",
+                size=40,
+                color="#c5040d",
+                label="Hide Selections",
+                labelPosition="top",
+                vertical=False,
+                value=False,
             ),
-        ],
-    ),
-    # 3D-scatter plot row div
-    html.Div(
-        [
-            html.Div(
-                [
-                    html.Label("Figure 2: 3D Binning Overview"),
-                    dcc.Graph(
-                        id="scatterplot-3d",
-                        clear_on_unhover=True,
-                        style={"height": "90%", "width": "98%"},
-                        config={
-                            "toImageButtonOptions": dict(
-                                format="svg",
-                                filename="scatter3dPlot.autometa.binning",
-                            ),
-                        },
-                    ),
-                ],
-                className="seven columns threeD_scatter_div",
+        ),
+        dbc.Col(
+            # add save selection toggle
+            daq.ToggleSwitch(
+                id="save-selections-toggle",
+                size=40,
+                color="#c5040d",
+                label="Store Selections",
+                labelPosition="top",
+                vertical=False,
+                value=False,
+            )
+        ),
+        dbc.Col(
+            html.P("NOTE"),
+            html.Br(),
+            html.P(
+                "Toggling save with contigs selected will save them as a refinement group."
             ),
-            html.Div(
-                [
-                    html.Label("Figure 3: Taxonomic Distribution"),
-                    dcc.Graph(
-                        id="taxonomy-piechart",
-                        style={"height": "90%", "width": "98%"},
-                        config=dict(displayModeBar=False),
-                    ),
+        ),
+        dbc.Col(
+            html.Label("Fig. 2: Change Z-axis"),
+            dcc.Dropdown(
+                id="scatterplot-3d-zaxis-dropdown",
+                options=[
+                    {"label": "Coverage", "value": "coverage"},
+                    {"label": "GC%", "value": "GC"},
+                    {"label": "Length", "value": "length"},
                 ],
-                className="three columns taxa_chart_div",
+                value="coverage",
+                clearable=False,
             ),
-            html.Div(
-                [
-                    html.Label("Fig. 2: Change Z-axis"),
-                    dcc.Dropdown(
-                        id="scatterplot-3d-zaxis-dropdown",
-                        options=[
-                            {"label": "Coverage", "value": "coverage"},
-                            {"label": "GC%", "value": "GC"},
-                            {"label": "Length", "value": "length"},
-                        ],
-                        value="coverage",
-                        clearable=False,
-                    ),
-                    # add scatterplot-3d-legend-toggle
-                    daq.ToggleSwitch(
-                        id="scatterplot-3d-legend-toggle",
-                        size=40,
-                        color="#c5040d",
-                        label="Show/Hide 3D scatterplot Legend",
-                        labelPosition="top",
-                        vertical=False,
-                        value=True,
-                    ),
-                    
-                    html.Label("Fig. 3: Distribute Taxa by Rank"),
-                    dcc.Dropdown(
-                        id="taxonomy-piechart-dropdown",
-                        options=[
-                            {"label": "Kingdom", "value": "superkingdom"},
-                            {"label": "Phylum", "value": "phylum"},
-                            {"label": "Class", "value": "class"},
-                            {"label": "Order", "value": "order"},
-                            {"label": "Family", "value": "family"},
-                            {"label": "Genus", "value": "genus"},
-                            {"label": "Species", "value": "species"},
-                        ],
-                        value="superkingdom",
-                        clearable=False,
-                    ),
+            # add scatterplot-3d-legend-toggle
+            daq.ToggleSwitch(
+                id="scatterplot-3d-legend-toggle",
+                size=40,
+                color="#c5040d",
+                label="Show/Hide 3D scatterplot Legend",
+                labelPosition="top",
+                vertical=False,
+                value=True,
+            ),
+            html.Label("Fig. 3: Distribute Taxa by Rank"),
+            dcc.Dropdown(
+                id="taxonomy-piechart-dropdown",
+                options=[
+                    {"label": "Kingdom", "value": "superkingdom"},
+                    {"label": "Phylum", "value": "phylum"},
+                    {"label": "Class", "value": "class"},
+                    {"label": "Order", "value": "order"},
+                    {"label": "Family", "value": "family"},
+                    {"label": "Genus", "value": "genus"},
+                    {"label": "Species", "value": "species"},
                 ],
-                className="two columns",
+                value="superkingdom",
+                clearable=False,
             ),
-        ],
-        className="row",
-        style={"marginTop": "0", "marginBottom": "2"},
-    ),
-    html.Label("Current Manual Refinement Table"),
-    # table div
-    html.Div(
-        className="row twelve columns binning_table",
-        id="refinements-table",
-    ),
-]
+        ),
+    ],
+)
+binning_overview_2D = dbc.Row(
+    [
+        dbc.Col(
+            [
+                html.H5("Figure 1: 2D Binning Overview"),
+                dcc.Graph(
+                    id="scatterplot-2d",
+                    style={"height": "90%", "width": "98%"},
+                    clear_on_unhover=True,
+                ),
+            ],
+            width=9,
+            align="center",
+            className="mt-3 mb-3",
+        ),
+        dbc.Col(
+            [
+                dbc.Button(
+                    "Download Refinements",
+                    id="refinements-download-button",
+                    n_clicks=0,
+                    color="primary",
+                ),
+                Download(id="refinements-download"),
+                html.H3("Color contigs by:"),
+                dcc.Dropdown(
+                    id="color-by-column",
+                    options=[],
+                    value="cluster",
+                    clearable=False,
+                ),
+                html.H3("X-Axis:"),
+                dcc.Dropdown(
+                    id="x-axis-2d",
+                    options=[
+                        {"label": "Kmers-X", "value": "x"},
+                        {"label": "Coverage", "value": "coverage"},
+                        {"label": "GC%", "value": "GC"},
+                        {"label": "Length", "value": "length"},
+                    ],
+                    value="x",
+                    clearable=False,
+                ),
+                html.H3("Y-Axis:"),
+                dcc.Dropdown(
+                    id="y-axis-2d",
+                    options=[
+                        {"label": "Kmers-Y", "value": "y"},
+                        {"label": "Coverage", "value": "coverage"},
+                        {"label": "GC%", "value": "GC"},
+                        {"label": "Length", "value": "length"},
+                    ],
+                    value="y",
+                    clearable=False,
+                ),
+                html.Pre(
+                    style={
+                        "textAlign": "middle",
+                    },
+                    id="selection-binning-metrics",
+                ),
+            ],
+            width=3,
+            className="mt-3 mb-3",
+            align="center",
+        ),
+    ]
+)
+binning_overview_3D_pie_chart = dbc.Row(
+    [
+        dbc.Col(
+            [
+                dcc.Graph(
+                    id="scatterplot-3d",
+                    clear_on_unhover=True,
+                    style={"height": "90%", "width": "98%"},
+                    config={
+                        "toImageButtonOptions": dict(
+                            format="svg",
+                            filename="scatter3dPlot.autometa.binning",
+                        ),
+                    },
+                ),
+            ],
+            width=6,
+        ),
+        dbc.Col(
+            [
+                html.Label("Figure 3: Taxonomic Distribution"),
+                dcc.Graph(
+                    id="taxonomy-piechart",
+                    style={"height": "90%", "width": "98%"},
+                    config=dict(displayModeBar=False),
+                ),
+            ],
+            width=6,
+        ),
+    ]
+)
+
+# layout2 = [
+#     # Hidden div to store refinement selections
+#     html.Div(id="refinements-clusters", style={"display": "none"}),
+#     # 2D-scatter plot row div
+#     html.Div(
+#         [
+#             html.Div(
+#                 [
+#                     html.Label("Figure 1: 2D Binning Overview"),
+#                     dcc.Graph(
+#                         id="scatterplot-2d",
+#                         style={"height": "90%", "width": "98%"},
+#                         clear_on_unhover=True,
+#                     ),
+#                 ],
+#                 className="ten columns chart_div",
+#             ),
+#             html.Div(
+#                 [
+#                     html.Button(
+#                         "Download Refinements",
+#                         id="refinements-download-button",
+#                         n_clicks=0,
+#                         className="button button--primary",
+#                     ),
+#                     Download(id="refinements-download"),
+#                     html.Label("Color contigs by:"),
+#                     dcc.Dropdown(
+#                         id="color-by-column",
+#                         options=[],
+#                         value="cluster",
+#                         clearable=False,
+#                     ),
+#                     html.Label("X-Axis:"),
+#                     dcc.Dropdown(
+#                         id="x-axis-2d",
+#                         options=[
+#                             {"label": "Kmers-X", "value": "x"},
+#                             {"label": "Coverage", "value": "coverage"},
+#                             {"label": "GC%", "value": "GC"},
+#                             {"label": "Length", "value": "length"},
+#                         ],
+#                         value="x",
+#                         clearable=False,
+#                     ),
+#                     html.Label("Y-Axis:"),
+#                     dcc.Dropdown(
+#                         id="y-axis-2d",
+#                         options=[
+#                             {"label": "Kmers-Y", "value": "y"},
+#                             {"label": "Coverage", "value": "coverage"},
+#                             {"label": "GC%", "value": "GC"},
+#                             {"label": "Length", "value": "length"},
+#                         ],
+#                         value="y",
+#                         clearable=False,
+#                     ),
+#                     html.Pre(
+#                         style={
+#                             "textAlign": "middle",
+#                         },
+#                         id="selection-binning-metrics",
+#                     ),
+#                     # add show-legend-toggle
+#                     daq.ToggleSwitch(
+#                         id="show-legend-toggle",
+#                         size=40,
+#                         color="#c5040d",
+#                         label="Show/Hide 2D Legend",
+#                         labelPosition="top",
+#                         vertical=False,
+#                         value=True,
+#                     ),
+#                     # add hide selection toggle
+#                     daq.ToggleSwitch(
+#                         id="hide-selections-toggle",
+#                         size=40,
+#                         color="#c5040d",
+#                         label="Hide Selections",
+#                         labelPosition="top",
+#                         vertical=False,
+#                         value=False,
+#                     ),
+#                     # add save selection toggle
+#                     daq.ToggleSwitch(
+#                         id="save-selections-toggle",
+#                         size=40,
+#                         color="#c5040d",
+#                         label="Store Selections",
+#                         labelPosition="top",
+#                         vertical=False,
+#                         value=False,
+#                     ),
+#                     html.P("NOTE"),
+#                     html.Br(),
+#                     html.P(
+#                         "Toggling save with contigs selected will save them as a refinement group."
+#                     ),
+#                 ],
+#                 className="two columns",
+#             ),
+#         ],
+#     ),
+#     # 3D-scatter plot row div
+#     html.Div(
+#         [
+#             html.Div(
+#                 [
+#                     html.Label("Figure 2: 3D Binning Overview"),
+#                     dcc.Graph(
+#                         id="scatterplot-3d",
+#                         clear_on_unhover=True,
+#                         style={"height": "90%", "width": "98%"},
+#                         config={
+#                             "toImageButtonOptions": dict(
+#                                 format="svg",
+#                                 filename="scatter3dPlot.autometa.binning",
+#                             ),
+#                         },
+#                     ),
+#                 ],
+#                 className="seven columns threeD_scatter_div",
+#             ),
+#             html.Div(
+#                 [
+#                     html.Label("Figure 3: Taxonomic Distribution"),
+#                     dcc.Graph(
+#                         id="taxonomy-piechart",
+#                         style={"height": "90%", "width": "98%"},
+#                         config=dict(displayModeBar=False),
+#                     ),
+#                 ],
+#                 className="three columns taxa_chart_div",
+#             ),
+#             html.Div(
+#                 [
+#                     html.Label("Fig. 2: Change Z-axis"),
+#                     dcc.Dropdown(
+#                         id="scatterplot-3d-zaxis-dropdown",
+#                         options=[
+#                             {"label": "Coverage", "value": "coverage"},
+#                             {"label": "GC%", "value": "GC"},
+#                             {"label": "Length", "value": "length"},
+#                         ],
+#                         value="coverage",
+#                         clearable=False,
+#                     ),
+#                     # add scatterplot-3d-legend-toggle
+#                     daq.ToggleSwitch(
+#                         id="scatterplot-3d-legend-toggle",
+#                         size=40,
+#                         color="#c5040d",
+#                         label="Show/Hide 3D scatterplot Legend",
+#                         labelPosition="top",
+#                         vertical=False,
+#                         value=True,
+#                     ),
+#                     html.Label("Fig. 3: Distribute Taxa by Rank"),
+#                     dcc.Dropdown(
+#                         id="taxonomy-piechart-dropdown",
+#                         options=[
+#                             {"label": "Kingdom", "value": "superkingdom"},
+#                             {"label": "Phylum", "value": "phylum"},
+#                             {"label": "Class", "value": "class"},
+#                             {"label": "Order", "value": "order"},
+#                             {"label": "Family", "value": "family"},
+#                             {"label": "Genus", "value": "genus"},
+#                             {"label": "Species", "value": "species"},
+#                         ],
+#                         value="superkingdom",
+#                         clearable=False,
+#                     ),
+#                 ],
+#                 className="two columns",
+#             ),
+#         ],
+#         className="row",
+#         style={"marginTop": "0", "marginBottom": "2"},
+#     ),
+#     html.Label("Current Manual Refinement Table"),
+#     # table div
+#     html.Div(
+#         className="row twelve columns binning_table",
+#         id="refinements-table",
+#     ),
+# ]
+
+layout = dbc.Container(
+    [
+        hidden_div_refinement_selection,
+        toggles,
+        binning_overview_2D,
+        binning_overview_3D_pie_chart,
+    ],
+    fluid=True,
+)
 
 
-@app.callback(Output("color-by-column", "options"), [Input("metagenome-annotations", "children")])
+@app.callback(
+    Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
+)
 def get_color_by_cols(annotations):
     df = pd.read_json(annotations, orient="split")
     return [
@@ -479,7 +673,10 @@ def bin_table_callback(df):
 
 @app.callback(
     Output("refinements-download", "data"),
-    [Input("refinements-download-button", "n_clicks"), Input("refinements-clusters", "children")],
+    [
+        Input("refinements-download-button", "n_clicks"),
+        Input("refinements-clusters", "children"),
+    ],
 )
 def download_refinements(n_clicks, intermediate_selections):
     if not n_clicks:
