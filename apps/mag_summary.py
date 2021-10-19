@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 import math
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import pandas as pd
 import numpy as np
-from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
-from plotly import graph_objs as go
-
+import pandas as pd
 from app import app
+from dash import dcc, html
+from dash.dependencies import Input, Output
+from plotly import graph_objects as go
 
 JSONDict = Dict[str, Any]
 colors = {"background": "#F3F6FA", "background_div": "white"}

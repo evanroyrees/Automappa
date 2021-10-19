@@ -5,35 +5,30 @@ import argparse
 import pandas as pd
 
 from dash.dependencies import Input, Output
-<<<<<<< HEAD
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
-=======
-from dash import dcc
-from dash import html
->>>>>>> 017278cd28a21acb8a5b00e769a7d2947a6646b1
 
 from app import app, load_markers
 from apps import mag_refinement, mag_summary
 
-tab_style = {
-    "borderTop": "3px solid white",
-    "borderBottom": "0px",
-    "borderLeft": "0px",
-    "borderRight": "0px",
-    "backgroundColor": "#9b0000",
-}
+# tab_style = {
+#     "borderTop": "3px solid white",
+#     "borderBottom": "0px",
+#     "borderLeft": "0px",
+#     "borderRight": "0px",
+#     "backgroundColor": "#9b0000",
+# }
 
-tab_selected_style = {
-    "borderTop": "3px solid #c5040d",
-    "borderBottom": "0px",
-    "borderLeft": "0px",
-    "borderRight": "0px",
-    "fontWeight": "bold",
-    "color": "white",
-    "backgroundColor": "#c5040d",
-}
+# tab_selected_style = {
+#     "borderTop": "3px solid #c5040d",
+#     "borderBottom": "0px",
+#     "borderLeft": "0px",
+#     "borderRight": "0px",
+#     "fontWeight": "bold",
+#     "color": "white",
+#     "backgroundColor": "#c5040d",
+# }
 
 
 def layout(
@@ -46,7 +41,7 @@ def layout(
         for col in binning.columns
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
-    
+
     app.layout = html.Div(
         [
             #### Send data to hidden divs for use in explorer.py and summary.py
@@ -71,66 +66,70 @@ def layout(
                 style={"display": "none"},
             ),
             #### Add links to external style sheets
-            html.Link(
-                href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
-                rel="stylesheet",
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Open+Sans",
-                rel="stylesheet",
-            ),
-            html.Link(
-                href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"
-            ),
-            html.Link(href="static/dash_crm.css", rel="stylesheet"),
-            html.Link(href="static/stylesheet.css", rel="stylesheet"),
+            # html.Link(
+            #     href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
+            #     rel="stylesheet",
+            # ),
+            # html.Link(
+            #     href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"
+            # ),
+            # html.Link(
+            #     href="https://fonts.googleapis.com/css?family=Open+Sans",
+            #     rel="stylesheet",
+            # ),
+            # html.Link(
+            #     href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"
+            # ),
+            # html.Link(href="static/dash_crm.css", rel="stylesheet"),
+            # html.Link(href="static/stylesheet.css", rel="stylesheet"),
             #### Navbar div with Automappa tabs and School Logo
             html.Div(
                 [
-                    html.Label(
-                        "Automappa Dashboard", className="three columns app-title"
-                    ),
+                    # html.Label(
+                    #     "Automappa Dashboard", className="three columns app-title"
+                    # ),
                     html.Div(
                         [
                             dcc.Tabs(
                                 id="tabs",
-                                style={"height": "10", "verticalAlign": "middle"},
+                                # style={"height": "10", "verticalAlign": "middle"},
                                 children=[
                                     dcc.Tab(
                                         label="MAG Refinement",
                                         value="mag_refinement",
-                                        style=tab_style,
-                                        selected_style=tab_selected_style,
+                                        # style=tab_style,
+                                        # selected_style=tab_selected_style,
                                     ),
                                     dcc.Tab(
                                         id="mag_summary",
                                         label="MAG Summary",
                                         value="mag_summary",
-                                        style=tab_style,
-                                        selected_style=tab_selected_style,
+                                        # style=tab_style,
+                                        # selected_style=tab_selected_style,
                                     ),
                                 ],
                                 value="mag_refinement",
                             ),
                         ],
-                        className="seven columns row header",
+                        # className="seven columns row header",
                     ),
-                    html.Div(
-                        html.Img(src="static/UWlogo.png", height="100%"),
-                        style={"float": "right", "height": "100%"},
-                        className="two columns",
-                    ),
+                    # html.Div(
+                    #     html.Img(src="static/UWlogo.png", height="100%"),
+                    #     style={"float": "right", "height": "100%"},
+                    # className="two columns",
+                    # ),
                 ],
-                className="row header",
+                # className="row header",
             ),
             #### Below Navbar where we render selected tab content
-            html.Div(id="tab_content", className="row", style={"margin": "0.5% 0.5%"}),
+            html.Div(
+                id="tab_content",
+                # className="row",
+                # style={"margin": "0.5% 0.5%"}
+            ),
         ],
-        className="row",
-        style={"margin": "0%"},
+        # className="row",
+        # style={"margin": "0%"},
     )
 
 
@@ -190,10 +189,10 @@ if __name__ == "__main__":
 
     print(f"binning shape:\t\t{binning.shape}")
     print(f"markers shape:\t\t{markers.shape}")
-
     print(
         "Data loaded. It may take a minute or two to construct all interactive graphs..."
     )
+    
     layout(binning=binning, markers=markers)
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)
