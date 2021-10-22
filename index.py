@@ -9,26 +9,8 @@ from dash import dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from app import app, load_markers
-from apps import mag_refinement, mag_summary
-
-# tab_style = {
-#     "borderTop": "3px solid white",
-#     "borderBottom": "0px",
-#     "borderLeft": "0px",
-#     "borderRight": "0px",
-#     "backgroundColor": "#9b0000",
-# }
-
-# tab_selected_style = {
-#     "borderTop": "3px solid #c5040d",
-#     "borderBottom": "0px",
-#     "borderLeft": "0px",
-#     "borderRight": "0px",
-#     "fontWeight": "bold",
-#     "color": "white",
-#     "backgroundColor": "#c5040d",
-# }
+from apps import mag_refinement, mag_summary, functions
+from app import app
 
 
 def layout(
@@ -42,9 +24,27 @@ def layout(
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
 
-    app.layout = html.Div(
+    navbar = dbc.NavbarSimple(
         [
-            #### Send data to hidden divs for use in explorer.py and summary.py
+            dbc.Row(
+                [
+                    dbc.Col(
+                        html.Img(src="static/UWlogo.png", height="30px"),
+                        width="auto",
+                    ),
+                ],
+                align="center",
+                className="g-0",
+                justify="end",
+            ),
+        ],
+        brand="Automappa",
+        color="#c5050c",
+        dark=True,
+    )
+    app.layout = dbc.Container(
+        [
+            # hidden divs
             html.Div(
                 binning.to_json(orient="split"),
                 id="binning_df",
@@ -65,72 +65,103 @@ def layout(
                 id="refinement-data",
                 style={"display": "none"},
             ),
-            #### Add links to external style sheets
-            # html.Link(
-            #     href="https://use.fontawesome.com/releases/v5.2.0/css/all.css",
-            #     rel="stylesheet",
-            # ),
-            # html.Link(
-            #     href="https://fonts.googleapis.com/css?family=Dosis", rel="stylesheet"
-            # ),
-            # html.Link(
-            #     href="https://fonts.googleapis.com/css?family=Open+Sans",
-            #     rel="stylesheet",
-            # ),
-            # html.Link(
-            #     href="https://fonts.googleapis.com/css?family=Ubuntu", rel="stylesheet"
-            # ),
-            # html.Link(href="static/dash_crm.css", rel="stylesheet"),
-            # html.Link(href="static/stylesheet.css", rel="stylesheet"),
-            #### Navbar div with Automappa tabs and School Logo
-            html.Div(
-                [
-                    # html.Label(
-                    #     "Automappa Dashboard", className="three columns app-title"
-                    # ),
-                    html.Div(
-                        [
-                            dcc.Tabs(
-                                id="tabs",
-                                # style={"height": "10", "verticalAlign": "middle"},
-                                children=[
-                                    dcc.Tab(
-                                        label="MAG Refinement",
-                                        value="mag_refinement",
-                                        # style=tab_style,
-                                        # selected_style=tab_selected_style,
-                                    ),
-                                    dcc.Tab(
-                                        id="mag_summary",
-                                        label="MAG Summary",
-                                        value="mag_summary",
-                                        # style=tab_style,
-                                        # selected_style=tab_selected_style,
-                                    ),
-                                ],
-                                value="mag_refinement",
-                            ),
-                        ],
-                        # className="seven columns row header",
+            navbar,
+            dcc.Tabs(
+                id="tabs",
+                # style={"height": "10", "verticalAlign": "middle"},
+                children=[
+                    dcc.Tab(
+                        label="MAG Refinement",
+                        value="mag_refinement",
+                        # style=tab_style,
+                        # selected_style=tab_selected_style,
                     ),
-                    # html.Div(
-                    #     html.Img(src="static/UWlogo.png", height="100%"),
-                    #     style={"float": "right", "height": "100%"},
-                    # className="two columns",
-                    # ),
+                    dcc.Tab(
+                        id="mag_summary",
+                        label="MAG Summary",
+                        value="mag_summary",
+                        # style=tab_style,
+                        # selected_style=tab_selected_style,
+                    ),
                 ],
-                # className="row header",
+                value="mag_refinement",
             ),
-            #### Below Navbar where we render selected tab content
-            html.Div(
-                id="tab_content",
-                # className="row",
-                # style={"margin": "0.5% 0.5%"}
-            ),
+            html.Div(id="tab_content"),
         ],
-        # className="row",
-        # style={"margin": "0%"},
+        fluid=True,
     )
+    # app.layout = html.Div(
+    #     [
+    #         #### Send data to hidden divs for use in explorer.py and summary.py
+    #         html.Div(
+    #             binning.to_json(orient="split"),
+    #             id="binning_df",
+    #             style={"display": "none"},
+    #         ),
+    #         html.Div(
+    #             markers.to_json(orient="split"),
+    #             id="kingdom-markers",
+    #             style={"display": "none"},
+    #         ),
+    #         html.Div(
+    #             binning.to_json(orient="split"),
+    #             id="metagenome-annotations",
+    #             style={"display": "none"},
+    #         ),
+    #         html.Div(
+    #             binning[binning_cols].to_json(orient="split"),
+    #             id="refinement-data",
+    #             style={"display": "none"},
+    #         ),
+    #         #### Navbar div with Automappa tabs and School Logo
+    #         html.Div(
+    #             [
+    #                 # html.Label(
+    #                 #     "Automappa Dashboard", className="three columns app-title"
+    #                 # ),
+    #                 html.Div(
+    #                     [
+    #                         dcc.Tabs(
+    #                             id="tabs",
+    #                             # style={"height": "10", "verticalAlign": "middle"},
+    #                             children=[
+    #                                 dcc.Tab(
+    #                                     label="MAG Refinement",
+    #                                     value="mag_refinement",
+    #                                     # style=tab_style,
+    #                                     # selected_style=tab_selected_style,
+    #                                 ),
+    #                                 dcc.Tab(
+    #                                     id="mag_summary",
+    #                                     label="MAG Summary",
+    #                                     value="mag_summary",
+    #                                     # style=tab_style,
+    #                                     # selected_style=tab_selected_style,
+    #                                 ),
+    #                             ],
+    #                             value="mag_refinement",
+    #                         ),
+    #                     ],
+    #                     # className="seven columns row header",
+    #                 ),
+    #                 # html.Div(
+    #                 #     html.Img(src="static/UWlogo.png", height="100%"),
+    #                 #     style={"float": "right", "height": "100%"},
+    #                 # className="two columns",
+    #                 # ),
+    #             ],
+    #             # className="row header",
+    #         ),
+    #         #### Below Navbar where we render selected tab content
+    #         html.Div(
+    #             id="tab_content",
+    #             # className="row",
+    #             # style={"margin": "0.5% 0.5%"}
+    #         ),
+    #     ],
+    #     # className="row",
+    #     # style={"margin": "0%"},
+    # )
 
 
 @app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
@@ -181,7 +212,7 @@ if __name__ == "__main__":
     # Needed separately for binning refinement selections.
     binning = pd.read_csv(args.binning_main, sep="\t")
     # Needed for completeness/purity calculations
-    markers = load_markers(args.markers)
+    markers = functions.load_markers(args.markers)
 
     # binning and taxonomy are added here to color contigs
     # NOTE: (Optional) parameter of fasta in case the user would like to
@@ -192,7 +223,7 @@ if __name__ == "__main__":
     print(
         "Data loaded. It may take a minute or two to construct all interactive graphs..."
     )
-    
+
     layout(binning=binning, markers=markers)
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)
