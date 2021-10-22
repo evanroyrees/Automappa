@@ -343,7 +343,7 @@ layout = [
         Input("binning_df", "children"),
     ],
 )
-def summary_indicator_callback(clusterCol, df):
+def summary_indicator(clusterCol, df):
     """
     Writes
     Given dataframe and cluster column:
@@ -390,7 +390,7 @@ def summary_indicator_callback(clusterCol, df):
         Input("binning_df", "children"),
     ],
 )
-def bins_completness_purity_callback(clusterCol, df):
+def bins_completness_purity(clusterCol, df):
     df = pd.read_json(df, orient="split")
     markers = 139
     clusters = dict(list(df.groupby(clusterCol)))
@@ -423,7 +423,7 @@ def bins_completness_purity_callback(clusterCol, df):
         Input("taxonomy_df", "children"),
     ],
 )
-def bin_taxa_breakdown_callback(taxonomy, selected_rank):
+def bin_taxa_breakdown(taxonomy, selected_rank):
     return plot_pie_chart(taxonomy, selected_rank)
 
 
@@ -434,7 +434,7 @@ def bin_taxa_breakdown_callback(taxonomy, selected_rank):
         Input("binning_df", "children"),
     ],
 )
-def bin_dropdown_callback(clusterCol, df):
+def bin_dropdown(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return bin_dropdown(df, clusterCol)
 
@@ -447,7 +447,7 @@ def bin_dropdown_callback(clusterCol, df):
         Input("binning_df", "children"),
     ],
 )
-def taxa_by_rank_callback(rank, clusterCol, df):
+def taxa_by_rank(rank, clusterCol, df):
     df = pd.read_json(df, orient="split")
     return taxa_by_rank(df, clusterCol, rank)
 
@@ -456,6 +456,6 @@ def taxa_by_rank_callback(rank, clusterCol, df):
     Output("assembly_stats", "children"),
     [Input("bin_summary_cluster_col", "value"), Input("binning_df", "children")],
 )
-def assembly_stats_callback(clusterCol, df):
+def assembly_stats(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return assembly_stats(df, clusterCol)
