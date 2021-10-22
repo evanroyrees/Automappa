@@ -4,10 +4,11 @@ from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
-from app import app
 from dash import dcc, html
 from dash.dependencies import Input, Output
 from plotly import graph_objects as go
+
+from app import app
 
 JSONDict = Dict[str, Any]
 colors = {"background": "#F3F6FA", "background_div": "white"}
@@ -66,15 +67,6 @@ def plot_pie_chart(taxonomy: JSONDict, rank: str) -> Dict:
 
 
 def taxa_by_rank(df, column, rank):
-    ranks = {
-        "kingdom": "Kingdom",
-        "phylum": "Phylum",
-        "class": "Class",
-        "order": "Order",
-        "family": "Family",
-        "genus": "Genus",
-        "species": "Species",
-    }
     clusters = dict(list(df.groupby(column)))
     clusters = df[column].unique().tolist()
     clusters.pop(clusters.index("unclustered"))
