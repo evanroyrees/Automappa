@@ -2,7 +2,6 @@
 
 import dash_bootstrap_components as dbc
 import dash_daq as daq
-import numpy as np
 import pandas as pd
 from app import app
 from dash import dash_table, dcc, html
@@ -11,6 +10,7 @@ from dash.exceptions import PreventUpdate
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
 from plotly import graph_objects as go
+import numpy as np
 
 
 def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
@@ -219,192 +219,6 @@ note = dbc.Row(
 )
 
 table = dbc.Row(dbc.Col(dbc.Table(id="refinements-table"), width=12))
-# layout2 = [
-#     # Hidden div to store refinement selections
-#     html.Div(id="refinements-clusters", style={"display": "none"}),
-#     # 2D-scatter plot row div
-#     html.Div(
-#         [
-#             html.Div(
-#                 [
-#                     html.Label("Figure 1: 2D Binning Overview"),
-#                     dcc.Graph(
-#                         id="scatterplot-2d",
-#                         style={"height": "90%", "width": "98%"},
-#                         clear_on_unhover=True,
-#                     ),
-#                 ],
-#                 className="ten columns chart_div",
-#             ),
-#             html.Div(
-#                 [
-#                     html.Button(
-#                         "Download Refinements",
-#                         id="refinements-download-button",
-#                         n_clicks=0,
-#                         className="button button--primary",
-#                     ),
-#                     Download(id="refinements-download"),
-#                     html.Label("Color contigs by:"),
-#                     dcc.Dropdown(
-#                         id="color-by-column",
-#                         options=[],
-#                         value="cluster",
-#                         clearable=False,
-#                     ),
-#                     html.Label("X-Axis:"),
-#                     dcc.Dropdown(
-#                         id="x-axis-2d",
-#                         options=[
-#                             {"label": "Kmers-X", "value": "x"},
-#                             {"label": "Coverage", "value": "coverage"},
-#                             {"label": "GC%", "value": "GC"},
-#                             {"label": "Length", "value": "length"},
-#                         ],
-#                         value="x",
-#                         clearable=False,
-#                     ),
-#                     html.Label("Y-Axis:"),
-#                     dcc.Dropdown(
-#                         id="y-axis-2d",
-#                         options=[
-#                             {"label": "Kmers-Y", "value": "y"},
-#                             {"label": "Coverage", "value": "coverage"},
-#                             {"label": "GC%", "value": "GC"},
-#                             {"label": "Length", "value": "length"},
-#                         ],
-#                         value="y",
-#                         clearable=False,
-#                     ),
-#                     html.Pre(
-#                         style={
-#                             "textAlign": "middle",
-#                         },
-#                         id="selection-binning-metrics",
-#                     ),
-#                     # add show-legend-toggle
-#                     daq.ToggleSwitch(
-#                         id="show-legend-toggle",
-#                         size=40,
-#                         color="#c5040d",
-#                         label="Show/Hide 2D Legend",
-#                         labelPosition="top",
-#                         vertical=False,
-#                         value=True,
-#                     ),
-#                     # add hide selection toggle
-#                     daq.ToggleSwitch(
-#                         id="hide-selections-toggle",
-#                         size=40,
-#                         color="#c5040d",
-#                         label="Hide Selections",
-#                         labelPosition="top",
-#                         vertical=False,
-#                         value=False,
-#                     ),
-#                     # add save selection toggle
-#                     daq.ToggleSwitch(
-#                         id="save-selections-toggle",
-#                         size=40,
-#                         color="#c5040d",
-#                         label="Store Selections",
-#                         labelPosition="top",
-#                         vertical=False,
-#                         value=False,
-#                     ),
-#                     html.P("NOTE"),
-#                     html.Br(),
-#                     html.P(
-#                         "Toggling save with contigs selected will save them as a refinement group."
-#                     ),
-#                 ],
-#                 className="two columns",
-#             ),
-#         ],
-#     ),
-#     # 3D-scatter plot row div
-#     html.Div(
-#         [
-#             html.Div(
-#                 [
-#                     html.Label("Figure 2: 3D Binning Overview"),
-#                     dcc.Graph(
-#                         id="scatterplot-3d",
-#                         clear_on_unhover=True,
-#                         style={"height": "90%", "width": "98%"},
-#                         config={
-#                             "toImageButtonOptions": dict(
-#                                 format="svg",
-#                                 filename="scatter3dPlot.autometa.binning",
-#                             ),
-#                         },
-#                     ),
-#                 ],
-#                 className="seven columns threeD_scatter_div",
-#             ),
-#             html.Div(
-#                 [
-#                     html.Label("Figure 3: Taxonomic Distribution"),
-#                     dcc.Graph(
-#                         id="taxonomy-piechart",
-#                         style={"height": "90%", "width": "98%"},
-#                         config=dict(displayModeBar=False),
-#                     ),
-#                 ],
-#                 className="three columns taxa_chart_div",
-#             ),
-#             html.Div(
-#                 [
-#                     html.Label("Fig. 2: Change Z-axis"),
-#                     dcc.Dropdown(
-#                         id="scatterplot-3d-zaxis-dropdown",
-#                         options=[
-#                             {"label": "Coverage", "value": "coverage"},
-#                             {"label": "GC%", "value": "gc_content"},
-#                             {"label": "Length", "value": "length"},
-#                         ],
-#                         value="coverage",
-#                         clearable=False,
-#                     ),
-#                     # add scatterplot-3d-legend-toggle
-#                     daq.ToggleSwitch(
-#                         id="scatterplot-3d-legend-toggle",
-#                         size=40,
-#                         color="#c5040d",
-#                         label="Show/Hide 3D scatterplot Legend",
-#                         labelPosition="top",
-#                         vertical=False,
-#                         value=True,
-#                     ),
-#                     html.Label("Fig. 3: Distribute Taxa by Rank"),
-#                     dcc.Dropdown(
-#                         id="taxonomy-piechart-dropdown",
-#                         options=[
-#                             {"label": "Kingdom", "value": "superkingdom"},
-#                             {"label": "Phylum", "value": "phylum"},
-#                             {"label": "Class", "value": "class"},
-#                             {"label": "Order", "value": "order"},
-#                             {"label": "Family", "value": "family"},
-#                             {"label": "Genus", "value": "genus"},
-#                             {"label": "Species", "value": "species"},
-#                         ],
-#                         value="superkingdom",
-#                         clearable=False,
-#                     ),
-#                 ],
-#                 className="two columns",
-#             ),
-#         ],
-#         className="row",
-#         style={"marginTop": "0", "marginBottom": "2"},
-#     ),
-#     html.Label("Current Manual Refinement Table"),
-#     # table div
-#     html.Div(
-#         className="row twelve columns binning_table",
-#         id="refinements-table",
-#     ),
-# ]
 
 layout = dbc.Container(
     [
@@ -490,7 +304,7 @@ def display_selection_summary(markers, selected_contigs):
         Input("taxonomy-piechart-dropdown", "value"),
     ],
 )
-def taxa_piechart_callback(annotations, selected_contigs, selected_rank):
+def taxa_piechart(annotations, selected_contigs, selected_rank):
     df = pd.read_json(annotations, orient="split")
     layout = dict(margin=dict(l=15, r=10, t=35, b=45))
     if not selected_contigs:
@@ -683,7 +497,7 @@ def update_table(selected_data, refinements):
     Output("refinements-table", "children"),
     [Input("refinements-clusters", "children")],
 )
-def bin_table_callback(df):
+def bin_table(df):
     df = pd.read_json(df, orient="split")
     return dash_table.DataTable(
         id="datatable",
