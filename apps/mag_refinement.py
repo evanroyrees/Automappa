@@ -166,7 +166,7 @@ toggles = dbc.Row(
                 vertical=False,
                 value=True,
             ),
-            width=3,
+            width=3, class_name='mt-3 mb-3 border'
         ),
         dbc.Col(
             # add hide selection toggle

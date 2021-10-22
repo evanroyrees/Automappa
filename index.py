@@ -13,165 +13,14 @@ from apps import mag_refinement, mag_summary, functions
 from app import app
 
 
-def layout(
-    binning: pd.DataFrame,
-    markers: pd.DataFrame,
-):
-    # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
-    binning_cols = [
-        col
-        for col in binning.columns
-        if "refinement_" in col or "cluster" in col or "contig" in col
-    ]
-
-    navbar = dbc.NavbarSimple(
-        [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        html.Img(src="static/UWlogo.png", height="30px"),
-                        width="auto",
-                    ),
-                ],
-                align="center",
-                className="g-0",
-                justify="end",
-            ),
-        ],
-        brand="Automappa",
-        color="#c5050c",
-        dark=True,
-    )
-    app.layout = dbc.Container(
-        [
-            # hidden divs
-            html.Div(
-                binning.to_json(orient="split"),
-                id="binning_df",
-                style={"display": "none"},
-            ),
-            html.Div(
-                markers.to_json(orient="split"),
-                id="kingdom-markers",
-                style={"display": "none"},
-            ),
-            html.Div(
-                binning.to_json(orient="split"),
-                id="metagenome-annotations",
-                style={"display": "none"},
-            ),
-            html.Div(
-                binning[binning_cols].to_json(orient="split"),
-                id="refinement-data",
-                style={"display": "none"},
-            ),
-            navbar,
-            dcc.Tabs(
-                id="tabs",
-                # style={"height": "10", "verticalAlign": "middle"},
-                children=[
-                    dcc.Tab(
-                        label="MAG Refinement",
-                        value="mag_refinement",
-                        # style=tab_style,
-                        # selected_style=tab_selected_style,
-                    ),
-                    dcc.Tab(
-                        id="mag_summary",
-                        label="MAG Summary",
-                        value="mag_summary",
-                        # style=tab_style,
-                        # selected_style=tab_selected_style,
-                    ),
-                ],
-                value="mag_refinement",
-            ),
-            html.Div(id="tab_content"),
-        ],
-        fluid=True,
-    )
-    # app.layout = html.Div(
-    #     [
-    #         #### Send data to hidden divs for use in explorer.py and summary.py
-    #         html.Div(
-    #             binning.to_json(orient="split"),
-    #             id="binning_df",
-    #             style={"display": "none"},
-    #         ),
-    #         html.Div(
-    #             markers.to_json(orient="split"),
-    #             id="kingdom-markers",
-    #             style={"display": "none"},
-    #         ),
-    #         html.Div(
-    #             binning.to_json(orient="split"),
-    #             id="metagenome-annotations",
-    #             style={"display": "none"},
-    #         ),
-    #         html.Div(
-    #             binning[binning_cols].to_json(orient="split"),
-    #             id="refinement-data",
-    #             style={"display": "none"},
-    #         ),
-    #         #### Navbar div with Automappa tabs and School Logo
-    #         html.Div(
-    #             [
-    #                 # html.Label(
-    #                 #     "Automappa Dashboard", className="three columns app-title"
-    #                 # ),
-    #                 html.Div(
-    #                     [
-    #                         dcc.Tabs(
-    #                             id="tabs",
-    #                             # style={"height": "10", "verticalAlign": "middle"},
-    #                             children=[
-    #                                 dcc.Tab(
-    #                                     label="MAG Refinement",
-    #                                     value="mag_refinement",
-    #                                     # style=tab_style,
-    #                                     # selected_style=tab_selected_style,
-    #                                 ),
-    #                                 dcc.Tab(
-    #                                     id="mag_summary",
-    #                                     label="MAG Summary",
-    #                                     value="mag_summary",
-    #                                     # style=tab_style,
-    #                                     # selected_style=tab_selected_style,
-    #                                 ),
-    #                             ],
-    #                             value="mag_refinement",
-    #                         ),
-    #                     ],
-    #                     # className="seven columns row header",
-    #                 ),
-    #                 # html.Div(
-    #                 #     html.Img(src="static/UWlogo.png", height="100%"),
-    #                 #     style={"float": "right", "height": "100%"},
-    #                 # className="two columns",
-    #                 # ),
-    #             ],
-    #             # className="row header",
-    #         ),
-    #         #### Below Navbar where we render selected tab content
-    #         html.Div(
-    #             id="tab_content",
-    #             # className="row",
-    #             # style={"margin": "0.5% 0.5%"}
-    #         ),
-    #     ],
-    #     # className="row",
-    #     # style={"margin": "0%"},
-    # )
-
-
-@app.callback(Output("tab_content", "children"), [Input("tabs", "value")])
-def render_content(tab):
-    if tab == "mag_refinement":
+@app.callback(Output("tab_content", "children"), [Input("tabs", "active_tab")])
+def render_content(active_tab):
+    if active_tab == "mag_refinement":
         return mag_refinement.layout
-    elif tab == "mag_summary":
+    elif active_tab == "mag_summary":
         return mag_summary.layout
     else:
-        return mag_refinement.layout
+        return "GARBAGE"
 
 
 if __name__ == "__main__":
@@ -224,6 +73,46 @@ if __name__ == "__main__":
         "Data loaded. It may take a minute or two to construct all interactive graphs..."
     )
 
-    layout(binning=binning, markers=markers)
+    # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
+    binning_cols = [
+        col
+        for col in binning.columns
+        if "refinement_" in col or "cluster" in col or "contig" in col
+    ]
+
+    refinement_tab = dbc.Tab(label="MAG Refinement", tab_id="mag_refinement")
+    summary_tab = dbc.Tab(label="MAG Summary", tab_id="mag_summary")
+
+    app.layout = dbc.Container(
+        [
+            # hidden divs
+            html.Div(
+                binning.to_json(orient="split"),
+                id="binning_df",
+                style={"display": "none"},
+            ),
+            html.Div(
+                markers.to_json(orient="split"),
+                id="kingdom-markers",
+                style={"display": "none"},
+            ),
+            html.Div(
+                binning.to_json(orient="split"),
+                id="metagenome-annotations",
+                style={"display": "none"},
+            ),
+            html.Div(
+                binning[binning_cols].to_json(orient="split"),
+                id="refinement-data",
+                style={"display": "none"},
+            ),
+            # Navbar
+            dbc.Tabs(
+                id="tabs", children=[refinement_tab, summary_tab], className="nav-fill"
+            ),
+            html.Div(id="tab_content"),
+        ],
+        fluid=True,
+    )
 
     app.run_server(host=args.host, port=args.port, debug=args.debug)
