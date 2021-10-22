@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 import math
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from dash import dcc, html
 from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
-from plotly import graph_objs as go
+from plotly import graph_objects as go
 
 from app import app
+
+from apps.functions import get_assembly_stats
 
 JSONDict = Dict[str, Any]
 colors = {"background": "#F3F6FA", "background_div": "white"}
@@ -68,15 +69,6 @@ def plot_pie_chart(taxonomy: JSONDict, rank: str) -> Dict:
 
 
 def taxa_by_rank(df, column, rank):
-    ranks = {
-        "kingdom": "Kingdom",
-        "phylum": "Phylum",
-        "class": "Class",
-        "order": "Order",
-        "family": "Family",
-        "genus": "Genus",
-        "species": "Species",
-    }
     clusters = dict(list(df.groupby(column)))
     clusters = df[column].unique().tolist()
     clusters.pop(clusters.index("unclustered"))
@@ -93,95 +85,6 @@ def taxa_by_rank(df, column, rank):
     )
 
     return {"data": data, "layout": layout}
-
-
-def assembly_stats(df, column):
-    metrics = {"n50": {}, "clusters": {}}
-    bins = dict(list(df.groupby(column)))
-    for cluster, dff in bins.items():
-        # 1. Determine cluster n50
-        lengths = sorted(dff.length.tolist(), reverse=True)
-        half_size = dff.length.sum() / 2
-        total, n50 = 0, None
-        for l in lengths:
-            total += l
-            if total >= half_size:
-                n50 = l
-                break
-        metrics["n50"].update({cluster: n50})
-        metrics["clusters"].update({cluster: cluster})
-    ftuples = [("n_ctgs", "count"), ("size", "sum"), ("max_len", "max")]
-    clusters = df.groupby(column)
-    agg_stats = clusters["length"].agg(ftuples)
-    metrics.update(agg_stats.to_dict())
-    # Get weighted averages of GC percentages
-    get_gc_wtdavg = lambda g: round(
-        np.average(g["gc"], weights=(g.length / g.length.sum())), 2
-    )
-    wtd_gcs = clusters.apply(get_gc_wtdavg)
-    # Get weighted standard deviation
-    get_wtd_gcs_sdpc = lambda g: round(
-        (
-            math.sqrt(
-                np.average(
-                    (g["gc"] - np.average(g["gc"], weights=(g.length / g.length.sum())))
-                    ** 2,
-                    weights=(g.length / g.length.sum()),
-                )
-            )
-            / np.average(g["gc"], weights=(g.length / g.length.sum()))
-        )
-        * 100,
-        2,
-    )
-    wtd_gcs_sdpc = clusters.apply(get_wtd_gcs_sdpc)
-    # weighted_gc_sdpc = (weighted_gc_stdev / weighted_gc_av)*100
-    metrics.update(
-        {"wtd_gcs": wtd_gcs.to_dict(), "wtd_gc_sdpc": wtd_gcs_sdpc.to_dict()}
-    )
-
-    # Get weighted average of Coverages
-    get_cov_wtdavg = lambda g: round(
-        np.average(g["cov"], weights=(g.length / g.length.sum())), 2
-    )
-    wtd_covs = clusters.apply(get_cov_wtdavg)
-    # Get weighted standard deviation and calculate z-score...
-    get_wtd_covs_sdpc = lambda g: round(
-        (
-            math.sqrt(
-                np.average(
-                    (
-                        g["cov"]
-                        - np.average(g["cov"], weights=(g.length / g.length.sum()))
-                    )
-                    ** 2,
-                    weights=(g.length / g.length.sum()),
-                )
-            )
-            / np.average(g["cov"], weights=(g.length / g.length.sum()))
-        )
-        * 100,
-        2,
-    )
-    wtd_covs_sdpc = clusters.apply(get_wtd_covs_sdpc)
-    metrics.update(
-        {"wtd_covs": wtd_covs.to_dict(), "wtd_cov_sdpc": wtd_covs_sdpc.to_dict()}
-    )
-    bin_df = pd.DataFrame(
-        {
-            "cluster": metrics["clusters"],
-            "size": metrics["size"],
-            "longest_contig": metrics["max_len"],
-            "n50": metrics["n50"],
-            "number_contigs": metrics["n_ctgs"],
-            "wtd_cov": metrics["wtd_covs"],
-            "wtd_cov_sdpc": metrics["wtd_cov_sdpc"],
-            "wtd_gc": metrics["wtd_gcs"],
-            "wtd_gc_sdpc": metrics["wtd_gc_sdpc"],
-        }
-    )
-    return df_to_table(bin_df)
-
 
 layout = [
     # Markdown Summary Report
@@ -345,7 +248,7 @@ layout = [
         Input("binning_df", "children"),
     ],
 )
-def summary_indicator_callback(clusterCol, df):
+def summary_indicator(clusterCol, df):
     """
     Writes
     Given dataframe and cluster column:
@@ -392,7 +295,7 @@ def summary_indicator_callback(clusterCol, df):
         Input("binning_df", "children"),
     ],
 )
-def bins_completness_purity_callback(clusterCol, df):
+def bins_completness_purity(clusterCol, df):
     df = pd.read_json(df, orient="split")
     markers = 139
     clusters = dict(list(df.groupby(clusterCol)))
@@ -425,7 +328,7 @@ def bins_completness_purity_callback(clusterCol, df):
         Input("taxonomy_df", "children"),
     ],
 )
-def bin_taxa_breakdown_callback(taxonomy, selected_rank):
+def bin_taxa_breakdown(taxonomy, selected_rank):
     return plot_pie_chart(taxonomy, selected_rank)
 
 
@@ -436,7 +339,7 @@ def bin_taxa_breakdown_callback(taxonomy, selected_rank):
         Input("binning_df", "children"),
     ],
 )
-def bin_dropdown_callback(clusterCol, df):
+def bin_dropdown(clusterCol, df):
     df = pd.read_json(df, orient="split")
     return bin_dropdown(df, clusterCol)
 
@@ -449,7 +352,7 @@ def bin_dropdown_callback(clusterCol, df):
         Input("binning_df", "children"),
     ],
 )
-def taxa_by_rank_callback(rank, clusterCol, df):
+def taxa_by_rank(rank, clusterCol, df):
     df = pd.read_json(df, orient="split")
     return taxa_by_rank(df, clusterCol, rank)
 
@@ -458,6 +361,7 @@ def taxa_by_rank_callback(rank, clusterCol, df):
     Output("assembly_stats", "children"),
     [Input("bin_summary_cluster_col", "value"), Input("binning_df", "children")],
 )
-def assembly_stats_callback(clusterCol, df):
+def assembly_stats(clusterCol, df):
     df = pd.read_json(df, orient="split")
-    return assembly_stats(df, clusterCol)
+    stats_df = get_assembly_stats(df, clusterCol)
+    return df_to_table(stats_df)
