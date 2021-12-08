@@ -5,6 +5,7 @@ import numpy as np
 import os
 import math
 
+
 def load_markers(markers: str) -> DataFrame:
     """Read markers table into specified `format`.
 
@@ -117,6 +118,7 @@ def get_assembly_stats(df: DataFrame, column):
             "wtd_gc_sdpc": metrics["wtd_gc_sdpc"],
         }
     )
+
 
 if __name__ == "__main__":
     pass

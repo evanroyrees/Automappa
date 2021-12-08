@@ -5,7 +5,7 @@ import argparse
 import pandas as pd
 
 from dash.dependencies import Input, Output
-from dash import dcc, html
+from dash import html
 import dash_bootstrap_components as dbc
 import pandas as pd
 
@@ -20,7 +20,7 @@ def render_content(active_tab):
     elif active_tab == "mag_summary":
         return mag_summary.layout
     else:
-        return "GARBAGE"
+        return active_tab
 
 
 if __name__ == "__main__":

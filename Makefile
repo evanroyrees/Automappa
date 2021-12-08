@@ -61,13 +61,13 @@ test_environment: requirements
 	$(PYTHON_INTERPRETER) scripts/test_environment.py
 
 ## Set up python interpreter environment
-create_environment:
+create_environment: requirements.txt
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
 else
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
@@ -77,6 +77,11 @@ else
 	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
+
+## Remove python interpreter environment
+delete_environment:
+	conda env remove -n $(PROJECT_NAME)
+
 
 #################################################################################
 # Self Documenting Commands                                                     #

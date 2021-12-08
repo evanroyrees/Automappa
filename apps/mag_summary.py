@@ -86,6 +86,7 @@ def taxa_by_rank(df, column, rank):
 
     return {"data": data, "layout": layout}
 
+
 layout = [
     # Markdown Summary Report
     html.Div(
