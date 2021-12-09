@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import dash_bootstrap_components as dbc
-import dash_daq as daq
 import pandas as pd
-from app import app
+import dash_daq as daq
 from dash import dcc, html
 from dash.dash_table import DataTable
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
+import dash_bootstrap_components as dbc
+from app import app
 from plotly import graph_objects as go
 import numpy as np
 
@@ -29,59 +29,12 @@ def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
 ########################################################################
 # HIDDEN DIV to store refinement information
 # ######################################################################
-# TODO: move to dash Store or some other db backend
+# TODO: move to dash Store or some other db backend (WIP on branch issue-#9)
 
 
 hidden_div_refinements_clusters = html.Div(
     id="refinements-clusters", style={"display": "none"}
 )
-
-
-########################################################################
-# COMPONENTS: FIGURES AND TABLES
-# ######################################################################
-
-refinement_settings_button = dbc.Button(
-    "Refinement Settings", id="open-refinement-settings-offcanvas", n_clicks=0
-)
-
-scatterplot_2d = [
-    html.Label("Figure 1: 2D Metagenome Overview"),
-    dcc.Graph(
-        id="scatterplot-2d",
-        clear_on_unhover=True,
-    ),
-]
-
-# Add metrics as alerts using MIMAG standards
-# (success) alert --> passing thresholds (completeness >= 90%, contamination <= 5%)
-# (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
-# (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
-
-mag_metrics_table = dbc.Table(id="mag-metrics-table")
-
-scatterplot_3d = [
-    html.Label("Figure 2: 3D Metagenome Overview"),
-    dcc.Graph(
-        id="scatterplot-3d",
-        clear_on_unhover=True,
-        config={
-            "toImageButtonOptions": dict(
-                format="svg",
-                filename="scatter3dPlot.autometa.binning",
-            ),
-        },
-    ),
-]
-
-
-taxonomy_figure = [
-    html.Label("Figure 3: Taxonomic Distribution"),
-    dcc.Graph(id="taxonomy-distribution"),
-]
-
-refinements_table = dbc.Row(dbc.Col(dbc.Table(id="refinements-table"), width=12))
-
 
 ########################################################################
 # COMPONENTS: OFFCANVAS SETTINGS
@@ -219,7 +172,7 @@ save_selections_toggle = daq.ToggleSwitch(
     value=False,
 )
 
-# add scatterplot-3d-legend-toggle
+# Scatterplot 3D Legend Toggle
 scatterplot_3d_legend_toggle = daq.ToggleSwitch(
     id="scatterplot-3d-legend-toggle",
     size=40,
@@ -230,18 +183,27 @@ scatterplot_3d_legend_toggle = daq.ToggleSwitch(
     value=True,
 )
 
-# Download mag refinements data button
-binning_refinements_download_button = dbc.Row(
-    children=[
-        dbc.Button(
-            "Download Refinements",
-            id="refinements-download-button",
-            n_clicks=0,
-            color="primary",
-        ),
-        Download(id="refinements-download"),
-    ],
-)
+# Download Refinements Button
+binning_refinements_download_button = [
+    dbc.Button(
+        "Download Refinements",
+        id="refinements-download-button",
+        n_clicks=0,
+        color="primary",
+    ),
+    Download(id="refinements-download"),
+]
+
+# Summarize Refinements Button
+binning_refinements_summary_button = [
+    dbc.Button(
+        "Summarize Refinements",
+        id="refinements-summary-button",
+        n_clicks=0,
+        color="primary",
+    ),
+]
+
 
 refinement_settings_offcanvas = dbc.Offcanvas(
     [
@@ -291,7 +253,8 @@ refinement_settings_offcanvas = dbc.Offcanvas(
                 dbc.Col([hide_selections_tooltip, hide_selections_toggle]),
             ]
         ),
-        dbc.Col(binning_refinements_download_button),
+        dbc.Row([
+        dbc.Col(binning_refinements_download_button),dbc.Col(binning_refinements_summary_button)]),
     ],
     id="refinement-settings-offcanvas",
     title="Refinement Settings",
@@ -299,6 +262,55 @@ refinement_settings_offcanvas = dbc.Offcanvas(
     placement="end",
     scrollable=True,
 )
+
+refinement_settings_button = [
+    dbc.Button(
+        "Refinement Settings", id="refinement-settings-button", n_clicks=0
+    ),
+    refinement_settings_offcanvas,
+]
+
+########################################################################
+# COMPONENTS: FIGURES AND TABLES
+# ######################################################################
+
+# Add metrics as alerts using MIMAG standards
+# (success) alert --> passing thresholds (completeness >= 90%, contamination <= 5%)
+# (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
+# (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
+
+mag_metrics_table = html.Div(id="mag-metrics-datatable")
+
+scatterplot_2d = [
+    html.Label("Figure 1: 2D Metagenome Overview"),
+    dcc.Graph(
+        id="scatterplot-2d",
+        clear_on_unhover=True,
+    ),
+]
+
+scatterplot_3d = [
+    html.Label("Figure 2: 3D Metagenome Overview"),
+    dcc.Graph(
+        id="scatterplot-3d",
+        clear_on_unhover=True,
+        config={
+            "toImageButtonOptions": dict(
+                format="svg",
+                filename="scatter3dPlot.autometa.binning",
+            ),
+        },
+    ),
+]
+
+
+taxonomy_figure = [
+    html.Label("Figure 3: Taxonomic Distribution"),
+    dcc.Graph(id="taxonomy-distribution"),
+]
+
+refinements_table = html.Div(id="refinements-table")
+
 
 ########################################################################
 # LAYOUT
@@ -314,11 +326,10 @@ refinement_settings_offcanvas = dbc.Offcanvas(
 layout = dbc.Container(
     children=[
         dbc.Col(hidden_div_refinements_clusters),
-        dbc.Col(refinement_settings_offcanvas),
-        dbc.Col(refinement_settings_button),
-        dbc.Row([dbc.Col(scatterplot_2d), dbc.Col(mag_metrics_table)]),
+        dbc.Col(refinement_settings_button, width=12),
+        dbc.Row([dbc.Col(mag_metrics_table, width=4), dbc.Col(scatterplot_2d)]),
         dbc.Row([dbc.Col(scatterplot_3d), dbc.Col(taxonomy_figure)]),
-        dbc.Col(refinements_table),
+        dbc.Row(dbc.Col(refinements_table, width=12)),
     ],
     fluid=True,
 )
@@ -327,30 +338,11 @@ layout = dbc.Container(
 ########################################################################
 # CALLBACKS
 # ######################################################################
-# Callbacks are ordered by occurrence in layout (top-down)
-
-# Proposed Layout:
-### Navbar
-# NOTE: General stats plots could coincide with plots specific for contig selections
-# NOTE: Also the general stats plots could be linked to highlight the selected contigs
-## General stats about contigs in plots
-#   - total contigs displayed
-#   - total marker-containing contigs (% marker-containing contigs of total)
-#   - total unclassified contigs (breakdown by rank)
-#   - distribution plots of GC%, contig lengths, coverage
-## Begin refinements section
-# 2D scatter plot
-# Maybe `dbc.Popover`? of toggles/dropdowns for 2D-scatterplot
-# mag metrics
-#   - completeness [geom_col]
-#   - purity [geom_col]
-#   - GC% std.dev. [geom_dist]
-#   - Coverage std.dev. [geom_dist]
 
 
 @app.callback(
     Output("refinement-settings-offcanvas", "is_open"),
-    Input("open-refinement-settings-offcanvas", "n_clicks"),
+    Input("refinement-settings-button", "n_clicks"),
     [State("refinement-settings-offcanvas", "is_open")],
 )
 def toggle_offcanvas(n1, is_open):
@@ -362,8 +354,8 @@ def toggle_offcanvas(n1, is_open):
 @app.callback(
     Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
 )
-def get_color_by_cols(annotations):
-    df = pd.read_json(annotations, orient="split")
+def color_by_column_options_callback(annotations_json):
+    df = pd.read_json(annotations_json, orient="split")
     return [
         {"label": col.title().replace("_", " "), "value": col}
         for col in df.columns
@@ -372,58 +364,51 @@ def get_color_by_cols(annotations):
 
 
 @app.callback(
-    Output("mag-metrics-table", "children"),
+    Output("mag-metrics-datatable", "children"),
     [
         Input("kingdom-markers", "children"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
-def update_mag_metrics_data(markers, selected_contigs):
-    if not selected_contigs:
-        num_expected_markers = "NA"
-        num_markers_present = "NA"
-        total_markers = "NA"
-        n_marker_sets = "NA"
+def update_mag_metrics_data(markers_json, selected_contigs):
+    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    if selected_contigs:
+        contigs = {point["text"] for point in selected_contigs["points"]}
+        selected_contigs_count = len(contigs)
+        markers_df = markers_df.loc[markers_df.index.isin(contigs)]
+    marker_contigs_count = markers_df.shape[0]
+    num_expected_markers = markers_df.shape[1]
+    pfam_counts = markers_df.sum()
+    if pfam_counts.empty:
+        total_markers = 0
+        num_single_copy_markers = 0
+        num_markers_present = 0
         completeness = "NA"
         purity = "NA"
-        total_contigs_count = 0
-        marker_contigs_count = 0
+        n_marker_sets = "NA"
     else:
-        df = pd.read_json(markers, orient="split").set_index("contig")
-        contigs = {point["text"] for point in selected_contigs["points"]}
-        total_contigs_count = len(contigs)
-        marker_contigs_df = df.loc[df.index.isin(contigs)]
-        marker_contigs_count = marker_contigs_df.shape[0]
-        num_expected_markers = df.shape[1]
-        pfam_counts = marker_contigs_df.sum()
-        if pfam_counts.empty:
-            total_markers = 0
-            num_single_copy_markers = 0
-            num_markers_present = 0
-            completeness = "NA"
-            purity = "NA"
-            n_marker_sets = "NA"
-        else:
-            total_markers = pfam_counts.sum()
-            num_single_copy_markers = pfam_counts.loc[pfam_counts.eq(1)].sum()
-            num_markers_present = pfam_counts.loc[pfam_counts.ge(1)].sum()
-            completeness = num_markers_present / num_expected_markers * 100
-            purity = num_single_copy_markers / num_markers_present * 100
-            n_marker_sets = total_markers / num_expected_markers
-    metrics_df = pd.DataFrame(
-        [
-            {
-                "Markers Expected": num_expected_markers,
-                "Unique Markers": num_markers_present,
-                "Total Markers": total_markers,
-                "Marker Set(s)": n_marker_sets,
-                "Completeness": completeness,
-                "Purity": purity,
-                "Total Contigs Selected": total_contigs_count,
-                "Marker-containing Contigs Selected": marker_contigs_count,
-            }
-        ]
-    ).T
+        total_markers = pfam_counts.sum()
+        num_single_copy_markers = pfam_counts.loc[pfam_counts.eq(1)].sum()
+        num_markers_present = pfam_counts.loc[pfam_counts.ge(1)].sum()
+        completeness = num_markers_present / num_expected_markers * 100
+        purity = num_single_copy_markers / num_markers_present * 100
+        n_marker_sets = total_markers / num_expected_markers
+
+    metrics_data = {
+        "Markers Expected": num_expected_markers,
+        "Unique Markers": num_markers_present,
+        "Total Markers": total_markers,
+        "Marker Set(s) (total markers/expected markers)": n_marker_sets,
+        "Marker-containing Contigs": marker_contigs_count,
+    }
+    if selected_contigs:
+        metrics_data.update({
+            "Contigs (N)": selected_contigs_count,
+            "Completeness (%)": completeness,
+            "Purity (%)": purity,
+        })
+
+    metrics_df = pd.DataFrame([metrics_data]).T
     metrics_df.rename(columns={0: "Value"}, inplace=True)
     metrics_df.index.name = "MAG Metric"
     metrics_df.reset_index(inplace=True)
@@ -432,8 +417,8 @@ def update_mag_metrics_data(markers, selected_contigs):
         data=metrics_df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in metrics_df.columns],
         style_cell={"textAlign": "center"},
+        # TODO: style completeness and purity cells to MIMAG standards as mentioned above
         style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
-        virtualization=True,
     )
 
 
@@ -626,7 +611,23 @@ def update_axes(
 
 
 @app.callback(
-    Output("datatable", "data"),
+    Output("refinements-table", "children"),
+    [Input("refinements-clusters", "children")],
+)
+def refinements_table_callback(df):
+    df = pd.read_json(df, orient="split")
+    return DataTable(
+        id="refinements-datatable",
+        data=df.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in df.columns],
+        style_cell={"textAlign": "center"},
+        style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
+        virtualization=True,
+    )
+
+
+@app.callback(
+    Output("refinements-datatable", "data"),
     [
         Input("scatterplot-2d", "selectedData"),
         Input("refinements-clusters", "children"),
@@ -641,32 +642,16 @@ def update_refinements_table(selected_data, refinements):
 
 
 @app.callback(
-    Output("refinements-table", "children"),
-    [Input("refinements-clusters", "children")],
-)
-def bin_table(df):
-    df = pd.read_json(df, orient="split")
-    return DataTable(
-        id="datatable",
-        data=df.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in df.columns],
-        style_cell={"textAlign": "center"},
-        style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
-        virtualization=True,
-    )
-
-
-@app.callback(
     Output("refinements-download", "data"),
     [
         Input("refinements-download-button", "n_clicks"),
         Input("refinements-clusters", "children"),
     ],
 )
-def download_refinements(n_clicks, intermediate_selections):
+def download_refinements(n_clicks, curated_mags):
     if not n_clicks:
         raise PreventUpdate
-    df = pd.read_json(intermediate_selections, orient="split")
+    df = pd.read_json(curated_mags, orient="split")
     return send_data_frame(df.to_csv, "refinements.csv", index=False)
 
 

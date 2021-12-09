@@ -9,7 +9,9 @@ from dash import html
 import dash_bootstrap_components as dbc
 import pandas as pd
 
-from apps import mag_refinement, mag_summary, functions
+from autometa.common.markers import load as load_markers
+
+from apps import mag_refinement, mag_summary
 from app import app
 
 
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     # Needed separately for binning refinement selections.
     binning = pd.read_csv(args.binning_main, sep="\t")
     # Needed for completeness/purity calculations
-    markers = functions.load_markers(args.markers)
+    markers = load_markers(args.markers).reset_index().copy()
 
     # binning and taxonomy are added here to color contigs
     # NOTE: (Optional) parameter of fasta in case the user would like to
@@ -86,11 +88,6 @@ if __name__ == "__main__":
     app.layout = dbc.Container(
         [
             # hidden divs
-            html.Div(
-                binning.to_json(orient="split"),
-                id="binning_df",
-                style={"display": "none"},
-            ),
             html.Div(
                 markers.to_json(orient="split"),
                 id="kingdom-markers",

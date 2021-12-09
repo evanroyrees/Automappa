@@ -1,32 +1,36 @@
 # -*- coding: utf-8 -*-
-import math
 from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
+
+from autometa.binning.summary import fragmentation_metric, get_metabin_stats
+
 from dash import dcc, html
+from dash.dash_table import DataTable
 from dash.dependencies import Input, Output
 from plotly import graph_objects as go
+import dash_bootstrap_components as dbc
 
 from app import app
 
-from apps.functions import get_assembly_stats
 
 JSONDict = Dict[str, Any]
 colors = {"background": "#F3F6FA", "background_div": "white"}
 
-# return html Table with dataframe values
-def df_to_table(df):
-    return html.Table(
-        # Header
-        [html.Tr([html.Th(col) for col in df.columns])]
-        +
-        # Body
-        [
-            html.Tr([html.Td(df.iloc[i][col]) for col in df.columns])
-            for i in range(len(df))
-        ]
-    )
+
+########################################################################
+# COMPONENTS: Figures & Tables
+# ######################################################################
+
+
+mag_summary_stats_datatable = html.Div(id="mag-summary-stats-datatable")
+
+mag_summary_cluster_col_dropdown = dcc.Dropdown(
+    id="mag-summary-cluster-col-dropdown",
+    value="cluster",
+    clearable=False,
+)
 
 
 # returns top indicator div
@@ -66,6 +70,13 @@ def plot_pie_chart(taxonomy: JSONDict, rank: str) -> Dict:
         showlegend=False,
     )
     return {"data": [trace], "layout": layout}
+
+
+def taxonomy_sankey_diagram():
+    return [
+        html.Label("Figure 3: Taxonomic Distribution"),
+        dcc.Graph(id="taxonomy-distribution"),
+    ]
 
 
 def taxa_by_rank(df, column, rank):
@@ -145,22 +156,6 @@ layout = [
     html.Div(
         [
             html.Div(
-                dcc.Dropdown(
-                    id="bin_summary_cluster_col",
-                    options=[
-                        {"label": "Cluster", "value": "cluster"},
-                        {
-                            "label": "Decision Tree Classifier",
-                            "value": "ML_expanded_clustering",
-                        },
-                        {
-                            "label": "Paired-end Refinement",
-                            "value": "paired_end_refined_bin",
-                        },
-                    ],
-                    value="cluster",
-                    clearable=False,
-                ),
                 className="six columns",
                 style={"float": "left"},
             ),
@@ -221,10 +216,6 @@ layout = [
                             "marginBottom": "0",
                         },
                     ),
-                    html.Div(
-                        id="assembly_stats",
-                        style={"padding": "0px 13px 5px 13px", "marginBottom": "5"},
-                    ),
                 ],
                 className="six columns",
                 style={
@@ -242,11 +233,32 @@ layout = [
 ]
 
 
+########################################################################
+# LAYOUT
+# ######################################################################
+
+# https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/
+# For best results, make sure you adhere to the following two rules when constructing your layouts:
+#
+# 1. Only use Row and Col inside a Container.
+# 2. The immediate children of any Row component should always be Col components.
+# 3. Your content should go inside the Col components.
+
+
+layout = dbc.Container(
+    [
+        dbc.Col(mag_summary_cluster_col_dropdown),
+        dbc.Row(dbc.Col(mag_summary_stats_datatable)),
+    ],
+    fluid=True,
+)
+
+
 @app.callback(
     Output("summary_indicator", "children"),
     [
-        Input("bin_summary_cluster_col", "value"),
-        Input("binning_df", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+        Input("metagenome-annotations", "children"),
     ],
 )
 def summary_indicator(clusterCol, df):
@@ -292,8 +304,8 @@ def summary_indicator(clusterCol, df):
 @app.callback(
     Output("bins_completness_purity", "figure"),
     [
-        Input("bin_summary_cluster_col", "value"),
-        Input("binning_df", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+        Input("metagenome-annotations", "children"),
     ],
 )
 def bins_completness_purity(clusterCol, df):
@@ -336,8 +348,8 @@ def bin_taxa_breakdown(taxonomy, selected_rank):
 @app.callback(
     Output("bin_dropdown", "options"),
     [
-        Input("bin_summary_cluster_col", "value"),
-        Input("binning_df", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+        Input("metagenome-annotations", "children"),
     ],
 )
 def bin_dropdown(clusterCol, df):
@@ -349,8 +361,8 @@ def bin_dropdown(clusterCol, df):
     Output("taxa_by_rank", "figure"),
     [
         Input("taxa_by_rank_dropdown", "value"),
-        Input("bin_summary_cluster_col", "value"),
-        Input("binning_df", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+        Input("metagenome-annotations", "children"),
     ],
 )
 def taxa_by_rank(rank, clusterCol, df):
@@ -359,10 +371,78 @@ def taxa_by_rank(rank, clusterCol, df):
 
 
 @app.callback(
-    Output("assembly_stats", "children"),
-    [Input("bin_summary_cluster_col", "value"), Input("binning_df", "children")],
+    Output("mag-summary-stats-datatable", "children"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("kingdom-markers", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+    ],
 )
-def assembly_stats(clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    stats_df = get_assembly_stats(df, clusterCol)
-    return df_to_table(stats_df)
+def mag_summary_stats_datatable_callback(df, markers_json, cluster_col):
+    bin_df = pd.read_json(df, orient="split")
+    markers = pd.read_json(markers_json, orient="split").set_index("contig")
+    # TODO:COMBAK:FIXME: read in markers from json (or convert to appropriate format...)
+    # TODO: Render summary table...
+    # Re-install autometa and push changes to autometa.binning.summary.get_metabin_stats(...)
+    if cluster_col not in bin_df:
+        num_expected_markers = markers.shape[1]
+        length_weighted_coverage = np.average(
+            a=bin_df.coverage, weights=bin_df.length / bin_df.length.sum()
+        )
+        length_weighted_gc = np.average(
+            a=bin_df.gc_content, weights=bin_df.length / bin_df.length.sum()
+        )
+        cluster_pfams = markers[markers.index.isin(bin_df.index)]
+        pfam_counts = cluster_pfams.sum()
+        total_markers = pfam_counts.sum()
+        num_single_copy_markers = pfam_counts[pfam_counts == 1].count()
+        num_markers_present = pfam_counts[pfam_counts >= 1].count()
+        stats_df = pd.DataFrame(
+            [
+                {
+                    cluster_col: "metagenome",
+                    "nseqs": bin_df.shape[0],
+                    "size (bp)": bin_df.length.sum(),
+                    "N90": fragmentation_metric(bin_df, quality_measure=0.9),
+                    "N50": fragmentation_metric(bin_df, quality_measure=0.5),
+                    "N10": fragmentation_metric(bin_df, quality_measure=0.1),
+                    "length_weighted_gc_content": length_weighted_gc,
+                    "min_gc_content": bin_df.gc_content.min(),
+                    "max_gc_content": bin_df.gc_content.max(),
+                    "std_gc_content": bin_df.gc_content.std(),
+                    "length_weighted_coverage": length_weighted_coverage,
+                    "min_coverage": bin_df.coverage.min(),
+                    "max_coverage": bin_df.coverage.max(),
+                    "std_coverage": bin_df.coverage.std(),
+                    "completeness": pd.NA,
+                    "purity": pd.NA,
+                    "num_total_markers": total_markers,
+                    f"num_unique_markers (expected {num_expected_markers})": num_markers_present,
+                    "num_single_copy_markers": num_single_copy_markers,
+                }
+            ]
+        ).convert_dtypes()
+    else:
+        stats_df = get_metabin_stats(
+            bin_df=bin_df, markers=markers, cluster_col=cluster_col
+        ).reset_index()
+    stats_df = stats_df.fillna("NA").round(2)
+    return DataTable(
+        data=stats_df.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in stats_df.columns],
+        style_cell={"textAlign": "center"},
+        virtualization=False,
+    )
+
+
+@app.callback(
+    Output("mag-summary-cluster-col-dropdown", "options"),
+    [Input("metagenome-annotations", "children")],
+)
+def mag_summary_cluster_col_dropdown_options_callback(df_json):
+    bin_df = pd.read_json(df_json, orient="split")
+    return [
+        {"label": col.title(), "value": col}
+        for col in bin_df.columns
+        if "cluster" in col or "refinement" in col
+    ]
