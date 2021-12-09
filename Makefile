@@ -21,6 +21,13 @@ else
 HAS_DOCKER=True
 endif
 
+ifeq (,$(shell ls Autometa))
+HAS_AUTOMETA=False
+else
+HAS_AUTOMETA=True
+endif
+
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
@@ -81,6 +88,18 @@ endif
 ## Remove python interpreter environment
 delete_environment:
 	conda env remove -n $(PROJECT_NAME)
+
+## install autometa modules
+install_autometa:
+ifeq (True,$(HAS_AUTOMETA))
+	@echo ">>> Autometa found"
+	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
+	bash -c "make -C Autometa install"
+else
+	git clone -b large-data-mode git@github.com:WiscEvan/Autometa
+	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
+	bash -c "make -C Autometa install"
+endif
 
 
 #################################################################################
