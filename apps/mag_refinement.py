@@ -376,8 +376,9 @@ def update_mag_metrics_data(markers_json, selected_contigs):
         contigs = {point["text"] for point in selected_contigs["points"]}
         selected_contigs_count = len(contigs)
         markers_df = markers_df.loc[markers_df.index.isin(contigs)]
-    marker_contigs_count = markers_df.shape[0]
+
     num_expected_markers = markers_df.shape[1]
+
     pfam_counts = markers_df.sum()
     if pfam_counts.empty:
         total_markers = 0
@@ -388,22 +389,29 @@ def update_mag_metrics_data(markers_json, selected_contigs):
         n_marker_sets = "NA"
     else:
         total_markers = pfam_counts.sum()
-        num_single_copy_markers = pfam_counts.loc[pfam_counts.eq(1)].sum()
-        num_markers_present = pfam_counts.loc[pfam_counts.ge(1)].sum()
+        num_single_copy_markers = pfam_counts.eq(1).sum()
+        num_markers_present = pfam_counts.ge(1).sum()
+        redundant_markers_count = pfam_counts.duplicated().sum()
         completeness = num_markers_present / num_expected_markers * 100
         purity = num_single_copy_markers / num_markers_present * 100
         n_marker_sets = total_markers / num_expected_markers
 
+    marker_contigs_count = markers_df.shape[0]
+    single_marker_contig_count = markers_df.loc[markers_df.sum(axis=1).eq(1)].shape[0]
+    multi_marker_contig_count = markers_df.loc[markers_df.sum(axis=1).gt(1)].shape[0]
     metrics_data = {
-        "Markers Expected": num_expected_markers,
-        "Unique Markers": num_markers_present,
+        "Expected Markers": num_expected_markers,
         "Total Markers": total_markers,
-        "Marker Set(s) (total markers/expected markers)": n_marker_sets,
-        "Marker-containing Contigs": marker_contigs_count,
+        "Redundant-Markers": redundant_markers_count,
+        "Markers Count": num_markers_present,
+        "Marker Sets": n_marker_sets,
+        "Marker-Containing Contigs": marker_contigs_count,
+        "Multi-Marker Contigs": multi_marker_contig_count,
+        "Single-Marker Contigs": single_marker_contig_count,
     }
     if selected_contigs:
         metrics_data.update({
-            "Contigs (N)": selected_contigs_count,
+            "Contigs": selected_contigs_count,
             "Completeness (%)": completeness,
             "Purity (%)": purity,
         })
