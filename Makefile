@@ -89,7 +89,7 @@ endif
 delete_environment:
 	conda env remove -n $(PROJECT_NAME)
 
-## install autometa modules
+## install autometa modules (first activate automappa env)
 install_autometa:
 ifeq (True,$(HAS_AUTOMETA))
 	@echo ">>> Autometa found"
