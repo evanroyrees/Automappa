@@ -37,7 +37,8 @@ docker run \
     -v $binning_dirname:/binning:rw \
     -v $markers_dirname:/markers:ro \
     --rm \
-    evanrees/automappa:$IMAGE_TAG \
+    evanrees/automappa:$IMAGE_TAG /opt/conda/bin/python index.py \
       --binning-main /binning/$binning_filename \
       --markers /markers/$markers_filename \
-      --port $CONTAINER_PORT --host 0.0.0.0
+      --port $CONTAINER_PORT \
+      --host 0.0.0.0
