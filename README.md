@@ -1,10 +1,10 @@
 Automappa
 =========
 
-| Image Tag    | Status                                                                                                                                                                                                                |
-|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| main,latest | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
-| develop      | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/main.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
+| Image Name           | Image Tag       | Status                                                                                                                                                                                                                |
+|----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
+| `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/main.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
