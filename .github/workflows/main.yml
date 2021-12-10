@@ -25,9 +25,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Branch name
-        run: echo running on branch ${GITHUB_REF##*/}
+      - 
+        name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       -
         name: Build and push
         id: docker_build
@@ -36,7 +38,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           push: true
-          tags: evanrees/automappa:${GITHUB_REF##*/}
+          tags: evanrees/automappa:${{ steps.extract_branch.outputs.branch }}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
