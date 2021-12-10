@@ -377,35 +377,36 @@ def update_mag_metrics_data(markers_json, selected_contigs):
         selected_contigs_count = len(contigs)
         markers_df = markers_df.loc[markers_df.index.isin(contigs)]
 
-    num_expected_markers = markers_df.shape[1]
+    expected_markers_count = markers_df.shape[1]
 
     pfam_counts = markers_df.sum()
     if pfam_counts.empty:
         total_markers = 0
-        num_single_copy_markers = 0
-        num_markers_present = 0
+        single_copy_marker_count = 0
+        markers_present_count = 0
+        redundant_markers_count = 0
+        marker_set_count = 0
         completeness = "NA"
         purity = "NA"
-        n_marker_sets = "NA"
     else:
         total_markers = pfam_counts.sum()
-        num_single_copy_markers = pfam_counts.eq(1).sum()
-        num_markers_present = pfam_counts.ge(1).sum()
-        redundant_markers_count = pfam_counts.duplicated().sum()
-        completeness = num_markers_present / num_expected_markers * 100
-        purity = num_single_copy_markers / num_markers_present * 100
-        n_marker_sets = total_markers / num_expected_markers
+        single_copy_marker_count = pfam_counts.eq(1).sum()
+        markers_present_count = pfam_counts.ge(1).sum()
+        redundant_markers_count = pfam_counts.gt(1).sum()
+        completeness = markers_present_count / expected_markers_count * 100
+        purity = single_copy_marker_count / markers_present_count * 100
+        marker_set_count = total_markers / expected_markers_count
 
-    marker_contigs_count = markers_df.shape[0]
-    single_marker_contig_count = markers_df.loc[markers_df.sum(axis=1).eq(1)].shape[0]
-    multi_marker_contig_count = markers_df.loc[markers_df.sum(axis=1).gt(1)].shape[0]
+    marker_contig_count = markers_df.sum(axis=1).ge(1).sum()
+    single_marker_contig_count = markers_df.sum(axis=1).eq(1).sum()
+    multi_marker_contig_count = markers_df.sum(axis=1).gt(1).sum()
     metrics_data = {
-        "Expected Markers": num_expected_markers,
+        "Expected Markers": expected_markers_count,
         "Total Markers": total_markers,
         "Redundant-Markers": redundant_markers_count,
-        "Markers Count": num_markers_present,
-        "Marker Sets": n_marker_sets,
-        "Marker-Containing Contigs": marker_contigs_count,
+        "Markers Count": markers_present_count,
+        "Marker Sets (Total / Expected)": marker_set_count,
+        "Marker-Containing Contigs": marker_contig_count,
         "Multi-Marker Contigs": multi_marker_contig_count,
         "Single-Marker Contigs": single_marker_contig_count,
     }

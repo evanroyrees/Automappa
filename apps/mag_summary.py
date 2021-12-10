@@ -24,6 +24,8 @@ colors = {"background": "#F3F6FA", "background_div": "white"}
 # ######################################################################
 
 
+metric_boxplot = dcc.Graph(id="mag-metrics-boxplot")
+
 mag_summary_stats_datatable = html.Div(id="mag-summary-stats-datatable")
 
 mag_summary_cluster_col_dropdown = dcc.Dropdown(
@@ -32,25 +34,13 @@ mag_summary_cluster_col_dropdown = dcc.Dropdown(
     clearable=False,
 )
 
+###
+# AESTHETHIC COMPONENTS: Dropdowns
+###
 
-# returns top indicator div
-def indicator(color, text, id_value):
-    return html.Div(
-        [
-            html.P(text, className="twelve columns indicator_text"),
-            html.Pre(id=id_value, className="indicator_value"),
-        ],
-        className="two columns indicator",
-    )
+# mag_selection_dropdown = html.Div(dcc.Dropdown(id="mag-selection-dropdown", value="STuff", clearable=True))
 
-
-def bin_dropdown(df, column):
-    options = [{"label": bin, "value": bin} for bin in df[column].unique()]
-    return options
-
-
-def plot_pie_chart(taxonomy: JSONDict, rank: str) -> Dict:
-    df = pd.read_json(taxonomy, orient="split")
+def plot_pie_chart(df: pd.DataFrame, rank: str) -> Dict:
     total_contigs = df.shape[0]
     values = [
         contig / total_contigs for contig in df.groupby(rank)[rank].count().tolist()
@@ -97,142 +87,6 @@ def taxa_by_rank(df, column, rank):
 
     return {"data": data, "layout": layout}
 
-
-layout = [
-    # Markdown Summary Report
-    html.Div(
-        className="row twelve columns",
-        children=[
-            html.Div(
-                [
-                    html.H5("Autometa Binning Report:", id="markdown_summary"),
-                ],
-                className="six columns",
-            ),
-            html.Div(
-                [
-                    indicator(
-                        color="#00cc96",
-                        text="Summary",
-                        id_value="summary_indicator",
-                    ),
-                ],
-                className="six columns",
-            ),
-        ],
-    ),
-    # Charts
-    html.Div(
-        [
-            # Completeness Purity
-            html.Div(
-                [
-                    html.P("Completeness & Purity"),
-                    dcc.Graph(
-                        id="bins_completness_purity",
-                        config=dict(displayModeBar=False),
-                        style={"height": "89%", "width": "98%"},
-                    ),
-                ],
-                className="six columns chart_div",
-            ),
-            # Bin Taxa Breakdown
-            html.Div(
-                [
-                    html.P("Bin Taxa Breakdown"),
-                    dcc.Graph(
-                        id="bin_taxa_breakdown",
-                        config=dict(displayModeBar=False),
-                        style={"height": "89%", "width": "98%"},
-                    ),
-                ],
-                className="six columns chart_div",
-            ),
-        ],
-        className="row",
-        style={"marginTop": "5px"},
-    ),
-    # dropdowns
-    html.Div(
-        [
-            html.Div(
-                className="six columns",
-                style={"float": "left"},
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="taxa_by_rank_dropdown",
-                    options=[
-                        {"label": "Kingdom", "value": "kingdom"},
-                        {"label": "Phylum", "value": "phylum"},
-                        {"label": "Class", "value": "class"},
-                        {"label": "Order", "value": "order"},
-                        {"label": "Family", "value": "family"},
-                        {"label": "Genus", "value": "genus"},
-                        {"label": "Species", "value": "species"},
-                    ],
-                    value="phylum",
-                    clearable=False,
-                ),
-                className="three columns",
-                style={"float": "right"},
-            ),
-            html.Div(
-                dcc.Dropdown(
-                    id="bin_dropdown",
-                    clearable=False,
-                ),
-                className="three columns",
-                style={"floart": "right"},
-            ),
-        ],
-        className="row",
-        style={},
-    ),
-    # Taxa Heterogeneity chart and assembly stats table
-    html.Div(
-        [
-            # Taxa Heterogeneity
-            html.Div(
-                [
-                    html.P("Taxa Heterogeneity"),
-                    dcc.Graph(
-                        id="taxa_by_rank",
-                        config=dict(displayModeBar=False),
-                        style={"height": "89%", "width": "98%"},
-                    ),
-                ],
-                className="six columns chart_div",
-            ),
-            # Assembly Stats Table
-            html.Div(
-                [
-                    html.P(
-                        "Assembly Statistics",
-                        style={
-                            "color": "#2a3f5f",
-                            "fontSize": "13px",
-                            "textAlign": "center",
-                            "marginBottom": "0",
-                        },
-                    ),
-                ],
-                className="six columns",
-                style={
-                    "backgroundColor": "white",
-                    "border": "1px solid #C8D4E3",
-                    "borderRadius": "3px",
-                    "height": "100%",
-                    "overflowY": "scroll",
-                },
-            ),
-        ],
-        className="row",
-        style={"marginTop": "5px"},
-    ),
-]
-
-
 ########################################################################
 # LAYOUT
 # ######################################################################
@@ -244,94 +98,117 @@ layout = [
 # 2. The immediate children of any Row component should always be Col components.
 # 3. Your content should go inside the Col components.
 
+# Markdown Summary Report
+## Bin Taxa Breakdown ==> dcc.Graph(id="bin_taxa_breakdown")
+## sankey diagram for specific mag selection dcc.Graph(id="taxa_by_rank")
 
+### Dropdowns
+# canonical_rank ==> dcc.Dropdown(id="taxa_by_rank_dropdown")
+
+# TODO: Add dbc.Col(mag_selection_dropdown)
 layout = dbc.Container(
     [
-        dbc.Col(mag_summary_cluster_col_dropdown),
+        dbc.Col(metric_boxplot),
+        dbc.Row([dbc.Col(mag_summary_cluster_col_dropdown)]),
         dbc.Row(dbc.Col(mag_summary_stats_datatable)),
     ],
     fluid=True,
 )
 
 
+########################################################################
+# CALLBACKS
+# ######################################################################
+
+
 @app.callback(
-    Output("summary_indicator", "children"),
+    Output("mag-metrics-boxplot", "figure"),
     [
-        Input("mag-summary-cluster-col-dropdown", "value"),
         Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def summary_indicator(clusterCol, df):
+def mag_metrics_boxplot_callback(df_json, cluster_col):
     """
     Writes
-    Given dataframe and cluster column:
+    Given dataframe as json and cluster column:
     Input:
         - binning dataframe
         - binning column
     Returns:
         n_unique_bins - number of unique bins
     """
-    df = pd.read_json(df, orient="split")
-    df.set_index(clusterCol, inplace=True)
-    df.drop("unclustered", inplace=True)
-    n_unique_bins = df.index.nunique()
-    clusters = dict(list(df.groupby(clusterCol)))
-    completeness_list, purities = [], []
-    markers = 139
-    for cluster, dff in clusters.items():
-        # This will be gene marker set to alter later
-        pfams = dff.single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
-        total = len(all_pfams)
-        nunique = len(set(all_pfams))
-        completeness = float(nunique) / markers * 100
-        completeness_list.append(completeness)
-        purity = 0 if total == 0 else float(nunique) / total * 100
-        purities.append(purity)
-    median_completeness = round(np.median(completeness_list), 2)
-    median_purity = round(np.median(purities), 2)
-    txt = "\n".join(
-        [
-            "",
-            "Bins: {}".format(n_unique_bins),
-            "Median Completeness: {}".format(median_completeness),
-            "Median Purity: {}".format(median_purity),
-        ]
-    )
-    return txt
+    mag_summary_df = pd.read_json(df_json, orient="split")
+    mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
+    mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    return go.Figure(data=[
+        go.Box(y=mag_summary_df.completeness, name="Completeness", boxmean=True),
+        go.Box(y=mag_summary_df.purity, name="Purity", boxmean=True)
+    ])
 
 
 @app.callback(
-    Output("bins_completness_purity", "figure"),
+    Output("mag-taxonomy-sankey", "figure"),
     [
-        Input("mag-summary-cluster-col-dropdown", "value"),
         Input("metagenome-annotations", "children"),
     ],
 )
-def bins_completness_purity(clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    markers = 139
-    clusters = dict(list(df.groupby(clusterCol)))
-    cluster_names = []
-    purities = []
-    completes = []
-    for cluster in clusters:
-        pfams = clusters[cluster].single_copy_PFAMs.dropna().tolist()
-        all_pfams = [p for pfam in pfams for p in pfam.split(",")]
-        total = len(all_pfams)
-        nunique = len(set(all_pfams))
-        completeness = float(nunique) / markers * 100
-        purity = float(nunique) / total * 100
-        completes.append(completeness)
-        purities.append(purity)
-        cluster_names.append(cluster)
-    return {
-        "data": [
-            {"x": cluster_names, "y": completes, "type": "bar", "name": "Completeness"},
-            {"x": cluster_names, "y": purities, "type": "bar", "name": "Purity"},
-        ],
-        "layout": {"animate": True},
-    }
+def mag_taxonomy_sankey_callback(mag_summary_json):
+    # NOTE: Majority vote will need to first be performed (or CheckM summary parsed...)
+    # pd.DataFrame should have cluster (index) and cluster metrics/stats (cols)
+    # e.g. completeness, purity, taxonomies, assembly stats, etc.
+    mag_summary_df = pd.read_json(mag_summary_json, orient="split")
+    ranks = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
+    taxa_df = mag_summary_df[ranks].fillna("unclassified")
+    # Add canonical rank prefixes so we do not get any cycles
+    for rank in ranks:
+        if rank in taxa_df:
+            taxa_df[rank] = taxa_df[rank].map(
+                lambda x: f"{rank[0]}_{x}" if rank != "superkingdom" else f"d_{x}"
+            )
+    # Build list of labels in order of ranks
+    label = []
+    for rank in ranks:
+        label.extend(taxa_df[rank].unique().tolist())
+    # Build paths in order of ranks
+    source = []
+    target = []
+    value = []
+    # Iterate through paths from superkingdom to species
+    for rank in ranks:
+        # iterate through sources at level
+        for rank_name, rank_df in taxa_df.groupby(rank):
+            label_idx = label.index(rank_name)
+            next_rank_idx = ranks.index(rank) + 1
+            if next_rank_idx >= len(ranks):
+                continue
+            next_rank = ranks[next_rank_idx]
+            # iterate through targets
+            # all source is from label rank name index
+            for rank_n in rank_df[next_rank].unique():
+                target_index = label.index(rank_n)
+                value_count = len(rank_df[rank_df[next_rank] == rank_n])
+                label.append(label_idx)
+                source.append(label_idx)
+                target.append(target_index)
+                value.append(value_count)
+    return go.Figure(
+        data=[
+            go.Sankey(
+                node=dict(
+                    pad=8,
+                    thickness=13,
+                    line=dict(width=0.3),
+                    label=label,
+                ),
+                link=dict(
+                    source=source,
+                    target=target,
+                    value=value,
+                ),
+            )
+        ]
+    )
 
 
 @app.callback(
@@ -342,19 +219,22 @@ def bins_completness_purity(clusterCol, df):
     ],
 )
 def bin_taxa_breakdown(taxonomy, selected_rank):
-    return plot_pie_chart(taxonomy, selected_rank)
+    df = pd.read_json(taxonomy, orient="split")
+    return plot_pie_chart(df, selected_rank)
 
 
 @app.callback(
-    Output("bin_dropdown", "options"),
+    Output("mag-selection-dropdown", "options"),
     [
-        Input("mag-summary-cluster-col-dropdown", "value"),
         Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def bin_dropdown(clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    return bin_dropdown(df, clusterCol)
+def bin_dropdown_options_callback(mag_annotations_json, cluster_col):
+    df = pd.read_json(mag_annotations_json, orient="split")
+    if cluster_col not in df.columns:
+        return [{"label": "", "value": ""}]
+    return [{"label": bin, "value": bin} for bin in df[cluster_col].unique()]
 
 
 @app.callback(
@@ -378,13 +258,10 @@ def taxa_by_rank(rank, clusterCol, df):
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def mag_summary_stats_datatable_callback(df, markers_json, cluster_col):
-    bin_df = pd.read_json(df, orient="split")
+def mag_summary_stats_datatable_callback(mag_annotations_json, markers_json, cluster_col):
+    bin_df = pd.read_json(mag_annotations_json, orient="split")
     markers = pd.read_json(markers_json, orient="split").set_index("contig")
-    # TODO:COMBAK:FIXME: read in markers from json (or convert to appropriate format...)
-    # TODO: Render summary table...
-    # Re-install autometa and push changes to autometa.binning.summary.get_metabin_stats(...)
-    if cluster_col not in bin_df:
+    if cluster_col not in bin_df.columns:
         num_expected_markers = markers.shape[1]
         length_weighted_coverage = np.average(
             a=bin_df.coverage, weights=bin_df.length / bin_df.length.sum()
