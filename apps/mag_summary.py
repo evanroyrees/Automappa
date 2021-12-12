@@ -40,6 +40,7 @@ mag_summary_cluster_col_dropdown = dcc.Dropdown(
 
 # mag_selection_dropdown = html.Div(dcc.Dropdown(id="mag-selection-dropdown", value="STuff", clearable=True))
 
+
 def plot_pie_chart(df: pd.DataFrame, rank: str) -> Dict:
     total_contigs = df.shape[0]
     values = [
@@ -86,6 +87,7 @@ def taxa_by_rank(df, column, rank):
     )
 
     return {"data": data, "layout": layout}
+
 
 ########################################################################
 # LAYOUT
@@ -141,10 +143,12 @@ def mag_metrics_boxplot_callback(df_json, cluster_col):
     mag_summary_df = pd.read_json(df_json, orient="split")
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    return go.Figure(data=[
-        go.Box(y=mag_summary_df.completeness, name="Completeness", boxmean=True),
-        go.Box(y=mag_summary_df.purity, name="Purity", boxmean=True)
-    ])
+    return go.Figure(
+        data=[
+            go.Box(y=mag_summary_df.completeness, name="Completeness", boxmean=True),
+            go.Box(y=mag_summary_df.purity, name="Purity", boxmean=True),
+        ]
+    )
 
 
 @app.callback(
@@ -258,7 +262,9 @@ def taxa_by_rank(rank, clusterCol, df):
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def mag_summary_stats_datatable_callback(mag_annotations_json, markers_json, cluster_col):
+def mag_summary_stats_datatable_callback(
+    mag_annotations_json, markers_json, cluster_col
+):
     bin_df = pd.read_json(mag_annotations_json, orient="split")
     markers = pd.read_json(markers_json, orient="split").set_index("contig")
     if cluster_col not in bin_df.columns:
@@ -304,18 +310,22 @@ def mag_summary_stats_datatable_callback(mag_annotations_json, markers_json, clu
             bin_df=bin_df, markers=markers, cluster_col=cluster_col
         ).reset_index()
     stats_df = stats_df.fillna("NA").round(2)
-    stats_df = stats_df.drop(columns=['size_pct', 'seqs_pct'], errors='ignore')
+    stats_df = stats_df.drop(columns=["size_pct", "seqs_pct"], errors="ignore")
     return DataTable(
         data=stats_df.to_dict("records"),
-        columns=[{"name": col.replace("_", " "), "id": col} for col in stats_df.columns],
-        style_table={'overflowX': 'auto'},
+        columns=[
+            {"name": col.replace("_", " "), "id": col} for col in stats_df.columns
+        ],
+        style_table={"overflowX": "auto"},
         style_cell={
-            'height': 'auto',
+            "height": "auto",
             # all three widths are needed
-            'minWidth': '120px', 'width': '120px', 'maxWidth': '120px',
-            'whiteSpace': 'normal'
+            "minWidth": "120px",
+            "width": "120px",
+            "maxWidth": "120px",
+            "whiteSpace": "normal",
         },
-        fixed_rows={"headers":True},
+        fixed_rows={"headers": True},
     )
 
 

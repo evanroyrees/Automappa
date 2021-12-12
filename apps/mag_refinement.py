@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict, List
 import pandas as pd
 import dash_daq as daq
 from dash import dcc, html
@@ -29,11 +30,9 @@ def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
 ########################################################################
 # HIDDEN DIV to store refinement information
 # ######################################################################
-# TODO: move to dash Store or some other db backend (WIP on branch issue-#9)
 
-
-hidden_div_refinements_clusters = html.Div(
-    id="refinements-clusters", style={"display": "none"}
+refinements_clusters_store = (
+    dcc.Store(id="refinements-clusters-store", storage_type="local"),
 )
 
 ########################################################################
@@ -253,8 +252,12 @@ refinement_settings_offcanvas = dbc.Offcanvas(
                 dbc.Col([hide_selections_tooltip, hide_selections_toggle]),
             ]
         ),
-        dbc.Row([
-        dbc.Col(binning_refinements_download_button),dbc.Col(binning_refinements_summary_button)]),
+        dbc.Row(
+            [
+                dbc.Col(binning_refinements_download_button),
+                dbc.Col(binning_refinements_summary_button),
+            ]
+        ),
     ],
     id="refinement-settings-offcanvas",
     title="Refinement Settings",
@@ -264,9 +267,7 @@ refinement_settings_offcanvas = dbc.Offcanvas(
 )
 
 refinement_settings_button = [
-    dbc.Button(
-        "Refinement Settings", id="refinement-settings-button", n_clicks=0
-    ),
+    dbc.Button("Refinement Settings", id="refinement-settings-button", n_clicks=0),
     refinement_settings_offcanvas,
 ]
 
@@ -325,7 +326,7 @@ refinements_table = html.Div(id="refinements-table")
 
 layout = dbc.Container(
     children=[
-        dbc.Col(hidden_div_refinements_clusters),
+        dbc.Col(refinements_clusters_store),
         dbc.Col(refinement_settings_button, width=12),
         dbc.Row([dbc.Col(mag_metrics_table, width=4), dbc.Col(scatterplot_2d)]),
         dbc.Row([dbc.Col(scatterplot_3d), dbc.Col(taxonomy_figure)]),
@@ -345,7 +346,7 @@ layout = dbc.Container(
     Input("refinement-settings-button", "n_clicks"),
     [State("refinement-settings-offcanvas", "is_open")],
 )
-def toggle_offcanvas(n1, is_open):
+def toggle_offcanvas(n1: int, is_open: bool) -> bool:
     if n1:
         return not is_open
     return is_open
@@ -354,7 +355,7 @@ def toggle_offcanvas(n1, is_open):
 @app.callback(
     Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
 )
-def color_by_column_options_callback(annotations_json):
+def color_by_column_options_callback(annotations_json: "str | None"):
     df = pd.read_json(annotations_json, orient="split")
     return [
         {"label": col.title().replace("_", " "), "value": col}
@@ -370,7 +371,9 @@ def color_by_column_options_callback(annotations_json):
         Input("scatterplot-2d", "selectedData"),
     ],
 )
-def update_mag_metrics_data(markers_json, selected_contigs):
+def update_mag_metrics_datatable_callback(
+    markers_json: "str | None", selected_contigs: Dict[str, List[Dict[str, str]]]
+) -> DataTable:
     markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
     if selected_contigs:
         contigs = {point["text"] for point in selected_contigs["points"]}
@@ -411,11 +414,13 @@ def update_mag_metrics_data(markers_json, selected_contigs):
         "Single-Marker Contigs": single_marker_contig_count,
     }
     if selected_contigs:
-        metrics_data.update({
-            "Contigs": selected_contigs_count,
-            "Completeness (%)": completeness,
-            "Purity (%)": purity,
-        })
+        metrics_data.update(
+            {
+                "Contigs": selected_contigs_count,
+                "Completeness (%)": completeness,
+                "Purity (%)": purity,
+            }
+        )
 
     metrics_df = pd.DataFrame([metrics_data]).T
     metrics_df.rename(columns={0: "Value"}, inplace=True)
@@ -439,7 +444,11 @@ def update_mag_metrics_data(markers_json, selected_contigs):
         Input("taxonomy-distribution-dropdown", "value"),
     ],
 )
-def taxonomy_alluvial_plot(annotations, selected_contigs, selected_rank):
+def taxonomy_distribution_figure_callback(
+    annotations: "str | None",
+    selected_contigs: Dict[str, List[Dict[str, str]]],
+    selected_rank: str,
+) -> go.Figure:
     df = pd.read_json(annotations, orient="split")
     if selected_contigs:
         ctg_list = {point["text"] for point in selected_contigs["points"]}
@@ -473,7 +482,7 @@ def taxonomy_alluvial_plot(annotations, selected_contigs, selected_rank):
                 source.append(source_index)
                 target.append(target_index)
                 value.append(value_count)
-    fig = go.Figure(
+    return go.Figure(
         data=[
             go.Sankey(
                 node=dict(
@@ -490,7 +499,6 @@ def taxonomy_alluvial_plot(annotations, selected_contigs, selected_rank):
             )
         ]
     )
-    return fig
 
 
 @app.callback(
@@ -503,7 +511,13 @@ def taxonomy_alluvial_plot(annotations, selected_contigs, selected_rank):
         Input("scatterplot-2d", "selectedData"),
     ],
 )
-def update_zaxis(annotations, zaxis, show_legend, color_by_col, selected_contigs):
+def scatterplot_3d_figure_callback(
+    annotations: "str | None",
+    zaxis: str,
+    show_legend: bool,
+    color_by_col: str,
+    selected_contigs: Dict[str, List[Dict[str, str]]],
+) -> go.Figure:
     df = pd.read_json(annotations, orient="split")
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     if not selected_contigs:
@@ -518,8 +532,8 @@ def update_zaxis(annotations, zaxis, show_legend, color_by_col, selected_contigs
     else:
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
-    return {
-        "data": [
+    return go.Figure(
+        data=[
             go.Scatter3d(
                 x=dff.x_1,
                 y=dff.x_2,
@@ -537,7 +551,7 @@ def update_zaxis(annotations, zaxis, show_legend, color_by_col, selected_contigs
             )
             for colorby_col_value, dff in df.groupby(color_by_col)
         ],
-        "layout": go.Layout(
+        layout=go.Layout(
             scene=dict(
                 xaxis=dict(title="X_1"),
                 yaxis=dict(title="X_2"),
@@ -549,30 +563,30 @@ def update_zaxis(annotations, zaxis, show_legend, color_by_col, selected_contigs
             margin=dict(r=0, b=0, l=0, t=25),
             hovermode="closest",
         ),
-    }
+    )
 
 
 @app.callback(
     Output("scatterplot-2d", "figure"),
     [
         Input("metagenome-annotations", "children"),
+        Input("refinements-clusters-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("show-legend-toggle", "value"),
         Input("color-by-column", "value"),
-        Input("refinements-clusters", "children"),
         Input("hide-selections-toggle", "value"),
     ],
 )
-def update_axes(
-    annotations,
+def scatterplot_2d_figure_callback(
+    annotations: "str | None",
+    refinement: "str | None",
     xaxis_column: str,
     yaxis_column: str,
     show_legend: bool,
     color_by_col: str,
-    refinement,
     hide_selection_toggle: bool,
-):
+) -> go.Figure:
     df = pd.read_json(annotations, orient="split").set_index("contig")
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     # Subset metagenome-annotations by selections iff selections have been made
@@ -586,11 +600,9 @@ def update_axes(
             refined_contigs_index = refine_df[
                 refine_df[refine_col].str.contains("refinement")
             ].index
-            # print(f"refined df shape: {refine_df.shape}, df shape: {df.shape}")
             df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
-            # print(f"new df shape: {df.shape}")
-    return {
-        "data": [
+    return go.Figure(
+        data=[
             go.Scattergl(
                 x=df.loc[df[color_by_col].eq(color_col_name), xaxis_column],
                 y=df.loc[df[color_by_col].eq(color_col_name), yaxis_column],
@@ -605,7 +617,7 @@ def update_axes(
             )
             for color_col_name in df[color_by_col].unique()
         ],
-        "layout": go.Layout(
+        layout=go.Layout(
             scene=dict(
                 xaxis=dict(title=xaxis_column.title()),
                 yaxis=dict(title=yaxis_column.title()),
@@ -613,17 +625,16 @@ def update_axes(
             legend={"x": 1, "y": 1},
             showlegend=show_legend,
             margin=dict(r=50, b=50, l=50, t=50),
-            # title='2D Clustering Visualization',
             hovermode="closest",
         ),
-    }
+    )
 
 
 @app.callback(
     Output("refinements-table", "children"),
-    [Input("refinements-clusters", "children")],
+    [Input("refinements-clusters-store", "data")],
 )
-def refinements_table_callback(df):
+def refinements_table_callback(df: "str | None") -> DataTable:
     df = pd.read_json(df, orient="split")
     return DataTable(
         id="refinements-datatable",
@@ -639,10 +650,12 @@ def refinements_table_callback(df):
     Output("refinements-datatable", "data"),
     [
         Input("scatterplot-2d", "selectedData"),
-        Input("refinements-clusters", "children"),
+        Input("refinements-clusters-store", "data"),
     ],
 )
-def update_refinements_table(selected_data, refinements):
+def update_refinements_table(
+    selected_data: Dict[str, List[Dict[str, str]]], refinements: "str | None"
+) -> "str | None":
     df = pd.read_json(refinements, orient="split")
     if not selected_data:
         return df.to_dict("records")
@@ -654,10 +667,12 @@ def update_refinements_table(selected_data, refinements):
     Output("refinements-download", "data"),
     [
         Input("refinements-download-button", "n_clicks"),
-        Input("refinements-clusters", "children"),
+        Input("refinements-clusters-store", "data"),
     ],
 )
-def download_refinements(n_clicks, curated_mags):
+def download_refinements(
+    n_clicks: int, curated_mags: "str | None"
+) -> Dict[str, "str | bool"]:
     if not n_clicks:
         raise PreventUpdate
     df = pd.read_json(curated_mags, orient="split")
@@ -665,17 +680,20 @@ def download_refinements(n_clicks, curated_mags):
 
 
 @app.callback(
-    Output("refinements-clusters", "children"),
+    Output("refinements-clusters-store", "data"),
     [
         Input("scatterplot-2d", "selectedData"),
         Input("refinement-data", "children"),
         Input("save-selections-toggle", "value"),
     ],
-    [State("refinements-clusters", "children")],
+    [State("refinements-clusters-store", "data")],
 )
 def store_binning_refinement_selections(
-    selected_data, refinement_data, save_toggle, intermediate_selections
-):
+    selected_data: Dict[str, List[Dict[str, str]]],
+    refinement_data: "str | None",
+    save_toggle: bool,
+    intermediate_selections: "str | None",
+) -> "str | None":
     if not selected_data and not intermediate_selections:
         # We first load in our binning information for refinement
         # Note: this callback should trigger on initial load
