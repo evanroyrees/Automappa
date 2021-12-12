@@ -32,7 +32,7 @@ def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
 # ######################################################################
 
 refinements_clusters_store = (
-    dcc.Store(id="refinements-clusters-store", storage_type="local"),
+    dcc.Store(id="refinements-clusters-store", storage_type="session"),
 )
 
 ########################################################################
