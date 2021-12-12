@@ -2,7 +2,9 @@ name: docker CI/CD
 
 on:
   push:
-    branches: main
+    branches:
+      - main
+      - develop
 
 jobs:
   main:
@@ -23,6 +25,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       -
         name: Build and push
         id: docker_build
@@ -30,9 +37,8 @@ jobs:
         with:
           context: .
           file: ./docker/Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/386
           push: true
-          tags: evanrees/automappa:latest
+          tags: evanrees/automappa:${{ steps.extract_branch.outputs.branch }}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
