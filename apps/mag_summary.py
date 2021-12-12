@@ -110,7 +110,7 @@ layout = dbc.Container(
     [
         dbc.Col(metric_boxplot),
         dbc.Row([dbc.Col(mag_summary_cluster_col_dropdown)]),
-        dbc.Row(dbc.Col(mag_summary_stats_datatable)),
+        dbc.Col(mag_summary_stats_datatable),
     ],
     fluid=True,
 )
@@ -304,11 +304,18 @@ def mag_summary_stats_datatable_callback(mag_annotations_json, markers_json, clu
             bin_df=bin_df, markers=markers, cluster_col=cluster_col
         ).reset_index()
     stats_df = stats_df.fillna("NA").round(2)
+    stats_df = stats_df.drop(columns=['size_pct', 'seqs_pct'], errors='ignore')
     return DataTable(
         data=stats_df.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in stats_df.columns],
-        style_cell={"textAlign": "center"},
-        virtualization=False,
+        columns=[{"name": col.replace("_", " "), "id": col} for col in stats_df.columns],
+        style_table={'overflowX': 'auto'},
+        style_cell={
+            'height': 'auto',
+            # all three widths are needed
+            'minWidth': '120px', 'width': '120px', 'maxWidth': '120px',
+            'whiteSpace': 'normal'
+        },
+        fixed_rows={"headers":True},
     )
 
 
