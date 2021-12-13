@@ -21,10 +21,10 @@ else
 HAS_DOCKER=True
 endif
 
-ifeq (,$(shell ls Autometa))
-HAS_AUTOMETA=False
-else
+ifneq ($(wildcard Autometa/*),)
 HAS_AUTOMETA=True
+else
+HAS_AUTOMETA=False
 endif
 
 
