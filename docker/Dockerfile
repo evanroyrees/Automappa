@@ -6,6 +6,8 @@ COPY --chown=micromamba:micromamba requirements.txt /tmp/requirements.txt
 RUN micromamba install --name base -c conda-forge -c bioconda -y python=3.7 --file=/tmp/requirements.txt
 RUN micromamba install --name base -c anaconda -y git
 
+RUN micromamba install --name base -c conda-forge -y libffi
+
 # https://github.com/mamba-org/micromamba-docker#activating-a-conda-environment-for-run-commands
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/Autometa \

@@ -94,11 +94,11 @@ install_autometa:
 ifeq (True,$(HAS_AUTOMETA))
 	@echo ">>> Autometa found"
 	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
-	bash -c "make -C Autometa install"
+	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
 else
 	git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git
 	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
-	bash -c "make -C Autometa install"
+	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
 endif
 
 
