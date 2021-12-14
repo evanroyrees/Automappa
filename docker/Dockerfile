@@ -11,10 +11,10 @@ ARG MAMBA_DOCKERFILE_ACTIVATE=1
 RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/Autometa \
     && micromamba install --name base -c conda-forge -c bioconda --file=/tmp/Autometa/requirements.txt -y \
     && cd /tmp/Autometa \
-    && python -c "setup.py install"
+    && /opt/conda/bin/python setup.py install
 
 RUN micromamba clean --all --yes
 
-COPY . .
+COPY --chown=micromamba:micromamba . .
 
 # ENTRYPOINT /opt/conda/bin/python index.py
