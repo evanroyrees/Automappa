@@ -96,7 +96,7 @@ ifeq (True,$(HAS_AUTOMETA))
 	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
 	bash -c "make -C Autometa install"
 else
-	git clone -b large-data-mode git@github.com:WiscEvan/Autometa
+	git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git
 	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
 	bash -c "make -C Autometa install"
 endif
