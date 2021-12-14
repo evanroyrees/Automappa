@@ -24,9 +24,9 @@ colors = {"background": "#F3F6FA", "background_div": "white"}
 # ######################################################################
 
 
-metric_boxplot = dcc.Graph(id="mag-metrics-boxplot")
+metric_boxplot = dcc.Loading(id="loading-mag-metrics-boxplot",children=[dcc.Graph(id="mag-metrics-boxplot")], type="graph")
 
-mag_summary_stats_datatable = html.Div(id="mag-summary-stats-datatable")
+mag_summary_stats_datatable = dcc.Loading(id="loading-mag-summary-stats-datatable",children=[html.Div(id="mag-summary-stats-datatable")], type="circle")
 
 mag_summary_cluster_col_dropdown = dcc.Dropdown(
     id="mag-summary-cluster-col-dropdown",

@@ -280,19 +280,20 @@ refinement_settings_button = [
 # (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
 # (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
 
-mag_metrics_table = html.Div(id="mag-metrics-datatable")
+mag_metrics_table = dcc.Loading(id="loading-mag-metrics-datatable", children=[html.Div(id="mag-metrics-datatable")], type="circle")
 
 scatterplot_2d = [
     html.Label("Figure 1: 2D Metagenome Overview"),
-    dcc.Graph(
+    dcc.Loading(id="loading-scatterplot-2d", children=[dcc.Graph(
         id="scatterplot-2d",
         clear_on_unhover=True,
-    ),
+    )],
+    type="graph"),
 ]
 
 scatterplot_3d = [
     html.Label("Figure 2: 3D Metagenome Overview"),
-    dcc.Graph(
+    dcc.Loading(id="loading-scatterplot-3d", children=[dcc.Graph(
         id="scatterplot-3d",
         clear_on_unhover=True,
         config={
@@ -301,16 +302,17 @@ scatterplot_3d = [
                 filename="scatter3dPlot.autometa.binning",
             ),
         },
-    ),
+    )],
+    type="graph"),
 ]
 
 
 taxonomy_figure = [
     html.Label("Figure 3: Taxonomic Distribution"),
-    dcc.Graph(id="taxonomy-distribution"),
+    dcc.Loading(id="loading-taxonomy-distribution", children=[dcc.Graph(id="taxonomy-distribution")], type="graph"),
 ]
 
-refinements_table = html.Div(id="refinements-table")
+refinements_table = dcc.Loading(id="loading-refinements-table", children=[html.Div(id="refinements-table")])
 
 
 ########################################################################
