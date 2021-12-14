@@ -1,8 +1,7 @@
 FROM mambaorg/micromamba:0.19.1
 # https://github.com/mamba-org/micromamba-docker
 
-
-COPY requirements.txt /tmp/requirements.txt
+COPY --chown=micromamba:micromamba requirements.txt /tmp/requirements.txt
 
 RUN micromamba install --name base -c conda-forge -c bioconda -y python=3.7 --file=/tmp/requirements.txt
 RUN micromamba install --name base -c anaconda -y git
