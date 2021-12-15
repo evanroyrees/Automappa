@@ -174,6 +174,11 @@ def get_scatterplot_3d(
             hovermode="closest",
         )
     )
+    x_hover_label = f"{x_axis.title()}:" + "%{x:.2f}"
+    y_hover_label = f"{y_axis.title()}:" + "%{y:.2f}"
+    z_hover_label = f"{z_axis.title()}:" + "%{z:.2f}"
+    text_hover_label = "Contig:: %{text}"
+    hovertemplate = "<br>".join([text_hover_label, z_hover_label, x_hover_label, y_hover_label])
     for color_by_col_val, dff in df.groupby(color_by_col):
         trace = go.Scatter3d(
             x=dff[x_axis],
@@ -181,13 +186,14 @@ def get_scatterplot_3d(
             z=dff[z_axis],
             text=dff.contig,
             mode="markers",
-            textposition="top center",
-            opacity=0.45,
-            hoverinfo="all",
             marker={
                 "size": df.assign(normLen=marker_size_scaler)["normLen"],
                 "line": {"width": 0.1, "color": "black"},
             },
+            textposition="top center",
+            opacity=0.45,
+            hoverinfo="all",
+            hovertemplate=hovertemplate,
             name=color_by_col_val,
         )
         fig.add_trace(trace)

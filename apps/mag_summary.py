@@ -10,12 +10,15 @@ from autometa.binning.summary import fragmentation_metric, get_metabin_stats
 from dash import dcc, html
 from dash.dash_table import DataTable
 from dash.dependencies import Input, Output
-from plotly import graph_objects as go
 import dash_bootstrap_components as dbc
+from plotly import graph_objects as go
+import plotly.io as pio
 
 from app import app
 
 from automappa.figures import taxonomy_sankey, metric_boxplot
+
+pio.templates.default = "plotly_white"
 
 
 ########################################################################
@@ -98,12 +101,7 @@ mag_selection_dropdown = [
 # 2. The immediate children of any Row component should always be Col components.
 # 3. Your content should go inside the Col components.
 
-# Markdown Summary Report
-## sankey diagram for specific mag selection dcc.Graph(id="taxa_by_rank")
-
-### Dropdowns
-# canonical_rank ==> dcc.Dropdown(id="taxa_by_rank_dropdown")
-
+# TODO: Markdown Summary Report
 
 layout = dbc.Container(
     [
@@ -250,21 +248,6 @@ def mag_selection_dropdown_options_callback(
             for cluster in df[cluster_col].dropna().unique()
         ]
     return options
-
-
-@app.callback(
-    Output("taxa_by_rank", "figure"),
-    [
-        Input("metagenome-annotations", "children"),
-        Input("taxa_by_rank_dropdown", "value"),
-        Input("mag-summary-cluster-col-dropdown", "value"),
-    ],
-)
-def taxa_by_rank(
-    mag_annotations_json: "str | None", rank: str, cluster_col: str
-) -> go.Figure:
-    df = pd.read_json(mag_annotations_json, orient="split")
-    return taxa_by_rank(df, cluster_col, rank)
 
 
 @app.callback(

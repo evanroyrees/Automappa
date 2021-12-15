@@ -12,6 +12,8 @@ from dash_extensions.snippets import send_data_frame
 import dash_bootstrap_components as dbc
 from app import app
 from plotly import graph_objects as go
+import plotly.io as pio
+
 
 from automappa.figures import (
     get_scatterplot_2d,
@@ -19,6 +21,9 @@ from automappa.figures import (
     get_scatterplot_3d,
     metric_boxplot,
 )
+
+
+pio.templates.default = "plotly_white"
 
 
 ########################################################################
@@ -280,6 +285,7 @@ scatterplot_2d = [
             dcc.Graph(
                 id="scatterplot-2d",
                 clear_on_unhover=True,
+                config={"displayModeBar": True, "displaylogo": False},
             )
         ],
         type="graph",
@@ -299,6 +305,8 @@ scatterplot_3d = [
                         format="svg",
                         filename="scatter3dPlot.autometa.binning",
                     ),
+                    "displayModeBar": True,
+                    "displaylogo": False,
                 },
             )
         ],
@@ -311,7 +319,16 @@ taxonomy_figure = [
     html.Label("Figure 3: Taxonomic Distribution"),
     dcc.Loading(
         id="loading-taxonomy-distribution",
-        children=[dcc.Graph(id="taxonomy-distribution")],
+        children=[
+            dcc.Graph(
+                id="taxonomy-distribution",
+                config={
+                    "displayModeBar": False,
+                    "displaylogo": False,
+                    "staticPlot": True,
+                },
+            )
+        ],
         type="graph",
     ),
 ]
@@ -320,7 +337,12 @@ mag_refinement_coverage_boxplot = [
     html.Label("Figure 4: MAG Refinement Coverage Boxplot"),
     dcc.Loading(
         id="loading-mag-refinement-coverage-boxplot",
-        children=[dcc.Graph(id="mag-refinement-coverage-boxplot")],
+        children=[
+            dcc.Graph(
+                id="mag-refinement-coverage-boxplot",
+                config={"displayModeBar": False, "displaylogo": False},
+            )
+        ],
         type="dot",
         color="#646569",
     ),
@@ -330,7 +352,12 @@ mag_refinement_gc_content_boxplot = [
     html.Label("Figure 5: MAG Refinement GC Content Boxplot"),
     dcc.Loading(
         id="loading-mag-refinement-gc-content-boxplot",
-        children=[dcc.Graph(id="mag-refinement-gc-content-boxplot")],
+        children=[
+            dcc.Graph(
+                id="mag-refinement-gc-content-boxplot",
+                config={"displayModeBar": False, "displaylogo": False},
+            )
+        ],
         type="dot",
         color="#0479a8",
     ),
@@ -340,7 +367,12 @@ mag_refinement_length_boxplot = [
     html.Label("Figure 6: MAG Refinement Length Boxplot"),
     dcc.Loading(
         id="loading-mag-refinement-length-boxplot",
-        children=[dcc.Graph(id="mag-refinement-length-boxplot")],
+        children=[
+            dcc.Graph(
+                id="mag-refinement-length-boxplot",
+                config={"displayModeBar": False, "displaylogo": False},
+            )
+        ],
         type="dot",
         color="#0479a8",
     ),
@@ -368,10 +400,12 @@ refinements_table = dcc.Loading(
 
 layout = dbc.Container(
     children=[
-        dbc.Row(dbc.Col(refinements_clusters_store)),
-        dbc.Row(dbc.Col(refinement_settings_button, width=4)),
-        dbc.Row([dbc.Col(mag_metrics_table, width=4), dbc.Col(scatterplot_2d)]),
-        dbc.Row([dbc.Col(scatterplot_3d), dbc.Col(taxonomy_figure)]),
+        dbc.Row([dbc.Col(refinements_clusters_store)]),
+        dbc.Row([dbc.Col(refinement_settings_button, width=4)]),
+        dbc.Row([dbc.Col(scatterplot_2d)]),
+        # TODO: Add MAG assembly metrics table
+        dbc.Row([dbc.Col(mag_metrics_table, width=3), dbc.Col(scatterplot_3d)]),
+        dbc.Row([dbc.Col(taxonomy_figure)]),
         dbc.Row(
             [
                 dbc.Col(mag_refinement_coverage_boxplot),
@@ -379,7 +413,7 @@ layout = dbc.Container(
                 dbc.Col(mag_refinement_length_boxplot),
             ]
         ),
-        dbc.Row(dbc.Col(refinements_table, width=12)),
+        dbc.Row([dbc.Col(refinements_table, width=12)]),
     ],
     fluid=True,
 )
@@ -503,7 +537,6 @@ def taxonomy_distribution_figure_callback(
         ctg_list = {point["text"] for point in selected_contigs["points"]}
         df = df[df.contig.isin(ctg_list)]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
-    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -546,7 +579,6 @@ def scatterplot_3d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
-    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -592,7 +624,6 @@ def scatterplot_2d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
-    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -612,7 +643,7 @@ def mag_summary_coverage_boxplot_callback(
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
-    fig.update_layout(template="plotly_white")
+    fig.update_layout(hovermode="y")
     return fig
 
 
@@ -632,7 +663,6 @@ def mag_summary_gc_content_boxplot_callback(
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
-    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -652,7 +682,6 @@ def mag_summary_length_boxplot_callback(
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["length"])
-    fig.update_layout(template="plotly_white")
     return fig
 
 
