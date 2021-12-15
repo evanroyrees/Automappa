@@ -202,8 +202,8 @@ refinement_settings_offcanvas = dbc.Offcanvas(
             ]
         ),
     ],
-    id="refinement-settings-offcanvas",
-    title="Refinement Settings",
+    id="settings-offcanvas",
+    title="Settings",
     is_open=False,
     placement="end",
     scrollable=True,
@@ -213,7 +213,7 @@ refinement_settings_offcanvas = dbc.Offcanvas(
 # COMPONENTS: Buttons and Toggle
 # ######################################################################
 
-refinement_settings_button = dbc.Button("Refinement Settings", id="refinement-settings-button", n_clicks=0)
+refinement_settings_button = dbc.Button("Settings", id="settings-button", n_clicks=0)
 
 mag_refinement_save_button = dbc.Button(
     "Save selection to MAG refinement",
@@ -412,9 +412,9 @@ layout = dbc.Container(
 
 
 @app.callback(
-    Output("refinement-settings-offcanvas", "is_open"),
-    Input("refinement-settings-button", "n_clicks"),
-    [State("refinement-settings-offcanvas", "is_open")],
+    Output("settings-offcanvas", "is_open"),
+    Input("settings-button", "n_clicks"),
+    [State("settings-offcanvas", "is_open")],
 )
 def toggle_offcanvas(n1: int, is_open: bool) -> bool:
     if n1:
@@ -484,13 +484,14 @@ def update_mag_metrics_datatable_callback(
         "Single-Marker Contigs": single_marker_contig_count,
     }
     if selected_contigs:
-        metrics_data.update(
-            {
+        selection_metrics ={
                 "Contigs": selected_contigs_count,
                 "Completeness (%)": completeness,
                 "Purity (%)": purity,
             }
-        )
+        selection_metrics.update(metrics_data)
+        # Adding this extra step b/c to keep selection metrics at top of the table...
+        metrics_data = selection_metrics
 
     metrics_df = pd.DataFrame([metrics_data]).T
     metrics_df.rename(columns={0: "Value"}, inplace=True)
@@ -500,9 +501,16 @@ def update_mag_metrics_datatable_callback(
     return DataTable(
         data=metrics_df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in metrics_df.columns],
-        style_cell={"textAlign": "center"},
+        style_cell={
+            "height": "auto",
+            # all three widths are needed
+            "minWidth": "20px",
+            "width": "20px",
+            "maxWidth": "20px",
+            "whiteSpace": "normal",
+            "textAlign": "center",
+        },
         # TODO: style completeness and purity cells to MIMAG standards as mentioned above
-        style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
     )
 
 
@@ -630,7 +638,6 @@ def mag_summary_coverage_boxplot_callback(
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
-    fig.update_layout(hovermode="y")
     return fig
 
 
@@ -650,6 +657,7 @@ def mag_summary_gc_content_boxplot_callback(
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
+    fig.update_traces(name="GC Content")
     return fig
 
 
