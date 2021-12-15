@@ -177,7 +177,7 @@ def get_scatterplot_3d(
     x_hover_label = f"{x_axis.title()}:" + "%{x:.2f}"
     y_hover_label = f"{y_axis.title()}:" + "%{y:.2f}"
     z_hover_label = f"{z_axis.title()}:" + "%{z:.2f}"
-    text_hover_label = "Contig:: %{text}"
+    text_hover_label = "Contig: %{text}"
     hovertemplate = "<br>".join(
         [text_hover_label, z_hover_label, x_hover_label, y_hover_label]
     )

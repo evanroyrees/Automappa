@@ -755,7 +755,7 @@ def store_binning_refinement_selections(
             bin_df["cluster"] = "unclustered"
         else:
             bin_df["cluster"].fillna("unclustered", inplace=True)
-        return bin_df.to_json(orient="split")
+        return bin_df.to_json(orient="split"), 0
     if not n_clicks or (n_clicks and not selected_data):
         raise PreventUpdate
     contigs = {point["text"] for point in selected_data["points"]}
