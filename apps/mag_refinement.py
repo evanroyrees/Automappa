@@ -402,10 +402,9 @@ layout = dbc.Container(
     children=[
         dbc.Row([dbc.Col(refinements_clusters_store)]),
         dbc.Row([dbc.Col(refinement_settings_button, width=4)]),
-        dbc.Row([dbc.Col(scatterplot_2d)]),
+        dbc.Row([dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]),
         # TODO: Add MAG assembly metrics table
-        dbc.Row([dbc.Col(mag_metrics_table, width=3), dbc.Col(scatterplot_3d)]),
-        dbc.Row([dbc.Col(taxonomy_figure)]),
+        dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d)]),
         dbc.Row(
             [
                 dbc.Col(mag_refinement_coverage_boxplot),
