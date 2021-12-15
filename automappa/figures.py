@@ -178,7 +178,9 @@ def get_scatterplot_3d(
     y_hover_label = f"{y_axis.title()}:" + "%{y:.2f}"
     z_hover_label = f"{z_axis.title()}:" + "%{z:.2f}"
     text_hover_label = "Contig:: %{text}"
-    hovertemplate = "<br>".join([text_hover_label, z_hover_label, x_hover_label, y_hover_label])
+    hovertemplate = "<br>".join(
+        [text_hover_label, z_hover_label, x_hover_label, y_hover_label]
+    )
     for color_by_col_val, dff in df.groupby(color_by_col):
         trace = go.Scatter3d(
             x=dff[x_axis],

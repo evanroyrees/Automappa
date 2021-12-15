@@ -120,44 +120,6 @@ scatterplot_2d_legend_toggle = daq.ToggleSwitch(
     value=True,
 )
 
-# Tooltip for info on store selections behavior
-hide_selections_tooltip = dbc.Tooltip(
-    'Toggling this to the "on" state will hide your manually-curated MAG refinement groups',
-    target="hide-selections-toggle",
-    placement="left",
-)
-
-# add hide selection toggle
-hide_selections_toggle = daq.ToggleSwitch(
-    id="hide-selections-toggle",
-    size=40,
-    color="#c5040d",
-    label="Hide MAG Refinements",
-    labelPosition="left",
-    vertical=False,
-    value=False,
-)
-
-# Tooltip for info on store selections behavior
-save_selections_tooltip = dbc.Tooltip(
-    """Toggling this to the \"on\" state while selecting contigs (or while contigs are selected)
-    will save the selected contigs to their own MAG refinement group
-    """,
-    target="save-selections-toggle",
-    placement="left",
-)
-
-# add save selection toggle
-save_selections_toggle = daq.ToggleSwitch(
-    id="save-selections-toggle",
-    size=40,
-    color="#c5040d",
-    label="Select MAG Refinements",
-    labelPosition="left",
-    vertical=False,
-    value=False,
-)
-
 # Scatterplot 3D Legend Toggle
 scatterplot_3d_legend_toggle = daq.ToggleSwitch(
     id="scatterplot-3d-legend-toggle",
@@ -235,12 +197,6 @@ refinement_settings_offcanvas = dbc.Offcanvas(
         ),
         dbc.Row(
             [
-                dbc.Col([save_selections_tooltip, save_selections_toggle]),
-                dbc.Col([hide_selections_tooltip, hide_selections_toggle]),
-            ]
-        ),
-        dbc.Row(
-            [
                 dbc.Col(binning_refinements_download_button),
                 dbc.Col(binning_refinements_summary_button),
             ]
@@ -253,10 +209,40 @@ refinement_settings_offcanvas = dbc.Offcanvas(
     scrollable=True,
 )
 
-refinement_settings_button = [
-    dbc.Button("Refinement Settings", id="refinement-settings-button", n_clicks=0),
-    refinement_settings_offcanvas,
-]
+########################################################################
+# COMPONENTS: Buttons and Toggle
+# ######################################################################
+
+refinement_settings_button = dbc.Button("Refinement Settings", id="refinement-settings-button", n_clicks=0)
+
+mag_refinement_save_button = dbc.Button(
+    "Save selection to MAG refinement",
+    id="mag-refinement-save-button",
+    n_clicks=0,
+)
+
+# Tooltip for info on store selections behavior
+hide_selections_tooltip = dbc.Tooltip(
+    'Toggling this to the "on" state will hide your manually-curated MAG refinement groups',
+    target="hide-selections-toggle",
+    placement="auto",
+)
+
+# add hide selection toggle
+hide_selections_toggle = daq.ToggleSwitch(
+    id="hide-selections-toggle",
+    size=40,
+    color="#c5040d",
+    label="Hide MAG Refinements",
+    labelPosition="top",
+    vertical=False,
+    value=False,
+)
+
+mag_refinement_buttons = html.Div(
+    [refinement_settings_button, refinement_settings_offcanvas, mag_refinement_save_button, hide_selections_toggle, hide_selections_tooltip],
+    className="d-grid gap-2 d-md-flex justify-content-md-start",
+)
 
 ########################################################################
 # COMPONENTS: FIGURES AND TABLES
@@ -401,10 +387,12 @@ refinements_table = dcc.Loading(
 layout = dbc.Container(
     children=[
         dbc.Row([dbc.Col(refinements_clusters_store)]),
-        dbc.Row([dbc.Col(refinement_settings_button, width=4)]),
-        dbc.Row([dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]),
+        dbc.Row([dbc.Col(mag_refinement_buttons)]),
+        dbc.Row(
+            [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
+        ),
         # TODO: Add MAG assembly metrics table
-        dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d)]),
+        dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d, width=3)]),
         dbc.Row(
             [
                 dbc.Col(mag_refinement_coverage_boxplot, width=4),
@@ -734,18 +722,19 @@ def download_refinements(
 
 
 @app.callback(
-    Output("refinements-clusters-store", "data"),
+    [Output("refinements-clusters-store", "data"),
+    Output("mag-refinement-save-button", "n_clicks")],
     [
         Input("scatterplot-2d", "selectedData"),
         Input("refinement-data", "children"),
-        Input("save-selections-toggle", "value"),
+        Input("mag-refinement-save-button", "n_clicks"),
     ],
-    [State("refinements-clusters-store", "data")],
+    [State("refinements-clusters-store", "data"),],
 )
 def store_binning_refinement_selections(
     selected_data: Dict[str, List[Dict[str, str]]],
     refinement_data: "str | None",
-    save_toggle: bool,
+    n_clicks: int,
     intermediate_selections: "str | None",
 ) -> "str | None":
     if not selected_data and not intermediate_selections:
@@ -759,7 +748,7 @@ def store_binning_refinement_selections(
         else:
             bin_df["cluster"].fillna("unclustered", inplace=True)
         return bin_df.to_json(orient="split")
-    if not save_toggle or not selected_data:
+    if not n_clicks or (n_clicks and not selected_data):
         raise PreventUpdate
     contigs = {point["text"] for point in selected_data["points"]}
     pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
@@ -769,4 +758,4 @@ def store_binning_refinement_selections(
     pdf.loc[contigs, group_name] = group_name
     pdf = pdf.fillna(axis="columns", method="ffill")
     pdf.reset_index(inplace=True)
-    return pdf.to_json(orient="split")
+    return pdf.to_json(orient="split"), 0
