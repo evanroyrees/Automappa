@@ -103,6 +103,7 @@ if __name__ == "__main__":
                 id="refinement-data",
                 style={"display": "none"},
             ),
+            html.Title("Automappa"),
             # Navbar
             dbc.Tabs(
                 id="tabs", children=[refinement_tab, summary_tab], className="nav-fill"
