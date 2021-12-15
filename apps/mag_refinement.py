@@ -407,9 +407,9 @@ layout = dbc.Container(
         dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d)]),
         dbc.Row(
             [
-                dbc.Col(mag_refinement_coverage_boxplot),
-                dbc.Col(mag_refinement_gc_content_boxplot),
-                dbc.Col(mag_refinement_length_boxplot),
+                dbc.Col(mag_refinement_coverage_boxplot, width=4),
+                dbc.Col(mag_refinement_gc_content_boxplot, width=4),
+                dbc.Col(mag_refinement_length_boxplot, width=4),
             ]
         ),
         dbc.Row([dbc.Col(refinements_table, width=12)]),
