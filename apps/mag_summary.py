@@ -107,10 +107,10 @@ layout = dbc.Container(
     [
         dbc.Row(
             [
-                dbc.Col(mag_metrics_boxplot),
-                dbc.Col(mag_summary_gc_content_boxplot),
-                dbc.Col(mag_summary_length_boxplot),
-                dbc.Col(mag_summary_coverage_boxplot),
+                dbc.Col(mag_metrics_boxplot, width=3),
+                dbc.Col(mag_summary_gc_content_boxplot, width=3),
+                dbc.Col(mag_summary_length_boxplot, width=3),
+                dbc.Col(mag_summary_coverage_boxplot, width=3),
             ]
         ),
         dbc.Row([dbc.Col(mag_summary_cluster_col_dropdown)]),
