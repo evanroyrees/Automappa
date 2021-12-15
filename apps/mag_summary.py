@@ -169,6 +169,7 @@ def mag_summary_gc_content_boxplot_callback(
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
     fig = metric_boxplot(df=mag_summary_df, metrics=["gc_content"])
+    fig.update_traces(name="GC Content")
     return fig
 
 
