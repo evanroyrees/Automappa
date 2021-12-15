@@ -26,30 +26,40 @@ from automappa.figures import taxonomy_sankey, metric_boxplot
 mag_metrics_boxplot = dcc.Loading(
     id="loading-mag-metrics-boxplot",
     children=[dcc.Graph(id="mag-metrics-boxplot")],
-    type="graph",
+    type="default",
+    color="#0479a8",
 )
 
 mag_summary_gc_content_boxplot = dcc.Loading(
     id="loading-mag-summary-gc-content-boxplot",
     children=[dcc.Graph(id="mag-summary-gc-content-boxplot")],
-    type="graph",
+    type="dot",
+    color="#646569",
 )
+
 mag_summary_length_boxplot = dcc.Loading(
     id="loading-mag-summary-length-boxplot",
     children=[dcc.Graph(id="mag-summary-length-boxplot")],
-    type="graph",
+    type="default",
+    color="#0479a8",
 )
+
 mag_summary_coverage_boxplot = dcc.Loading(
     id="loading-mag-summary-coverage-boxplot",
     children=[dcc.Graph(id="mag-summary-coverage-boxplot")],
-    type="graph",
+    type="dot",
+    color="#646569",
 )
 
-mag_summary_stats_datatable = dcc.Loading(
-    id="loading-mag-summary-stats-datatable",
-    children=[html.Div(id="mag-summary-stats-datatable")],
-    type="circle",
-)
+mag_summary_stats_datatable = [
+    html.Label("Table 1. MAGs Summary"),
+    dcc.Loading(
+        id="loading-mag-summary-stats-datatable",
+        children=[html.Div(id="mag-summary-stats-datatable")],
+        type="dot",
+        color="#646569",
+    ),
+]
 
 mag_taxonomy_sankey = dcc.Loading(
     id="loading-mag-taxonomy-sankey",
@@ -62,13 +72,19 @@ mag_taxonomy_sankey = dcc.Loading(
 ########################################################################
 
 
-mag_summary_cluster_col_dropdown = dcc.Dropdown(
-    id="mag-summary-cluster-col-dropdown",
-    value="cluster",
-    clearable=False,
-)
+mag_summary_cluster_col_dropdown = [
+    html.Label("MAG Summary Cluster Column Dropdown"),
+    dcc.Dropdown(
+        id="mag-summary-cluster-col-dropdown",
+        value="cluster",
+        clearable=False,
+    ),
+]
 
-mag_selection_dropdown = dcc.Dropdown(id="mag-selection-dropdown", clearable=True)
+mag_selection_dropdown = [
+    html.Label("MAG Selection Dropdown"),
+    dcc.Dropdown(id="mag-selection-dropdown", clearable=True),
+]
 
 
 ########################################################################

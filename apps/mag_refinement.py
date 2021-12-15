@@ -12,9 +12,13 @@ from dash_extensions.snippets import send_data_frame
 import dash_bootstrap_components as dbc
 from app import app
 from plotly import graph_objects as go
-import numpy as np
 
-from automappa.figures import get_scatterplot_2d, taxonomy_sankey, get_scatterplot_3d
+from automappa.figures import (
+    get_scatterplot_2d,
+    taxonomy_sankey,
+    get_scatterplot_3d,
+    metric_boxplot,
+)
 
 
 ########################################################################
@@ -30,87 +34,75 @@ refinements_clusters_store = dcc.Store(
 # ######################################################################
 
 
-color_by_col_dropdown = dbc.Row(
-    children=[
-        html.Label("Contigs colored by:"),
-        dcc.Dropdown(
-            id="color-by-column",
-            options=[],
-            value="cluster",
-            clearable=False,
-        ),
-    ],
-)
+color_by_col_dropdown = [
+    html.Label("Contigs colored by:"),
+    dcc.Dropdown(
+        id="color-by-column",
+        options=[],
+        value="cluster",
+        clearable=False,
+    ),
+]
 
-scatterplot_2d_xaxis_dropdown = dbc.Row(
-    children=[
-        html.Label("X-axis:"),
-        dcc.Dropdown(
-            id="x-axis-2d",
-            options=[
-                {"label": "X_1", "value": "x_1"},
-                {"label": "Coverage", "value": "coverage"},
-                {"label": "GC%", "value": "gc_content"},
-                {"label": "Length", "value": "length"},
-            ],
-            value="x_1",
-            clearable=False,
-        ),
-    ],
-)
+scatterplot_2d_xaxis_dropdown = [
+    html.Label("X-axis:"),
+    dcc.Dropdown(
+        id="x-axis-2d",
+        options=[
+            {"label": "X_1", "value": "x_1"},
+            {"label": "Coverage", "value": "coverage"},
+            {"label": "GC%", "value": "gc_content"},
+            {"label": "Length", "value": "length"},
+        ],
+        value="x_1",
+        clearable=False,
+    ),
+]
 
-scatterplot_2d_yaxis_dropdown = dbc.Row(
-    children=[
-        html.Label("Y-axis:"),
-        dcc.Dropdown(
-            id="y-axis-2d",
-            options=[
-                {"label": "X_2", "value": "x_2"},
-                {"label": "Coverage", "value": "coverage"},
-                {"label": "GC%", "value": "gc_content"},
-                {"label": "Length", "value": "length"},
-            ],
-            value="x_2",
-            clearable=False,
-        ),
-    ],
-)
+scatterplot_2d_yaxis_dropdown = [
+    html.Label("Y-axis:"),
+    dcc.Dropdown(
+        id="y-axis-2d",
+        options=[
+            {"label": "X_2", "value": "x_2"},
+            {"label": "Coverage", "value": "coverage"},
+            {"label": "GC%", "value": "gc_content"},
+            {"label": "Length", "value": "length"},
+        ],
+        value="x_2",
+        clearable=False,
+    ),
+]
 
-scatterplot_3d_zaxis_dropdown = dbc.Row(
-    children=[
-        html.Label("Z-axis:"),
-        dcc.Dropdown(
-            id="scatterplot-3d-zaxis-dropdown",
-            options=[
-                {"label": "Coverage", "value": "coverage"},
-                {"label": "GC%", "value": "gc_content"},
-                {"label": "Length", "value": "length"},
-            ],
-            value="coverage",
-            clearable=False,
-        ),
-    ]
-)
+scatterplot_3d_zaxis_dropdown = [
+    html.Label("Z-axis:"),
+    dcc.Dropdown(
+        id="scatterplot-3d-zaxis-dropdown",
+        options=[
+            {"label": "Coverage", "value": "coverage"},
+            {"label": "GC%", "value": "gc_content"},
+            {"label": "Length", "value": "length"},
+        ],
+        value="coverage",
+        clearable=False,
+    ),
+]
 
-taxa_rank_dropdown = dbc.Row(
-    children=[
-        html.Label("Distribute taxa by rank:"),
-        dcc.Dropdown(
-            id="taxonomy-distribution-dropdown",
-            options=[
-                {"label": "Kingdom", "value": "superkingdom"},
-                {"label": "Phylum", "value": "phylum"},
-                {"label": "Class", "value": "class"},
-                {"label": "Order", "value": "order"},
-                {"label": "Family", "value": "family"},
-                {"label": "Genus", "value": "genus"},
-                {"label": "Species", "value": "species"},
-            ],
-            value="species",
-            clearable=False,
-        ),
-    ]
-)
+taxa_rank_dropdown = [
+    html.Label("Distribute taxa by rank:"),
+    dcc.Dropdown(
+        id="taxonomy-distribution-dropdown",
+        options=[
+            {"label": "Class", "value": "class"},
+            {"label": "Order", "value": "order"},
+            {"label": "Family", "value": "family"},
+            {"label": "Genus", "value": "genus"},
+            {"label": "Species", "value": "species"},
+        ],
+        value="species",
+        clearable=False,
+    ),
+]
 
 # add show-legend-toggle
 scatterplot_2d_legend_toggle = daq.ToggleSwitch(
@@ -270,11 +262,15 @@ refinement_settings_button = [
 # (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
 # (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
 
-mag_metrics_table = dcc.Loading(
-    id="loading-mag-metrics-datatable",
-    children=[html.Div(id="mag-metrics-datatable")],
-    type="circle",
-)
+mag_metrics_table = [
+    html.Label("Table 1. MAG Marker Metrics"),
+    dcc.Loading(
+        id="loading-mag-metrics-datatable",
+        children=[html.Div(id="mag-metrics-datatable")],
+        type="dot",
+        color="#646569",
+    ),
+]
 
 scatterplot_2d = [
     html.Label("Figure 1: 2D Metagenome Overview"),
@@ -320,8 +316,42 @@ taxonomy_figure = [
     ),
 ]
 
+mag_refinement_coverage_boxplot = [
+    html.Label("Figure 4: MAG Refinement Coverage Boxplot"),
+    dcc.Loading(
+        id="loading-mag-refinement-coverage-boxplot",
+        children=[dcc.Graph(id="mag-refinement-coverage-boxplot")],
+        type="dot",
+        color="#646569",
+    ),
+]
+
+mag_refinement_gc_content_boxplot = [
+    html.Label("Figure 5: MAG Refinement GC Content Boxplot"),
+    dcc.Loading(
+        id="loading-mag-refinement-gc-content-boxplot",
+        children=[dcc.Graph(id="mag-refinement-gc-content-boxplot")],
+        type="dot",
+        color="#0479a8",
+    ),
+]
+
+mag_refinement_length_boxplot = [
+    html.Label("Figure 6: MAG Refinement Length Boxplot"),
+    dcc.Loading(
+        id="loading-mag-refinement-length-boxplot",
+        children=[dcc.Graph(id="mag-refinement-length-boxplot")],
+        type="dot",
+        color="#0479a8",
+    ),
+]
+
+
 refinements_table = dcc.Loading(
-    id="loading-refinements-table", children=[html.Div(id="refinements-table")]
+    id="loading-refinements-table",
+    children=[html.Div(id="refinements-table")],
+    type="circle",
+    color="#646569",
 )
 
 
@@ -338,10 +368,17 @@ refinements_table = dcc.Loading(
 
 layout = dbc.Container(
     children=[
-        dbc.Col(refinements_clusters_store),
-        dbc.Col(refinement_settings_button, width=12),
+        dbc.Row(dbc.Col(refinements_clusters_store)),
+        dbc.Row(dbc.Col(refinement_settings_button, width=4)),
         dbc.Row([dbc.Col(mag_metrics_table, width=4), dbc.Col(scatterplot_2d)]),
         dbc.Row([dbc.Col(scatterplot_3d), dbc.Col(taxonomy_figure)]),
+        dbc.Row(
+            [
+                dbc.Col(mag_refinement_coverage_boxplot),
+                dbc.Col(mag_refinement_gc_content_boxplot),
+                dbc.Col(mag_refinement_length_boxplot),
+            ]
+        ),
         dbc.Row(dbc.Col(refinements_table, width=12)),
     ],
     fluid=True,
@@ -466,6 +503,7 @@ def taxonomy_distribution_figure_callback(
         ctg_list = {point["text"] for point in selected_contigs["points"]}
         df = df[df.contig.isin(ctg_list)]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
+    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -501,8 +539,14 @@ def scatterplot_3d_figure_callback(
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
     fig = get_scatterplot_3d(
-        df=df, x_axis="x_1", y_axis="x_2", z_axis=z_axis, show_legend=show_legend, color_by_col=color_by_col
+        df=df,
+        x_axis="x_1",
+        y_axis="x_2",
+        z_axis=z_axis,
+        show_legend=show_legend,
+        color_by_col=color_by_col,
     )
+    fig.update_layout(template="plotly_white")
     return fig
 
 
@@ -548,6 +592,67 @@ def scatterplot_2d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
+    fig.update_layout(template="plotly_white")
+    return fig
+
+
+@app.callback(
+    Output("mag-refinement-coverage-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("scatterplot-2d", "selectedData"),
+    ],
+)
+def mag_summary_coverage_boxplot_callback(
+    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+) -> go.Figure:
+    df = pd.read_json(df_json, orient="split")
+    if not selected_data:
+        raise PreventUpdate
+    contigs = {point["text"] for point in selected_data["points"]}
+    df = df.loc[df.contig.isin(contigs)]
+    fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
+    fig.update_layout(template="plotly_white")
+    return fig
+
+
+@app.callback(
+    Output("mag-refinement-gc-content-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("scatterplot-2d", "selectedData"),
+    ],
+)
+def mag_summary_gc_content_boxplot_callback(
+    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+) -> go.Figure:
+    df = pd.read_json(df_json, orient="split")
+    if not selected_data:
+        raise PreventUpdate
+    contigs = {point["text"] for point in selected_data["points"]}
+    df = df.loc[df.contig.isin(contigs)]
+    fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
+    fig.update_layout(template="plotly_white")
+    return fig
+
+
+@app.callback(
+    Output("mag-refinement-length-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("scatterplot-2d", "selectedData"),
+    ],
+)
+def mag_summary_length_boxplot_callback(
+    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+) -> go.Figure:
+    df = pd.read_json(df_json, orient="split")
+    if not selected_data:
+        raise PreventUpdate
+    contigs = {point["text"] for point in selected_data["points"]}
+    df = df.loc[df.contig.isin(contigs)]
+    fig = metric_boxplot(df, metrics=["length"])
+    fig.update_layout(template="plotly_white")
     return fig
 
 

@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-from typing import List
+from typing import List, Union
 import numpy as np
 import pandas as pd
-from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
 from plotly import graph_objects as go
 
@@ -58,17 +57,44 @@ def taxonomy_sankey(df: pd.DataFrame, selected_rank: str = "species") -> go.Figu
 
 
 def metric_boxplot(
-    df: pd.DataFrame, metrics: List[str] = [], horizontal: bool = False
+    df: pd.DataFrame,
+    metrics: List[str] = [],
+    horizontal: bool = False,
+    boxmean: Union[bool, str] = True,
 ) -> go.Figure:
+    """Generate go.Figure of go.Box traces for provided `metric`.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        MAG annotations dataframe
+    metrics : List[str], optional
+        MAG metrics to use for generating traces
+    horizontal : bool, optional
+        Whether to generate horizontal or vertical boxplot traces in the figure.
+    boxmean : Union[bool,str], optional
+        method to style mean and standard deviation or only to display quantiles with median.
+        choices include False/True and 'sd'
+
+    Returns
+    -------
+    go.Figure
+        Figure of boxplot traces using provided parameters and aesthetics
+
+    Raises
+    ------
+    PreventUpdate
+        No metrics were provided to generate traces.
+    """
     fig = go.Figure()
     if not metrics:
         raise PreventUpdate
     for metric in metrics:
         name = metric.replace("_", " ").title()
         if horizontal:
-            trace = go.Box(x=df[metric], name=name, boxmean=True)
+            trace = go.Box(x=df[metric], name=name, boxmean=boxmean)
         else:
-            trace = go.Box(y=df[metric], name=name, boxmean=True)
+            trace = go.Box(y=df[metric], name=name, boxmean=boxmean)
         fig.add_trace(trace)
     return fig
 
