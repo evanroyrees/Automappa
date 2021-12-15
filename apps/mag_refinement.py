@@ -14,25 +14,15 @@ from app import app
 from plotly import graph_objects as go
 import numpy as np
 
-
-def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
-    x_min_scaler = x[scale_by] - x[scale_by].min()
-    x_max_scaler = x[scale_by].max() - x[scale_by].min()
-    if not x_max_scaler:
-        # Protect Division by 0
-        x_ceil = np.ceil(x_min_scaler / x_max_scaler + 1)
-    else:
-        x_ceil = np.ceil(x_min_scaler / x_max_scaler)
-    x_scaled = x_ceil * 2 + 4
-    return x_scaled
+from automappa.figures import get_scatterplot_2d, taxonomy_sankey, get_scatterplot_3d
 
 
 ########################################################################
 # HIDDEN DIV to store refinement information
 # ######################################################################
 
-refinements_clusters_store = (
-    dcc.Store(id="refinements-clusters-store", storage_type="session"),
+refinements_clusters_store = dcc.Store(
+    id="refinements-clusters-store", storage_type="session"
 )
 
 ########################################################################
@@ -280,39 +270,59 @@ refinement_settings_button = [
 # (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
 # (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
 
-mag_metrics_table = dcc.Loading(id="loading-mag-metrics-datatable", children=[html.Div(id="mag-metrics-datatable")], type="circle")
+mag_metrics_table = dcc.Loading(
+    id="loading-mag-metrics-datatable",
+    children=[html.Div(id="mag-metrics-datatable")],
+    type="circle",
+)
 
 scatterplot_2d = [
     html.Label("Figure 1: 2D Metagenome Overview"),
-    dcc.Loading(id="loading-scatterplot-2d", children=[dcc.Graph(
-        id="scatterplot-2d",
-        clear_on_unhover=True,
-    )],
-    type="graph"),
+    dcc.Loading(
+        id="loading-scatterplot-2d",
+        children=[
+            dcc.Graph(
+                id="scatterplot-2d",
+                clear_on_unhover=True,
+            )
+        ],
+        type="graph",
+    ),
 ]
 
 scatterplot_3d = [
     html.Label("Figure 2: 3D Metagenome Overview"),
-    dcc.Loading(id="loading-scatterplot-3d", children=[dcc.Graph(
-        id="scatterplot-3d",
-        clear_on_unhover=True,
-        config={
-            "toImageButtonOptions": dict(
-                format="svg",
-                filename="scatter3dPlot.autometa.binning",
-            ),
-        },
-    )],
-    type="graph"),
+    dcc.Loading(
+        id="loading-scatterplot-3d",
+        children=[
+            dcc.Graph(
+                id="scatterplot-3d",
+                clear_on_unhover=True,
+                config={
+                    "toImageButtonOptions": dict(
+                        format="svg",
+                        filename="scatter3dPlot.autometa.binning",
+                    ),
+                },
+            )
+        ],
+        type="graph",
+    ),
 ]
 
 
 taxonomy_figure = [
     html.Label("Figure 3: Taxonomic Distribution"),
-    dcc.Loading(id="loading-taxonomy-distribution", children=[dcc.Graph(id="taxonomy-distribution")], type="graph"),
+    dcc.Loading(
+        id="loading-taxonomy-distribution",
+        children=[dcc.Graph(id="taxonomy-distribution")],
+        type="graph",
+    ),
 ]
 
-refinements_table = dcc.Loading(id="loading-refinements-table", children=[html.Div(id="refinements-table")])
+refinements_table = dcc.Loading(
+    id="loading-refinements-table", children=[html.Div(id="refinements-table")]
+)
 
 
 ########################################################################
@@ -455,52 +465,8 @@ def taxonomy_distribution_figure_callback(
     if selected_contigs:
         ctg_list = {point["text"] for point in selected_contigs["points"]}
         df = df[df.contig.isin(ctg_list)]
-    ranks = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
-    n_ranks = len(ranks[: ranks.index(selected_rank)])
-    dff = df[[col for col in df.columns if col in ranks]].fillna("unclassified")
-    for rank in ranks:
-        if rank in dff:
-            dff[rank] = dff[rank].map(
-                lambda x: f"{rank[0]}_{x}" if rank != "superkingdom" else f"d_{x}"
-            )
-    label = []
-    for rank in ranks[:n_ranks]:
-        label.extend(dff[rank].unique().tolist())
-    source = []
-    target = []
-    value = []
-    for rank in ranks[:n_ranks]:
-        for rank_name, rank_df in dff.groupby(rank):
-            source_index = label.index(rank_name)
-            next_rank_i = ranks.index(rank) + 1
-            if next_rank_i >= len(ranks[:n_ranks]):
-                continue
-            next_rank = ranks[next_rank_i]
-            # all source is from label rank name index
-            for rank_n in rank_df[next_rank].unique():
-                target_index = label.index(rank_n)
-                value_count = len(rank_df[rank_df[next_rank] == rank_n])
-                label.append(source_index)
-                source.append(source_index)
-                target.append(target_index)
-                value.append(value_count)
-    return go.Figure(
-        data=[
-            go.Sankey(
-                node=dict(
-                    pad=8,
-                    thickness=13,
-                    line=dict(width=0.3),
-                    label=label,
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value,
-                ),
-            )
-        ]
-    )
+    fig = taxonomy_sankey(df, selected_rank=selected_rank)
+    return fig
 
 
 @app.callback(
@@ -515,7 +481,7 @@ def taxonomy_distribution_figure_callback(
 )
 def scatterplot_3d_figure_callback(
     annotations: "str | None",
-    zaxis: str,
+    z_axis: str,
     show_legend: bool,
     color_by_col: str,
     selected_contigs: Dict[str, List[Dict[str, str]]],
@@ -534,38 +500,10 @@ def scatterplot_3d_figure_callback(
     else:
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
-    return go.Figure(
-        data=[
-            go.Scatter3d(
-                x=dff.x_1,
-                y=dff.x_2,
-                z=dff[zaxis],
-                text=dff.contig,
-                mode="markers",
-                textposition="top center",
-                opacity=0.45,
-                hoverinfo="all",
-                marker={
-                    "size": dff.assign(normLen=marker_size_scaler)["normLen"].fillna(1),
-                    "line": {"width": 0.1, "color": "black"},
-                },
-                name=colorby_col_value,
-            )
-            for colorby_col_value, dff in df.groupby(color_by_col)
-        ],
-        layout=go.Layout(
-            scene=dict(
-                xaxis=dict(title="X_1"),
-                yaxis=dict(title="X_2"),
-                zaxis=dict(title=zaxis.replace("_", " ").title()),
-            ),
-            legend={"x": 0, "y": 1},
-            showlegend=show_legend,
-            autosize=True,
-            margin=dict(r=0, b=0, l=0, t=25),
-            hovermode="closest",
-        ),
+    fig = get_scatterplot_3d(
+        df=df, x_axis="x_1", y_axis="x_2", z_axis=z_axis, show_legend=show_legend, color_by_col=color_by_col
     )
+    return fig
 
 
 @app.callback(
@@ -603,33 +541,14 @@ def scatterplot_2d_figure_callback(
                 refine_df[refine_col].str.contains("refinement")
             ].index
             df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
-    return go.Figure(
-        data=[
-            go.Scattergl(
-                x=df.loc[df[color_by_col].eq(color_col_name), xaxis_column],
-                y=df.loc[df[color_by_col].eq(color_col_name), yaxis_column],
-                text=df.loc[df[color_by_col].eq(color_col_name)].index,
-                mode="markers",
-                opacity=0.45,
-                marker={
-                    "size": df.assign(normLen=marker_size_scaler)["normLen"],
-                    "line": {"width": 0.1, "color": "black"},
-                },
-                name=color_col_name,
-            )
-            for color_col_name in df[color_by_col].unique()
-        ],
-        layout=go.Layout(
-            scene=dict(
-                xaxis=dict(title=xaxis_column.title()),
-                yaxis=dict(title=yaxis_column.title()),
-            ),
-            legend={"x": 1, "y": 1},
-            showlegend=show_legend,
-            margin=dict(r=50, b=50, l=50, t=50),
-            hovermode="closest",
-        ),
+    fig = get_scatterplot_2d(
+        df,
+        x_axis=xaxis_column,
+        y_axis=yaxis_column,
+        show_legend=show_legend,
+        color_by_col=color_by_col,
     )
+    return fig
 
 
 @app.callback(

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Dict
+from typing import Any, Dict, List
+from dash.exceptions import PreventUpdate
 
 import numpy as np
 import pandas as pd
@@ -14,19 +15,52 @@ import dash_bootstrap_components as dbc
 
 from app import app
 
-
-JSONDict = Dict[str, Any]
-colors = {"background": "#F3F6FA", "background_div": "white"}
+from automappa.figures import taxonomy_sankey, metric_boxplot
 
 
 ########################################################################
 # COMPONENTS: Figures & Tables
-# ######################################################################
+########################################################################
 
 
-metric_boxplot = dcc.Loading(id="loading-mag-metrics-boxplot",children=[dcc.Graph(id="mag-metrics-boxplot")], type="graph")
+mag_metrics_boxplot = dcc.Loading(
+    id="loading-mag-metrics-boxplot",
+    children=[dcc.Graph(id="mag-metrics-boxplot")],
+    type="graph",
+)
 
-mag_summary_stats_datatable = dcc.Loading(id="loading-mag-summary-stats-datatable",children=[html.Div(id="mag-summary-stats-datatable")], type="circle")
+mag_summary_gc_content_boxplot = dcc.Loading(
+    id="loading-mag-summary-gc-content-boxplot",
+    children=[dcc.Graph(id="mag-summary-gc-content-boxplot")],
+    type="graph",
+)
+mag_summary_length_boxplot = dcc.Loading(
+    id="loading-mag-summary-length-boxplot",
+    children=[dcc.Graph(id="mag-summary-length-boxplot")],
+    type="graph",
+)
+mag_summary_coverage_boxplot = dcc.Loading(
+    id="loading-mag-summary-coverage-boxplot",
+    children=[dcc.Graph(id="mag-summary-coverage-boxplot")],
+    type="graph",
+)
+
+mag_summary_stats_datatable = dcc.Loading(
+    id="loading-mag-summary-stats-datatable",
+    children=[html.Div(id="mag-summary-stats-datatable")],
+    type="circle",
+)
+
+mag_taxonomy_sankey = dcc.Loading(
+    id="loading-mag-taxonomy-sankey",
+    children=[dcc.Graph(id="mag-taxonomy-sankey")],
+    type="graph",
+)
+
+########################################################################
+# AESTHETHIC COMPONENTS: Dropdowns
+########################################################################
+
 
 mag_summary_cluster_col_dropdown = dcc.Dropdown(
     id="mag-summary-cluster-col-dropdown",
@@ -34,59 +68,7 @@ mag_summary_cluster_col_dropdown = dcc.Dropdown(
     clearable=False,
 )
 
-###
-# AESTHETHIC COMPONENTS: Dropdowns
-###
-
-# mag_selection_dropdown = html.Div(dcc.Dropdown(id="mag-selection-dropdown", value="STuff", clearable=True))
-
-
-def plot_pie_chart(df: pd.DataFrame, rank: str) -> Dict:
-    total_contigs = df.shape[0]
-    values = [
-        contig / total_contigs for contig in df.groupby(rank)[rank].count().tolist()
-    ]
-    labels = df.groupby(rank)[rank].count().index.tolist()
-    layout = go.Layout(
-        margin=dict(l=0, r=0, b=0, t=4, pad=8),
-        legend=dict(orientation="h"),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-    )
-    trace = go.Pie(
-        labels=labels,
-        values=values,
-        hoverinfo="label+percent",
-        textinfo="label",
-        showlegend=False,
-    )
-    return {"data": [trace], "layout": layout}
-
-
-def taxonomy_sankey_diagram():
-    return [
-        html.Label("Figure 3: Taxonomic Distribution"),
-        dcc.Graph(id="taxonomy-distribution"),
-    ]
-
-
-def taxa_by_rank(df, column, rank):
-    clusters = dict(list(df.groupby(column)))
-    clusters = df[column].unique().tolist()
-    clusters.pop(clusters.index("unclustered"))
-    nuniques = [df[df[column] == cluster][rank].nunique() for cluster in clusters]
-    data = [
-        go.Bar(y=clusters, x=nuniques, orientation="h")
-    ]  # x could be any column value since its a count
-
-    layout = go.Layout(
-        barmode="stack",
-        margin=dict(l=210, r=25, b=20, t=0, pad=4),
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-    )
-
-    return {"data": data, "layout": layout}
+mag_selection_dropdown = dcc.Dropdown(id="mag-selection-dropdown", clearable=True)
 
 
 ########################################################################
@@ -101,18 +83,26 @@ def taxa_by_rank(df, column, rank):
 # 3. Your content should go inside the Col components.
 
 # Markdown Summary Report
-## Bin Taxa Breakdown ==> dcc.Graph(id="bin_taxa_breakdown")
 ## sankey diagram for specific mag selection dcc.Graph(id="taxa_by_rank")
 
 ### Dropdowns
 # canonical_rank ==> dcc.Dropdown(id="taxa_by_rank_dropdown")
 
-# TODO: Add dbc.Col(mag_selection_dropdown)
+
 layout = dbc.Container(
     [
-        dbc.Col(metric_boxplot),
+        dbc.Row(
+            [
+                dbc.Col(mag_metrics_boxplot),
+                dbc.Col(mag_summary_gc_content_boxplot),
+                dbc.Col(mag_summary_length_boxplot),
+                dbc.Col(mag_summary_coverage_boxplot),
+            ]
+        ),
         dbc.Row([dbc.Col(mag_summary_cluster_col_dropdown)]),
         dbc.Col(mag_summary_stats_datatable),
+        dbc.Col(mag_selection_dropdown),
+        dbc.Col(mag_taxonomy_sankey),
     ],
     fluid=True,
 )
@@ -130,7 +120,7 @@ layout = dbc.Container(
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def mag_metrics_boxplot_callback(df_json, cluster_col):
+def mag_metrics_boxplot_callback(df_json: "str | None", cluster_col: str) -> go.Figure:
     """
     Writes
     Given dataframe as json and cluster column:
@@ -141,90 +131,88 @@ def mag_metrics_boxplot_callback(df_json, cluster_col):
         n_unique_bins - number of unique bins
     """
     mag_summary_df = pd.read_json(df_json, orient="split")
+    if cluster_col not in mag_summary_df.columns:
+        raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    return go.Figure(
-        data=[
-            go.Box(y=mag_summary_df.completeness, name="Completeness", boxmean=True),
-            go.Box(y=mag_summary_df.purity, name="Purity", boxmean=True),
-        ]
-    )
+    fig = metric_boxplot(df=mag_summary_df, metrics=["completeness", "purity"])
+    return fig
+
+
+@app.callback(
+    Output("mag-summary-gc-content-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+    ],
+)
+def mag_summary_gc_content_boxplot_callback(
+    df_json: "str | None", cluster_col: str
+) -> go.Figure:
+    mag_summary_df = pd.read_json(df_json, orient="split")
+    if cluster_col not in mag_summary_df.columns:
+        raise PreventUpdate
+    mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
+    mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    fig = metric_boxplot(df=mag_summary_df, metrics=["gc_content"])
+    return fig
+
+
+@app.callback(
+    Output("mag-summary-length-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+    ],
+)
+def mag_summary_length_boxplot_callback(
+    df_json: "str | None", cluster_col: str
+) -> go.Figure:
+    mag_summary_df = pd.read_json(df_json, orient="split")
+    if cluster_col not in mag_summary_df.columns:
+        raise PreventUpdate
+    mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
+    mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    fig = metric_boxplot(mag_summary_df, metrics=["length"])
+    return fig
+
+
+@app.callback(
+    Output("mag-summary-coverage-boxplot", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+    ],
+)
+def mag_summary_coverage_boxplot_callback(
+    df_json: "str | None", cluster_col: str
+) -> go.Figure:
+    mag_summary_df = pd.read_json(df_json, orient="split")
+    if cluster_col not in mag_summary_df.columns:
+        raise PreventUpdate
+    mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
+    mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    fig = metric_boxplot(mag_summary_df, metrics=["coverage"])
+    return fig
 
 
 @app.callback(
     Output("mag-taxonomy-sankey", "figure"),
     [
         Input("metagenome-annotations", "children"),
+        Input("mag-summary-cluster-col-dropdown", "value"),
+        Input("mag-selection-dropdown", "value"),
     ],
 )
-def mag_taxonomy_sankey_callback(mag_summary_json):
-    # NOTE: Majority vote will need to first be performed (or CheckM summary parsed...)
-    # pd.DataFrame should have cluster (index) and cluster metrics/stats (cols)
-    # e.g. completeness, purity, taxonomies, assembly stats, etc.
+def mag_taxonomy_sankey_callback(
+    mag_summary_json: "str | None", cluster_col: str, selected_mag: str
+) -> go.Figure:
     mag_summary_df = pd.read_json(mag_summary_json, orient="split")
-    ranks = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
-    taxa_df = mag_summary_df[ranks].fillna("unclassified")
-    # Add canonical rank prefixes so we do not get any cycles
-    for rank in ranks:
-        if rank in taxa_df:
-            taxa_df[rank] = taxa_df[rank].map(
-                lambda x: f"{rank[0]}_{x}" if rank != "superkingdom" else f"d_{x}"
-            )
-    # Build list of labels in order of ranks
-    label = []
-    for rank in ranks:
-        label.extend(taxa_df[rank].unique().tolist())
-    # Build paths in order of ranks
-    source = []
-    target = []
-    value = []
-    # Iterate through paths from superkingdom to species
-    for rank in ranks:
-        # iterate through sources at level
-        for rank_name, rank_df in taxa_df.groupby(rank):
-            label_idx = label.index(rank_name)
-            next_rank_idx = ranks.index(rank) + 1
-            if next_rank_idx >= len(ranks):
-                continue
-            next_rank = ranks[next_rank_idx]
-            # iterate through targets
-            # all source is from label rank name index
-            for rank_n in rank_df[next_rank].unique():
-                target_index = label.index(rank_n)
-                value_count = len(rank_df[rank_df[next_rank] == rank_n])
-                label.append(label_idx)
-                source.append(label_idx)
-                target.append(target_index)
-                value.append(value_count)
-    return go.Figure(
-        data=[
-            go.Sankey(
-                node=dict(
-                    pad=8,
-                    thickness=13,
-                    line=dict(width=0.3),
-                    label=label,
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value,
-                ),
-            )
-        ]
-    )
-
-
-@app.callback(
-    Output("bin_taxa_breakdown", "figure"),
-    [
-        Input("taxa_by_rank_dropdown", "value"),
-        Input("taxonomy_df", "children"),
-    ],
-)
-def bin_taxa_breakdown(taxonomy, selected_rank):
-    df = pd.read_json(taxonomy, orient="split")
-    return plot_pie_chart(df, selected_rank)
+    if cluster_col not in mag_summary_df.columns:
+        raise PreventUpdate
+    mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
+    fig = taxonomy_sankey(mag_df)
+    return fig
 
 
 @app.callback(
@@ -234,24 +222,33 @@ def bin_taxa_breakdown(taxonomy, selected_rank):
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
-def bin_dropdown_options_callback(mag_annotations_json, cluster_col):
+def mag_selection_dropdown_options_callback(
+    mag_annotations_json: "str | None", cluster_col: str
+) -> List[Dict[str, str]]:
     df = pd.read_json(mag_annotations_json, orient="split")
     if cluster_col not in df.columns:
-        return [{"label": "", "value": ""}]
-    return [{"label": bin, "value": bin} for bin in df[cluster_col].unique()]
+        options = []
+    else:
+        options = [
+            {"label": cluster, "value": cluster}
+            for cluster in df[cluster_col].dropna().unique()
+        ]
+    return options
 
 
 @app.callback(
     Output("taxa_by_rank", "figure"),
     [
+        Input("metagenome-annotations", "children"),
         Input("taxa_by_rank_dropdown", "value"),
         Input("mag-summary-cluster-col-dropdown", "value"),
-        Input("metagenome-annotations", "children"),
     ],
 )
-def taxa_by_rank(rank, clusterCol, df):
-    df = pd.read_json(df, orient="split")
-    return taxa_by_rank(df, clusterCol, rank)
+def taxa_by_rank(
+    mag_annotations_json: "str | None", rank: str, cluster_col: str
+) -> go.Figure:
+    df = pd.read_json(mag_annotations_json, orient="split")
+    return taxa_by_rank(df, cluster_col, rank)
 
 
 @app.callback(
