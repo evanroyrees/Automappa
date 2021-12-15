@@ -240,7 +240,13 @@ hide_selections_toggle = daq.ToggleSwitch(
 )
 
 mag_refinement_buttons = html.Div(
-    [refinement_settings_button, refinement_settings_offcanvas, mag_refinement_save_button, hide_selections_toggle, hide_selections_tooltip],
+    [
+        refinement_settings_button,
+        refinement_settings_offcanvas,
+        mag_refinement_save_button,
+        hide_selections_toggle,
+        hide_selections_tooltip,
+    ],
     className="d-grid gap-2 d-md-flex justify-content-md-start",
 )
 
@@ -484,11 +490,11 @@ def update_mag_metrics_datatable_callback(
         "Single-Marker Contigs": single_marker_contig_count,
     }
     if selected_contigs:
-        selection_metrics ={
-                "Contigs": selected_contigs_count,
-                "Completeness (%)": completeness,
-                "Purity (%)": purity,
-            }
+        selection_metrics = {
+            "Contigs": selected_contigs_count,
+            "Completeness (%)": completeness,
+            "Purity (%)": purity,
+        }
         selection_metrics.update(metrics_data)
         # Adding this extra step b/c to keep selection metrics at top of the table...
         metrics_data = selection_metrics
@@ -730,14 +736,18 @@ def download_refinements(
 
 
 @app.callback(
-    [Output("refinements-clusters-store", "data"),
-    Output("mag-refinement-save-button", "n_clicks")],
+    [
+        Output("refinements-clusters-store", "data"),
+        Output("mag-refinement-save-button", "n_clicks"),
+    ],
     [
         Input("scatterplot-2d", "selectedData"),
         Input("refinement-data", "children"),
         Input("mag-refinement-save-button", "n_clicks"),
     ],
-    [State("refinements-clusters-store", "data"),],
+    [
+        State("refinements-clusters-store", "data"),
+    ],
 )
 def store_binning_refinement_selections(
     selected_data: Dict[str, List[Dict[str, str]]],
