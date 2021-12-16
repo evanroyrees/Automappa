@@ -223,6 +223,7 @@ mag_refinement_save_button = dbc.Button(
     "Save selection to MAG refinement",
     id="mag-refinement-save-button",
     n_clicks=0,
+    disabled=True,
 )
 
 # Tooltip for info on store selections behavior
@@ -245,7 +246,7 @@ hide_selections_toggle = daq.ToggleSwitch(
 
 # TODO: Refactor to update scatterplot legend with update marker symbol traces...
 marker_symbols_label = html.Pre(
-"""
+    """
 Symbol Marker   Circle: 0    Diamond:  2          X: 4    Hexagon: 6
 Count Legend    Square: 1   Triangle:  3   Pentagon: 5   Hexagram: 7+
 """
@@ -268,9 +269,16 @@ mag_refinement_buttons = html.Div(
 # ######################################################################
 
 # Add metrics as alerts using MIMAG standards
+# TODO: Add progress bar to emit MAG curation progress
+# See: https://dash-bootstrap-components.opensource.faculty.ai/docs/components/progress
+# Color using MIMAG thresholds listed below:
 # (success) alert --> passing thresholds (completeness >= 90%, contamination <= 5%)
 # (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
 # (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
+# TODO: Add callbacks for updating `color`, `value` and `label` with computed completeness and purity values
+completeness_progress = dbc.Progress(id="mag-refinement-completeness-progress")
+purity_progress = dbc.Progress(id="mag-refinement-purity-progress")
+
 
 mag_metrics_table = [
     html.Label("Table 1. MAG Marker Metrics"),
@@ -644,6 +652,8 @@ def scatterplot_2d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
+    # FIXME: an error is occurring in these functions with pd.concat(...) 
+    # when attempting to hide MAG refinements...
     contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
     markers = convert_marker_counts_to_marker_shapes(contig_marker_counts)
     fig.for_each_trace(
@@ -760,6 +770,16 @@ def download_refinements(
         raise PreventUpdate
     df = pd.read_json(curated_mags, orient="split")
     return send_data_frame(df.to_csv, "refinements.csv", index=False)
+
+
+@app.callback(
+    Output("mag-refinement-save-button", "disabled"),
+    [Input("scatterplot-2d", "selectedData")],
+)
+def mag_refinement_save_button_disabled_callback(
+    selected_data: Dict[str, List[Dict[str, str]]]
+) -> bool:
+    return not selected_data
 
 
 @app.callback(
