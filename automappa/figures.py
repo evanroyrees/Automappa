@@ -95,6 +95,8 @@ def metric_boxplot(
             trace = go.Box(x=df[metric], name=name, boxmean=boxmean)
         else:
             trace = go.Box(y=df[metric], name=name, boxmean=boxmean)
+        # TODO: round to two decimal places
+        # Perhaps a hovertemplate formatting issue?
         fig.add_trace(trace)
     return fig
 

@@ -28,28 +28,48 @@ pio.templates.default = "plotly_white"
 
 mag_metrics_boxplot = dcc.Loading(
     id="loading-mag-metrics-boxplot",
-    children=[dcc.Graph(id="mag-metrics-boxplot")],
+    children=[
+        dcc.Graph(
+            id="mag-metrics-boxplot",
+            config={"displayModeBar": False, "displaylogo": False},
+        )
+    ],
     type="default",
     color="#0479a8",
 )
 
 mag_summary_gc_content_boxplot = dcc.Loading(
     id="loading-mag-summary-gc-content-boxplot",
-    children=[dcc.Graph(id="mag-summary-gc-content-boxplot")],
+    children=[
+        dcc.Graph(
+            id="mag-summary-gc-content-boxplot",
+            config={"displayModeBar": False, "displaylogo": False},
+        )
+    ],
     type="dot",
     color="#646569",
 )
 
 mag_summary_length_boxplot = dcc.Loading(
     id="loading-mag-summary-length-boxplot",
-    children=[dcc.Graph(id="mag-summary-length-boxplot")],
+    children=[
+        dcc.Graph(
+            id="mag-summary-length-boxplot",
+            config={"displayModeBar": False, "displaylogo": False},
+        )
+    ],
     type="default",
     color="#0479a8",
 )
 
 mag_summary_coverage_boxplot = dcc.Loading(
     id="loading-mag-summary-coverage-boxplot",
-    children=[dcc.Graph(id="mag-summary-coverage-boxplot")],
+    children=[
+        dcc.Graph(
+            id="mag-summary-coverage-boxplot",
+            config={"displayModeBar": False, "displaylogo": False},
+        )
+    ],
     type="dot",
     color="#646569",
 )
@@ -149,6 +169,7 @@ def mag_metrics_boxplot_callback(df_json: "str | None", cluster_col: str) -> go.
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(df=mag_summary_df, metrics=["completeness", "purity"])
     return fig
 
@@ -168,6 +189,7 @@ def mag_summary_gc_content_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(df=mag_summary_df, metrics=["gc_content"])
     fig.update_traces(name="GC Content")
     return fig
@@ -188,6 +210,7 @@ def mag_summary_length_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(mag_summary_df, metrics=["length"])
     return fig
 
@@ -207,6 +230,7 @@ def mag_summary_coverage_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
+    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(mag_summary_df, metrics=["coverage"])
     return fig
 

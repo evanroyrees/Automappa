@@ -21,7 +21,10 @@ from automappa.figures import (
     get_scatterplot_3d,
     metric_boxplot,
 )
-from automappa.utils import convert_marker_counts_to_marker_shapes, get_contig_marker_counts
+from automappa.utils import (
+    convert_marker_counts_to_marker_shapes,
+    get_contig_marker_counts,
+)
 
 
 pio.templates.default = "plotly_white"
@@ -241,10 +244,12 @@ hide_selections_toggle = daq.ToggleSwitch(
 )
 
 # TODO: Refactor to update scatterplot legend with update marker symbol traces...
-marker_symbols_label = html.Pre(""" 
+marker_symbols_label = html.Pre(
+"""
 Symbol Marker   Circle: 0    Diamond:  2          X: 4    Hexagon: 6
 Count Legend    Square: 1   Triangle:  3   Pentagon: 5   Hexagram: 7+
-""")
+"""
+)
 
 mag_refinement_buttons = html.Div(
     [
@@ -629,7 +634,9 @@ def scatterplot_2d_figure_callback(
             refined_contigs_index = refine_df[
                 refine_df[refine_col].str.contains("refinement")
             ].index
-            bin_df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
+            bin_df.drop(
+                refined_contigs_index, axis="index", inplace=True, errors="ignore"
+            )
     fig = get_scatterplot_2d(
         bin_df,
         x_axis=xaxis_column,
@@ -637,8 +644,11 @@ def scatterplot_2d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
-    markers = convert_marker_counts_to_marker_shapes(get_contig_marker_counts(bin_df, markers_df))
-    fig.for_each_trace(lambda trace: trace.update(marker_symbol=markers.symbol.loc[trace.text]))
+    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
+    markers = convert_marker_counts_to_marker_shapes(contig_marker_counts)
+    fig.for_each_trace(
+        lambda trace: trace.update(marker_symbol=markers.symbol.loc[trace.text])
+    )
     # TODO: Add tooltip/legend for information on marker-symbol count representation
     # TODO: Update marker symbols for scatterplot_3d...
     # TODO: Refactor to cache marker_symbol computation as this only needs to be performed on initial load...
