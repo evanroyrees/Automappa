@@ -21,6 +21,7 @@ from automappa.figures import (
     get_scatterplot_3d,
     metric_boxplot,
 )
+from automappa.utils import convert_marker_counts_to_marker_shapes, get_contig_marker_counts
 
 
 pio.templates.default = "plotly_white"
@@ -239,6 +240,12 @@ hide_selections_toggle = daq.ToggleSwitch(
     value=False,
 )
 
+# TODO: Refactor to update scatterplot legend with update marker symbol traces...
+marker_symbols_label = html.Pre(""" 
+Symbol Marker   Circle: 0    Diamond:  2          X: 4    Hexagon: 6
+Count Legend    Square: 1   Triangle:  3   Pentagon: 5   Hexagram: 7+
+""")
+
 mag_refinement_buttons = html.Div(
     [
         refinement_settings_button,
@@ -246,6 +253,7 @@ mag_refinement_buttons = html.Div(
         mag_refinement_save_button,
         hide_selections_toggle,
         hide_selections_tooltip,
+        marker_symbols_label,
     ],
     className="d-grid gap-2 d-md-flex justify-content-md-start",
 )
@@ -580,6 +588,7 @@ def scatterplot_3d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
+    # update_markers(...)
     return fig
 
 
@@ -588,6 +597,7 @@ def scatterplot_3d_figure_callback(
     [
         Input("metagenome-annotations", "children"),
         Input("refinements-clusters-store", "data"),
+        Input("kingdom-markers", "children"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("show-legend-toggle", "value"),
@@ -598,16 +608,18 @@ def scatterplot_3d_figure_callback(
 def scatterplot_2d_figure_callback(
     annotations: "str | None",
     refinement: "str | None",
+    markers_json: "str | None",
     xaxis_column: str,
     yaxis_column: str,
     show_legend: bool,
     color_by_col: str,
     hide_selection_toggle: bool,
 ) -> go.Figure:
-    df = pd.read_json(annotations, orient="split").set_index("contig")
-    color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
+    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
+    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
     # Subset metagenome-annotations by selections iff selections have been made
-    df[color_by_col] = df[color_by_col].fillna("unclustered")
+    bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
     if hide_selection_toggle:
         refine_df = pd.read_json(refinement, orient="split").set_index("contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
@@ -617,14 +629,19 @@ def scatterplot_2d_figure_callback(
             refined_contigs_index = refine_df[
                 refine_df[refine_col].str.contains("refinement")
             ].index
-            df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
+            bin_df.drop(refined_contigs_index, axis="index", inplace=True, errors="ignore")
     fig = get_scatterplot_2d(
-        df,
+        bin_df,
         x_axis=xaxis_column,
         y_axis=yaxis_column,
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
+    markers = convert_marker_counts_to_marker_shapes(get_contig_marker_counts(bin_df, markers_df))
+    fig.for_each_trace(lambda trace: trace.update(marker_symbol=markers.symbol.loc[trace.text]))
+    # TODO: Add tooltip/legend for information on marker-symbol count representation
+    # TODO: Update marker symbols for scatterplot_3d...
+    # TODO: Refactor to cache marker_symbol computation as this only needs to be performed on initial load...
     return fig
 
 

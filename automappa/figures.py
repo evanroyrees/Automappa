@@ -119,7 +119,7 @@ def get_scatterplot_2d(
     color_by_col: str = "cluster",
 ) -> go.Figure:
     # TODO: Fix inputs/outputs and layout params
-    # TODO: Add other contig metadata
+    # TODO: Add other contig metadata (i.e. coverage, length, markers, etc.)
     fig = go.Figure(
         layout=go.Layout(
             scene=dict(
@@ -133,11 +133,11 @@ def get_scatterplot_2d(
         ),
     )
     for color_col_name in df[color_by_col].unique():
-        color_by_col_idx = df[color_by_col].eq(color_col_name)
+        dff = df.loc[df[color_by_col].eq(color_col_name)]
         trace = go.Scattergl(
-            x=df.loc[color_by_col_idx, x_axis],
-            y=df.loc[color_by_col_idx, y_axis],
-            text=df.loc[color_by_col_idx].index,
+            x=dff[x_axis],
+            y=dff[y_axis],
+            text=dff.index,
             mode="markers",
             opacity=0.45,
             marker={
