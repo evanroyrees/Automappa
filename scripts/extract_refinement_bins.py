@@ -42,7 +42,6 @@ def fasta_writer(records: List[Tuple[str, str]], out: str) -> None:
     return n_records
 
 
-
 def get_contigs(df: pd.DataFrame, column: str) -> List:
     columns = df.columns.tolist()
     if column not in columns:
@@ -107,7 +106,6 @@ def main():
         out = os.path.join(outdir, f"{refined_bin}.fasta")
         n_written = fasta_writer(records=bin_records, out=out)
         print(f"{refined_bin}\t{n_written}")
-
 
 
 if __name__ == "__main__":
