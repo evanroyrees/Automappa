@@ -28,6 +28,7 @@ chmod a+x run_automappa.sh
 ```
 
 Now run automappa on autometa binning results using the downloaded script: `run_automappa.sh`.
+#### Start automappa docker container
 
 ```bash
 # NOTE: This will pull the automappa docker image if it is not already available.
