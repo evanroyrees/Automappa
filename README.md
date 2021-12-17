@@ -1,28 +1,67 @@
 Automappa
 =========
 
-![docker CI/CD](https://github.com/WiscEvan/Automappa/workflows/docker%20CI/CD/badge.svg "evanrees/automappa:latest")
+| Image Name           | Image Tag       | Status                                                                                                                                                                                                                |
+|----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
+| `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
 
 ![automappa](images/automappa.gif)
 
-### Quickstart using Docker (Easiest and Quickest):
+## Quickstart using Docker (Easiest and Quickest):
 
  To quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
-```bash
-# Wrapper available to run docker with port-forwarding.
-curl -o run_automappa https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa
-chmod a+x run_automappa
+### Running with a docker container using `run_automappa.sh`
 
-# Now run automappa using wrapper script: `run_automappa`
-# NOTE: This will pull the automappa docker image if it is not already available.
-./run_automappa <path/to/recursive_dbscan_output.tsv>
+A docker wrapper is available to run a docker container of `Automappa`.
+The only required input for this script is the autometa main binning output table.
+
+```bash
+# First retrieve the script:
+curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa.sh
+# (make it executable)
+chmod a+x run_automappa.sh
 ```
 
-### Installation
+Now run automappa on autometa binning results using the downloaded script: `run_automappa.sh`.
+
+A test dataset is available for download:
+#### Download test dataset
+
+```bash
+mkdir $HOME/test
+curl -o $HOME/test/bins.tsv https://raw.githubusercontent.com/WiscEvan/Automappa/main/test/bins.tsv
+```
+
+```bash
+# NOTE: This will pull the automappa docker image if it is not already available.
+./run_automappa.sh --binning $HOME/test/bins.tsv
+```
+
+### Full `docker run` command example
+
+```bash
+# Set parameters
+binning="$HOME/test/bins.tsv"
+binning_dirname="$( cd -- "$(dirname "$binning")" >/dev/null 2>&1 ; pwd -P )"
+binning_filename=$(basename $binning)
+
+# Run with provided parameters
+docker run \
+  --publish $localport:$containerport \
+  -v $binning_dirname:/binning:rw \
+  --detach=false \
+  --rm \
+  evanrees/automappa:latest --input /binning/$binning_filename --port $containerport --host 0.0.0.0
+```
+
+----------------------------------------------------------------------------------------------------
+
+## Installation
 
 You can install all of Automappa's dependencies using the Makefile found within the repository.
 
