@@ -22,7 +22,7 @@ from automappa.figures import (
     metric_boxplot,
 )
 from automappa.utils import (
-    convert_marker_counts_to_marker_shapes,
+    convert_marker_counts_to_marker_symbols,
     get_contig_marker_counts,
 )
 
@@ -36,6 +36,10 @@ pio.templates.default = "plotly_white"
 
 refinements_clusters_store = dcc.Store(
     id="refinements-clusters-store", storage_type="session"
+)
+
+scatterplot_2d_marker_symbols_store = dcc.Store(
+    id="contig-marker-symbols-store", storage_type="memory"
 )
 
 ########################################################################
@@ -416,7 +420,7 @@ layout = dbc.Container(
         dbc.Row([dbc.Col(refinements_clusters_store)]),
         dbc.Row([dbc.Col(mag_refinement_buttons)]),
         dbc.Row(
-            [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
+            [dbc.Col(scatterplot_2d_marker_symbols_store), dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
         ),
         # TODO: Add MAG assembly metrics table
         dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d, width=3)]),
@@ -610,7 +614,7 @@ def scatterplot_3d_figure_callback(
     [
         Input("metagenome-annotations", "children"),
         Input("refinements-clusters-store", "data"),
-        Input("kingdom-markers", "children"),
+        Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("show-legend-toggle", "value"),
@@ -621,7 +625,7 @@ def scatterplot_3d_figure_callback(
 def scatterplot_2d_figure_callback(
     annotations: "str | None",
     refinement: "str | None",
-    markers_json: "str | None",
+    contig_marker_symbols: "str | None",
     xaxis_column: str,
     yaxis_column: str,
     show_legend: bool,
@@ -629,7 +633,7 @@ def scatterplot_2d_figure_callback(
     hide_selection_toggle: bool,
 ) -> go.Figure:
     bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    markers = pd.read_json(contig_marker_symbols, orient="split").set_index("contig")
     color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
     # Subset metagenome-annotations by selections iff selections have been made
     bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
@@ -637,10 +641,10 @@ def scatterplot_2d_figure_callback(
         refine_df = pd.read_json(refinement, orient="split").set_index("contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
         if refine_cols:
-            refine_col = refine_cols.pop()
+            latest_refine_col = refine_cols.pop()
             # Retrieve only contigs that have already been refined...
             refined_contigs_index = refine_df[
-                refine_df[refine_col].str.contains("refinement")
+                refine_df[latest_refine_col].str.contains("refinement")
             ].index
             bin_df.drop(
                 refined_contigs_index, axis="index", inplace=True, errors="ignore"
@@ -652,17 +656,26 @@ def scatterplot_2d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
-    # FIXME: an error is occurring in these functions with pd.concat(...) 
-    # when attempting to hide MAG refinements...
-    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
-    markers = convert_marker_counts_to_marker_shapes(contig_marker_counts)
+
+    # TODO: Update marker symbols for scatterplot_3d...
     fig.for_each_trace(
         lambda trace: trace.update(marker_symbol=markers.symbol.loc[trace.text])
     )
     # TODO: Add tooltip/legend for information on marker-symbol count representation
-    # TODO: Update marker symbols for scatterplot_3d...
-    # TODO: Refactor to cache marker_symbol computation as this only needs to be performed on initial load...
     return fig
+
+@app.callback(
+    Output("contig-marker-symbols-store", "data"),
+    Input("metagenome-annotations", "children"),
+    Input("kingdom-markers", "children"),
+)
+def scatterplot_2d_marker_symbols_callback(annotations: "str | None", markers_json: "str | None") ->"str | None":
+    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
+    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
+    contig_marker_symbols = convert_marker_counts_to_marker_symbols(contig_marker_counts)
+    return contig_marker_symbols.reset_index().to_json(orient="split")   
+
 
 
 @app.callback(

@@ -39,7 +39,7 @@ def get_contig_marker_counts(
     return pd.concat(dfs).set_index("contig")
 
 
-def convert_marker_counts_to_marker_shapes(df: pd.DataFrame) -> pd.DataFrame:
+def convert_marker_counts_to_marker_symbols(df: pd.DataFrame) -> pd.DataFrame:
     # https://plotly.com/python/marker-style/
     symbols = {
         0: "circle",
