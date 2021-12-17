@@ -5,8 +5,6 @@ import glob
 import os
 from typing import List
 
-import pandas as pd
-
 from autometa.binning.utilities import read_annotations
 
 
@@ -17,10 +15,6 @@ def find_annotations(dirpath: str) -> List[str]:
         search_str = os.path.join(dirpath, globname)
         annotations.extend([os.path.realpath(fp) for fp in glob.glob(search_str)])
     return annotations
-
-def merge_annotations(dirpath: str)->pd.DataFrame:
-    
-    read_annotations()
 
 def main():
     parser = argparse.ArgumentParser()
