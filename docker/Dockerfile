@@ -1,22 +1,27 @@
-FROM mambaorg/micromamba:0.19.1
+FROM condaforge/miniforge3:4.11.0-0
 # https://github.com/mamba-org/micromamba-docker
 
-COPY --chown=micromamba:micromamba requirements.txt /tmp/requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 
-RUN micromamba install --name base -c conda-forge -c bioconda -y python=3.7 --file=/tmp/requirements.txt
-RUN micromamba install --name base -c anaconda -y git
+RUN conda install \
+    --name base \
+    --channel conda-forge --channel bioconda \
+    --yes  \
+    python=3.7 \
+    --file=/tmp/requirements.txt
 
-RUN micromamba install --name base -c conda-forge -y libffi
+RUN conda install \
+    --name base \
+    --channel anaconda --channel conda-forge \
+    --yes  git
 
-# https://github.com/mamba-org/micromamba-docker#activating-a-conda-environment-for-run-commands
-ARG MAMBA_DOCKERFILE_ACTIVATE=1
-RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/Autometa \
-    && micromamba install --name base -c conda-forge -c bioconda --file=/tmp/Autometa/requirements.txt -y \
-    && cd /tmp/Autometa \
-    && /opt/conda/bin/python setup.py install
+RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/Autometa
+RUN conda install --name base -c conda-forge -c bioconda --file=/tmp/Autometa/requirements.txt -y
+WORKDIR /tmp/Autometa
+RUN /opt/conda/bin/python setup.py install
 
-RUN micromamba clean --all --yes
+RUN conda clean --all --yes
 
-COPY --chown=micromamba:micromamba . .
+COPY . .
 
 # ENTRYPOINT /opt/conda/bin/python index.py
