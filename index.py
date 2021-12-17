@@ -28,28 +28,39 @@ def render_content(active_tab):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Automappa: An interactive interface for exploration of metagenomes"
+        description="Automappa: An interactive interface for exploration of metagenomes",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--binning-main",
         help="Path to --binning-main output of Autometa binning/recruitment results",
+        type=str,
+        metavar="filepath",
         required=True,
     )
     parser.add_argument(
         "--markers",
         help="Path to Autometa-formatted markers table (may be taxon-specific)",
-        required=False,
+        type=str,
+        metavar="filepath",
+        required=True,
     )
     parser.add_argument(
         "--fasta",
         help="Path to metagenome.fasta",
+        type=str,
+        metavar="filepath",
         required=False,
     )
-    parser.add_argument("--port", help="port to expose", default=8050, type=int)
+    parser.add_argument(
+        "--port", help="port to expose", default=8050, type=int, metavar="number"
+    )
     parser.add_argument(
         "--host",
         help="host ip address to expose",
+        type=str,
         default="0.0.0.0",
+        metavar="ip address",
     )
     parser.add_argument(
         "--debug",
