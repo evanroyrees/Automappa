@@ -22,7 +22,7 @@ The only required input for this script is the autometa main binning output tabl
 
 ```bash
 # First retrieve the script:
-curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa.sh
+curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/develop/docker/run_automappa.sh
 # (make it executable)
 chmod a+x run_automappa.sh
 ```
