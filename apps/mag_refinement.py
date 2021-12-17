@@ -417,10 +417,15 @@ refinements_table = dcc.Loading(
 
 layout = dbc.Container(
     children=[
-        dbc.Row([dbc.Col(refinements_clusters_store)]),
+        dbc.Row(
+            [
+                dbc.Col(refinements_clusters_store),
+                dbc.Col(scatterplot_2d_marker_symbols_store),
+            ]
+        ),
         dbc.Row([dbc.Col(mag_refinement_buttons)]),
         dbc.Row(
-            [dbc.Col(scatterplot_2d_marker_symbols_store), dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
+            [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
         ),
         # TODO: Add MAG assembly metrics table
         dbc.Row([dbc.Col(taxonomy_figure, width=9), dbc.Col(scatterplot_3d, width=3)]),
@@ -546,6 +551,89 @@ def update_mag_metrics_datatable_callback(
 
 
 @app.callback(
+    Output("contig-marker-symbols-store", "data"),
+    Input("metagenome-annotations", "children"),
+    Input("kingdom-markers", "children"),
+)
+def scatterplot_2d_marker_symbols_callback(
+    annotations: "str | None", markers_json: "str | None"
+) -> "str | None":
+    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
+    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
+    contig_marker_symbols = convert_marker_counts_to_marker_symbols(
+        contig_marker_counts
+    )
+    return contig_marker_symbols.reset_index().to_json(orient="split")
+
+
+# TODO: initialize scatterplot-2d figure with contig embeddings using traces
+# of their marker counts depicted with discrete marker symbols
+# Add traces to initialized fig corresponding to colo-by-column
+# An example is performed witho changing hovermode in the docs:
+# https://plotly.com/python/hover-text-and-formatting/#control-hovermode-with-dash
+@app.callback(
+    Output("scatterplot-2d", "figure"),
+    [
+        Input("metagenome-annotations", "children"),
+        Input("refinements-clusters-store", "data"),
+        Input("contig-marker-symbols-store", "data"),
+        Input("x-axis-2d", "value"),
+        Input("y-axis-2d", "value"),
+        Input("show-legend-toggle", "value"),
+        Input("color-by-column", "value"),
+        Input("hide-selections-toggle", "value"),
+    ],
+)
+def scatterplot_2d_figure_callback(
+    annotations: "str | None",
+    refinement: "str | None",
+    contig_marker_symbols_json: "str | None",
+    xaxis_column: str,
+    yaxis_column: str,
+    show_legend: bool,
+    color_by_col: str,
+    hide_selection_toggle: bool,
+) -> go.Figure:
+    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
+    markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
+        "contig"
+    )
+    color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
+    # Subset metagenome-annotations by selections iff selections have been made
+    bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
+    if hide_selection_toggle:
+        refine_df = pd.read_json(refinement, orient="split").set_index("contig")
+        refine_cols = [col for col in refine_df.columns if "refinement" in col]
+        if refine_cols:
+            latest_refine_col = refine_cols.pop()
+            # Retrieve only contigs that have already been refined...
+            refined_contigs_index = refine_df[
+                refine_df[latest_refine_col].str.contains("refinement")
+            ].index
+            bin_df.drop(
+                refined_contigs_index, axis="index", inplace=True, errors="ignore"
+            )
+    fig = get_scatterplot_2d(
+        bin_df,
+        x_axis=xaxis_column,
+        y_axis=yaxis_column,
+        color_by_col=color_by_col,
+    )
+
+    # Update markers with symbol and size corresponding to marker count
+    fig.for_each_trace(
+        lambda trace: trace.update(
+            marker_symbol=markers.symbol.loc[trace.text],
+            marker_size=markers.marker_size.loc[trace.text],
+        )
+    )
+    fig.update_layout(showlegend=show_legend)
+    # TODO: Add tooltip/legend for information on marker-symbol count representation
+    return fig
+
+
+@app.callback(
     Output("taxonomy-distribution", "figure"),
     [
         Input("metagenome-annotations", "children"),
@@ -605,77 +693,7 @@ def scatterplot_3d_figure_callback(
         show_legend=show_legend,
         color_by_col=color_by_col,
     )
-    # update_markers(...)
     return fig
-
-
-@app.callback(
-    Output("scatterplot-2d", "figure"),
-    [
-        Input("metagenome-annotations", "children"),
-        Input("refinements-clusters-store", "data"),
-        Input("contig-marker-symbols-store", "data"),
-        Input("x-axis-2d", "value"),
-        Input("y-axis-2d", "value"),
-        Input("show-legend-toggle", "value"),
-        Input("color-by-column", "value"),
-        Input("hide-selections-toggle", "value"),
-    ],
-)
-def scatterplot_2d_figure_callback(
-    annotations: "str | None",
-    refinement: "str | None",
-    contig_marker_symbols: "str | None",
-    xaxis_column: str,
-    yaxis_column: str,
-    show_legend: bool,
-    color_by_col: str,
-    hide_selection_toggle: bool,
-) -> go.Figure:
-    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers = pd.read_json(contig_marker_symbols, orient="split").set_index("contig")
-    color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
-    # Subset metagenome-annotations by selections iff selections have been made
-    bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
-    if hide_selection_toggle:
-        refine_df = pd.read_json(refinement, orient="split").set_index("contig")
-        refine_cols = [col for col in refine_df.columns if "refinement" in col]
-        if refine_cols:
-            latest_refine_col = refine_cols.pop()
-            # Retrieve only contigs that have already been refined...
-            refined_contigs_index = refine_df[
-                refine_df[latest_refine_col].str.contains("refinement")
-            ].index
-            bin_df.drop(
-                refined_contigs_index, axis="index", inplace=True, errors="ignore"
-            )
-    fig = get_scatterplot_2d(
-        bin_df,
-        x_axis=xaxis_column,
-        y_axis=yaxis_column,
-        show_legend=show_legend,
-        color_by_col=color_by_col,
-    )
-
-    # TODO: Update marker symbols for scatterplot_3d...
-    fig.for_each_trace(
-        lambda trace: trace.update(marker_symbol=markers.symbol.loc[trace.text])
-    )
-    # TODO: Add tooltip/legend for information on marker-symbol count representation
-    return fig
-
-@app.callback(
-    Output("contig-marker-symbols-store", "data"),
-    Input("metagenome-annotations", "children"),
-    Input("kingdom-markers", "children"),
-)
-def scatterplot_2d_marker_symbols_callback(annotations: "str | None", markers_json: "str | None") ->"str | None":
-    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
-    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
-    contig_marker_symbols = convert_marker_counts_to_marker_symbols(contig_marker_counts)
-    return contig_marker_symbols.reset_index().to_json(orient="split")   
-
 
 
 @app.callback(

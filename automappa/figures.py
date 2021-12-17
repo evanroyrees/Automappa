@@ -117,11 +117,8 @@ def get_scatterplot_2d(
     df,
     x_axis: str = "x_1",
     y_axis: str = "x_2",
-    show_legend: bool = True,
     color_by_col: str = "cluster",
 ) -> go.Figure:
-    # TODO: Fix inputs/outputs and layout params
-    # TODO: Add other contig metadata (i.e. coverage, length, markers, etc.)
     fig = go.Figure(
         layout=go.Layout(
             scene=dict(
@@ -129,26 +126,45 @@ def get_scatterplot_2d(
                 yaxis=dict(title=y_axis.title()),
             ),
             legend={"x": 1, "y": 1},
-            showlegend=show_legend,
             margin=dict(r=50, b=50, l=50, t=50),
             hovermode="closest",
         ),
     )
+
+    # TODO: Add other contig metadata (i.e. coverage, length, markers, etc.)
+    # Hovertemplate
+    x_hover_label = f"{x_axis.title()}: " + "%{x:.2f}"
+    y_hover_label = f"{y_axis.title()}: " + "%{y:.2f}"
+    coverage_label = "Coverage: %{customdata[0]:.2f}"
+    gc_content_label = "GC%: %{customdata[1]:.2f}"
+    length_label = "Length: %{customdata[2]:,} bp"
+    text_hover_label = "Contig: %{text}"
+    hovertemplate = "<br>".join(
+        [
+            text_hover_label,
+            coverage_label,
+            gc_content_label,
+            length_label,
+            x_hover_label,
+            y_hover_label,
+        ]
+    )
+
+    metadata_cols = ["coverage", "gc_content", "length"]
     for color_col_name in df[color_by_col].unique():
         dff = df.loc[df[color_by_col].eq(color_col_name)]
         trace = go.Scattergl(
             x=dff[x_axis],
             y=dff[y_axis],
+            customdata=df[metadata_cols],
             text=dff.index,
             mode="markers",
-            opacity=0.45,
-            marker={
-                "size": df.assign(normLen=marker_size_scaler)["normLen"],
-                "line": {"width": 0.1, "color": "black"},
-            },
+            opacity=0.65,
+            hovertemplate=hovertemplate,
             name=color_col_name,
         )
         fig.add_trace(trace)
+    fig.update_layout(legend_title_text=color_by_col.title())
     return fig
 
 
@@ -169,16 +185,16 @@ def get_scatterplot_3d(
                 yaxis=dict(title=y_axis.title()),
                 zaxis=dict(title=z_axis.replace("_", " ").title()),
             ),
-            legend={"x": 0, "y": 1},
+            legend={"x": 1, "y": 1},
             showlegend=show_legend,
             autosize=True,
             margin=dict(r=0, b=0, l=0, t=25),
             hovermode="closest",
         )
     )
-    x_hover_label = f"{x_axis.title()}:" + "%{x:.2f}"
-    y_hover_label = f"{y_axis.title()}:" + "%{y:.2f}"
-    z_hover_label = f"{z_axis.title()}:" + "%{z:.2f}"
+    x_hover_label = f"{x_axis.title()}: " + "%{x:.2f}"
+    y_hover_label = f"{y_axis.title()}: " + "%{y:.2f}"
+    z_hover_label = f"{z_axis.title()}: " + "%{z:.2f}"
     text_hover_label = "Contig: %{text}"
     hovertemplate = "<br>".join(
         [text_hover_label, z_hover_label, x_hover_label, y_hover_label]
@@ -194,13 +210,13 @@ def get_scatterplot_3d(
                 "size": df.assign(normLen=marker_size_scaler)["normLen"],
                 "line": {"width": 0.1, "color": "black"},
             },
-            textposition="top center",
             opacity=0.45,
             hoverinfo="all",
             hovertemplate=hovertemplate,
             name=color_by_col_val,
         )
         fig.add_trace(trace)
+    fig.update_layout(legend_title_text=color_by_col.title())
     return fig
 
 

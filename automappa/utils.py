@@ -59,5 +59,6 @@ def convert_marker_counts_to_marker_symbols(df: pd.DataFrame) -> pd.DataFrame:
     # pentagon = 5
     # hexagon2 = 6
     # hexagram-dot = 7+
-    df["symbol"] = df.marker_count.map(lambda count: symbols.get(count))
+    df["symbol"] = df.marker_count.map(lambda count: symbols.get(count, "circle"))
+    df["marker_size"] = df.marker_count.fillna(0).map(lambda count: count + 7)
     return df
