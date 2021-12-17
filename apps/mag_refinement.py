@@ -251,8 +251,8 @@ hide_selections_toggle = daq.ToggleSwitch(
 # TODO: Refactor to update scatterplot legend with update marker symbol traces...
 marker_symbols_label = html.Pre(
     """
-Symbol Marker   Circle: 0    Diamond:  2          X: 4    Hexagon: 6
-Count Legend    Square: 1   Triangle:  3   Pentagon: 5   Hexagram: 7+
+Marker Symbol    Circle: 0    Diamond:  2          X: 4    Hexagon: 6
+ Count Legend    Square: 1   Triangle:  3   Pentagon: 5   Hexagram: 7+
 """
 )
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 import pandas as pd
 
 from dash.dependencies import Input, Output
@@ -25,8 +26,7 @@ def render_content(active_tab):
         return active_tab
 
 
-if __name__ == "__main__":
-
+def main():
     parser = argparse.ArgumentParser(
         description="Automappa: An interactive interface for exploration of metagenomes",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -124,4 +124,10 @@ if __name__ == "__main__":
         fluid=True,
     )
 
+    sample_name = os.path.basename(args.binning_main).replace(" ", "_").split(".")[0]
+    app.title = f"Automappa: {sample_name}"
     app.run_server(host=args.host, port=args.port, debug=args.debug)
+
+
+if __name__ == "__main__":
+    main()
