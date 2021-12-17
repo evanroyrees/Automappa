@@ -1,5 +1,4 @@
 FROM condaforge/miniforge3:4.11.0-0
-# https://github.com/mamba-org/micromamba-docker
 
 COPY requirements.txt /tmp/requirements.txt
 
@@ -19,9 +18,11 @@ RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/A
 RUN conda install --name base -c conda-forge -c bioconda --file=/tmp/Autometa/requirements.txt -y
 WORKDIR /tmp/Autometa
 RUN /opt/conda/bin/python setup.py install
+RUN rm -rf /tmp/Autometa
 
-RUN conda clean --all --yes
-
+WORKDIR /
+RUN conda clean --all --force-pkgs-dirs --yes
 COPY . .
 
-# ENTRYPOINT /opt/conda/bin/python index.py
+CMD [ "-h" ]
+ENTRYPOINT [ "/opt/conda/bin/python", "index.py" ]
