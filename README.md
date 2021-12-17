@@ -37,6 +37,8 @@ mkdir $HOME/test
 curl -o $HOME/test/bins.tsv https://raw.githubusercontent.com/WiscEvan/Automappa/main/test/bins.tsv
 ```
 
+#### Start automappa docker container with test dataset
+
 ```bash
 # NOTE: This will pull the automappa docker image if it is not already available.
 ./run_automappa.sh --binning $HOME/test/bins.tsv
