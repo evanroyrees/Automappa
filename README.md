@@ -11,7 +11,7 @@ An interactive interface for exploration of highly complex metagenomes
 
 ![automappa](images/automappa.gif)
 
-## Quickstart using Docker (Easiest and Quickest):
+## Quickstart using Docker (No installation required):
 
  To quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
@@ -29,34 +29,43 @@ chmod a+x run_automappa.sh
 
 Now run automappa on autometa binning results using the downloaded script: `run_automappa.sh`.
 
-A test dataset is available for download:
-#### Download test dataset
-
-```bash
-mkdir $HOME/test
-curl -o $HOME/test/bins.tsv https://raw.githubusercontent.com/WiscEvan/Automappa/main/test/bins.tsv
-```
-
 ```bash
 # NOTE: This will pull the automappa docker image if it is not already available.
-./run_automappa.sh --binning $HOME/test/bins.tsv
+./run_automappa.sh --imagetag develop \
+  --binning binning.main.tsv \
+  --markers binning.markers.tsv
 ```
 
 ### Full `docker run` command example
 
 ```bash
-# Set parameters
+# Set automappa parameters (required)
 binning="$HOME/test/bins.tsv"
+markers="$HOME/test/markers.tsv"
+
+# Set docker image/container parameters (optional)
+localport=8050
+containerport=8886
+imagetag="develop"
+
+#NOTE: Some necessary path handling here for binding docker volumes
 binning_dirname="$( cd -- "$(dirname "$binning")" >/dev/null 2>&1 ; pwd -P )"
 binning_filename=$(basename $binning)
+markers_dirname="$( cd -- "$(dirname "$markers")" >/dev/null 2>&1 ; pwd -P )"
+markers_filename=$(basename $markers)
 
 # Run with provided parameters
 docker run \
-  --publish $localport:$containerport \
-  -v $binning_dirname:/binning:rw \
-  --detach=false \
-  --rm \
-  evanrees/automappa:latest --input /binning/$binning_filename --port $containerport --host 0.0.0.0
+    --publish $localport:$containerport \
+    --detach=false \
+    -v $binning_dirname:/binning:rw \
+    -v $markers_dirname:/markers:ro \
+    --rm \
+    evanrees/automappa:$imagetag \
+      --binning-main /binning/$binning_filename \
+      --markers /markers/$markers_filename \
+      --port $containerport \
+      --host 0.0.0.0
 ```
 
 ----------------------------------------------------------------------------------------------------
