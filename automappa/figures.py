@@ -173,11 +173,8 @@ def get_scatterplot_3d(
     x_axis: str = "x_1",
     y_axis: str = "x_2",
     z_axis: str = "coverage",
-    show_legend: bool = True,
     color_by_col: str = "cluster",
 ) -> go.Figure:
-    # TODO: Fix inputs/outputs and layout for showing legend toggle...
-    # TODO: Rescale markers using marker_size_scaler
     fig = go.Figure(
         layout=go.Layout(
             scene=dict(
@@ -186,7 +183,6 @@ def get_scatterplot_3d(
                 zaxis=dict(title=z_axis.replace("_", " ").title()),
             ),
             legend={"x": 1, "y": 1},
-            showlegend=show_legend,
             autosize=True,
             margin=dict(r=0, b=0, l=0, t=25),
             hovermode="closest",

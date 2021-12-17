@@ -567,11 +567,6 @@ def scatterplot_2d_marker_symbols_callback(
     return contig_marker_symbols.reset_index().to_json(orient="split")
 
 
-# TODO: initialize scatterplot-2d figure with contig embeddings using traces
-# of their marker counts depicted with discrete marker symbols
-# Add traces to initialized fig corresponding to colo-by-column
-# An example is performed witho changing hovermode in the docs:
-# https://plotly.com/python/hover-text-and-formatting/#control-hovermode-with-dash
 @app.callback(
     Output("scatterplot-2d", "figure"),
     [
@@ -595,6 +590,7 @@ def scatterplot_2d_figure_callback(
     color_by_col: str,
     hide_selection_toggle: bool,
 ) -> go.Figure:
+    # TODO: #23 refactor scatterplot callbacks
     bin_df = pd.read_json(annotations, orient="split").set_index("contig")
     markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
         "contig"
@@ -614,6 +610,7 @@ def scatterplot_2d_figure_callback(
             bin_df.drop(
                 refined_contigs_index, axis="index", inplace=True, errors="ignore"
             )
+
     fig = get_scatterplot_2d(
         bin_df,
         x_axis=xaxis_column,
@@ -629,7 +626,6 @@ def scatterplot_2d_figure_callback(
         )
     )
     fig.update_layout(showlegend=show_legend)
-    # TODO: Add tooltip/legend for information on marker-symbol count representation
     return fig
 
 
@@ -690,9 +686,9 @@ def scatterplot_3d_figure_callback(
         x_axis="x_1",
         y_axis="x_2",
         z_axis=z_axis,
-        show_legend=show_legend,
         color_by_col=color_by_col,
     )
+    fig.update_layout(showlegend=show_legend)
     return fig
 
 
