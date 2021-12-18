@@ -209,7 +209,7 @@ layout = dbc.Container(
 @app.callback(
     Output("mag-overview-metrics-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
@@ -238,7 +238,7 @@ def mag_overview_metrics_boxplot_callback(
 @app.callback(
     Output("mag-overview-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
@@ -259,7 +259,7 @@ def mag_overview_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-overview-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
@@ -279,7 +279,7 @@ def mag_overview_length_boxplot_callback(
 @app.callback(
     Output("mag-overview-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
@@ -298,7 +298,7 @@ def mag_overview_coverage_boxplot_callback(
 
 @app.callback(
     Output("mag-summary-cluster-col-dropdown", "options"),
-    [Input("metagenome-annotations", "children")],
+    [Input("metagenome-annotations", "data")],
 )
 def mag_summary_cluster_col_dropdown_options_callback(df_json):
     bin_df = pd.read_json(df_json, orient="split")
@@ -312,8 +312,8 @@ def mag_summary_cluster_col_dropdown_options_callback(df_json):
 @app.callback(
     Output("mag-summary-stats-datatable", "children"),
     [
-        Input("metagenome-annotations", "children"),
-        Input("kingdom-markers", "children"),
+        Input("metagenome-annotations", "data"),
+        Input("kingdom-markers", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
@@ -390,7 +390,7 @@ def mag_summary_stats_datatable_callback(
 @app.callback(
     Output("mag-taxonomy-sankey", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
@@ -409,7 +409,7 @@ def mag_taxonomy_sankey_callback(
 @app.callback(
     Output("mag-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
@@ -431,7 +431,7 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-metrics-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
@@ -452,7 +452,7 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
@@ -473,7 +473,7 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
@@ -494,7 +494,7 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-selection-dropdown", "options"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )

@@ -21,26 +21,9 @@ from automappa.figures import (
     get_scatterplot_3d,
     metric_boxplot,
 )
-from automappa.utils import (
-    convert_marker_counts_to_marker_symbols,
-    get_contig_marker_counts,
-)
-
 
 pio.templates.default = "plotly_white"
 
-
-########################################################################
-# HIDDEN DIV to store refinement information
-# ######################################################################
-
-refinements_clusters_store = dcc.Store(
-    id="refinements-clusters-store", storage_type="session"
-)
-
-scatterplot_2d_marker_symbols_store = dcc.Store(
-    id="contig-marker-symbols-store", storage_type="memory"
-)
 
 ########################################################################
 # COMPONENTS: OFFCANVAS SETTINGS
@@ -117,7 +100,7 @@ taxa_rank_dropdown = [
     ),
 ]
 
-# add show-legend-toggle
+# Scatterplot 2D Legend Toggle
 scatterplot_2d_legend_toggle = daq.ToggleSwitch(
     id="show-legend-toggle",
     size=40,
@@ -417,12 +400,6 @@ refinements_table = dcc.Loading(
 
 layout = dbc.Container(
     children=[
-        dbc.Row(
-            [
-                dbc.Col(refinements_clusters_store),
-                dbc.Col(scatterplot_2d_marker_symbols_store),
-            ]
-        ),
         dbc.Row([dbc.Col(mag_refinement_buttons)]),
         dbc.Row(
             [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
@@ -459,7 +436,7 @@ def toggle_offcanvas(n1: int, is_open: bool) -> bool:
 
 
 @app.callback(
-    Output("color-by-column", "options"), [Input("metagenome-annotations", "children")]
+    Output("color-by-column", "options"), [Input("metagenome-annotations", "data")]
 )
 def color_by_column_options_callback(annotations_json: "str | None"):
     df = pd.read_json(annotations_json, orient="split")
@@ -473,7 +450,7 @@ def color_by_column_options_callback(annotations_json: "str | None"):
 @app.callback(
     Output("mag-metrics-datatable", "children"),
     [
-        Input("kingdom-markers", "children"),
+        Input("kingdom-markers", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
@@ -551,27 +528,10 @@ def update_mag_metrics_datatable_callback(
 
 
 @app.callback(
-    Output("contig-marker-symbols-store", "data"),
-    Input("metagenome-annotations", "children"),
-    Input("kingdom-markers", "children"),
-)
-def scatterplot_2d_marker_symbols_callback(
-    annotations: "str | None", markers_json: "str | None"
-) -> "str | None":
-    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
-    contig_marker_counts = get_contig_marker_counts(bin_df, markers_df)
-    contig_marker_symbols = convert_marker_counts_to_marker_symbols(
-        contig_marker_counts
-    )
-    return contig_marker_symbols.reset_index().to_json(orient="split")
-
-
-@app.callback(
     Output("scatterplot-2d", "figure"),
     [
-        Input("metagenome-annotations", "children"),
-        Input("refinements-clusters-store", "data"),
+        Input("metagenome-annotations", "data"),
+        Input("refinement-data", "data"),
         Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
@@ -632,7 +592,7 @@ def scatterplot_2d_figure_callback(
 @app.callback(
     Output("taxonomy-distribution", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("scatterplot-2d", "selectedData"),
         Input("taxonomy-distribution-dropdown", "value"),
     ],
@@ -653,7 +613,7 @@ def taxonomy_distribution_figure_callback(
 @app.callback(
     Output("scatterplot-3d", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("scatterplot-3d-zaxis-dropdown", "value"),
         Input("scatterplot-3d-legend-toggle", "value"),
         Input("color-by-column", "value"),
@@ -695,7 +655,7 @@ def scatterplot_3d_figure_callback(
 @app.callback(
     Output("mag-refinement-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
@@ -714,7 +674,7 @@ def mag_summary_coverage_boxplot_callback(
 @app.callback(
     Output("mag-refinement-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
@@ -734,7 +694,7 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-refinement-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "children"),
+        Input("metagenome-annotations", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
@@ -752,12 +712,11 @@ def mag_summary_length_boxplot_callback(
 
 @app.callback(
     Output("refinements-table", "children"),
-    [Input("refinements-clusters-store", "data")],
+    [Input("refinement-data", "data")],
 )
 def refinements_table_callback(df: "str | None") -> DataTable:
     df = pd.read_json(df, orient="split")
     return DataTable(
-        id="refinements-datatable",
         data=df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in df.columns],
         style_cell={"textAlign": "center"},
@@ -767,27 +726,10 @@ def refinements_table_callback(df: "str | None") -> DataTable:
 
 
 @app.callback(
-    Output("refinements-datatable", "data"),
-    [
-        Input("scatterplot-2d", "selectedData"),
-        Input("refinements-clusters-store", "data"),
-    ],
-)
-def update_refinements_table(
-    selected_data: Dict[str, List[Dict[str, str]]], refinements: "str | None"
-) -> "str | None":
-    df = pd.read_json(refinements, orient="split")
-    if not selected_data:
-        return df.to_dict("records")
-    contigs = {point["text"] for point in selected_data["points"]}
-    return df[df.contig.isin(contigs)].to_dict("records")
-
-
-@app.callback(
     Output("refinements-download", "data"),
     [
         Input("refinements-download-button", "n_clicks"),
-        Input("refinements-clusters-store", "data"),
+        Input("refinement-data", "data"),
     ],
 )
 def download_refinements(
@@ -811,16 +753,16 @@ def mag_refinement_save_button_disabled_callback(
 
 @app.callback(
     [
-        Output("refinements-clusters-store", "data"),
+        Output("refinement-data", "data"),
         Output("mag-refinement-save-button", "n_clicks"),
     ],
     [
         Input("scatterplot-2d", "selectedData"),
-        Input("refinement-data", "children"),
+        Input("refinement-data", "data"),
         Input("mag-refinement-save-button", "n_clicks"),
     ],
     [
-        State("refinements-clusters-store", "data"),
+        State("refinement-data", "data"),
     ],
 )
 def store_binning_refinement_selections(
@@ -829,11 +771,7 @@ def store_binning_refinement_selections(
     n_clicks: int,
     intermediate_selections: "str | None",
 ) -> "str | None":
-    if not selected_data and not intermediate_selections:
-        # We first load in our binning information for refinement
-        # Note: this callback should trigger on initial load
-        # TODO: Could also remove and construct dataframes from selected contigs
-        # Then perform merge when intermediate selections are downloaded.
+    if not selected_data:
         bin_df = pd.read_json(refinement_data, orient="split")
         if "cluster" not in bin_df.columns:
             bin_df["cluster"] = "unclustered"

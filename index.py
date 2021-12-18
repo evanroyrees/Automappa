@@ -6,11 +6,16 @@ import os
 import pandas as pd
 
 from dash.dependencies import Input, Output
-from dash import html
+from dash import dcc, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 
 from autometa.common.markers import load as load_markers
+
+from automappa.utils import (
+    convert_marker_counts_to_marker_symbols,
+    get_contig_marker_counts,
+)
 
 from apps import mag_refinement, mag_summary
 from app import app
@@ -76,16 +81,21 @@ def main():
     # Needed for completeness/purity calculations
     markers = load_markers(args.markers).reset_index().copy()
 
-    # binning and taxonomy are added here to color contigs
-    # NOTE: (Optional) parameter of fasta in case the user would like to
-    # export the MAG refinements as a fasta file
-
-    print(f"binning shape:\t\t{binning.shape}")
-    print(f"markers shape:\t\t{markers.shape}")
-    print(
-        "Data loaded. It may take a minute or two to construct all interactive graphs..."
+    # Metagenome Annotations Store
+    metagenome_annotations_store = dcc.Store(
+        id="metagenome-annotations",
+        storage_type="session",
+        data=binning.to_json(orient="split"),
     )
 
+    # Kingdom Markers Store
+    kingdom_markers_store = dcc.Store(
+        id="kingdom-markers",
+        storage_type="session",
+        data=markers.to_json(orient="split"),
+    )
+
+    # MAG Refinement Data Store
     # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
     binning_cols = [
         col
@@ -93,28 +103,41 @@ def main():
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
 
+    refinement_data_store = dcc.Store(
+        id="refinement-data",
+        storage_type="session",
+        data=binning[binning_cols].to_json(orient="split"),
+    )
+
+    # Contig Marker Symbols Store
+    contig_marker_counts = get_contig_marker_counts(
+        binning.set_index("contig"), markers.set_index("contig")
+    )
+    contig_marker_symbols = convert_marker_counts_to_marker_symbols(
+        contig_marker_counts
+    ).reset_index()
+    contig_marker_symbols.reset_index().to_json(orient="split")
+    contig_marker_symbols_store = dcc.Store(
+        id="contig-marker-symbols-store",
+        storage_type="memory",
+        data=contig_marker_symbols.to_json(orient="split"),
+    )
+
+    print(f"binning shape:\t\t{binning.shape}")
+    print(f"markers shape:\t\t{markers.shape}")
+    print(
+        "Data loaded. It may take a minute or two to construct all interactive graphs..."
+    )
+
     refinement_tab = dbc.Tab(label="MAG Refinement", tab_id="mag_refinement")
     summary_tab = dbc.Tab(label="MAG Summary", tab_id="mag_summary")
 
     app.layout = dbc.Container(
         [
-            # hidden divs
-            html.Div(
-                markers.to_json(orient="split"),
-                id="kingdom-markers",
-                style={"display": "none"},
-            ),
-            html.Div(
-                binning.to_json(orient="split"),
-                id="metagenome-annotations",
-                style={"display": "none"},
-            ),
-            html.Div(
-                binning[binning_cols].to_json(orient="split"),
-                id="refinement-data",
-                style={"display": "none"},
-            ),
-            html.Title("Automappa"),
+            dbc.Col(kingdom_markers_store),
+            dbc.Col(metagenome_annotations_store),
+            dbc.Col(refinement_data_store),
+            dbc.Col(contig_marker_symbols_store),
             # Navbar
             dbc.Tabs(
                 id="tabs", children=[refinement_tab, summary_tab], className="nav-fill"
@@ -124,6 +147,9 @@ def main():
         fluid=True,
     )
 
+    # TODO: Replace cli inputs (as well as updating title once file is uploaded...)
+    # dcc.Upload(id='metagenome-annotations-upload', children=dbc.Button("Upload annotations"))
+    # dcc.Upload(id='kingdom-markers-upload', children=dbc.Button("Upload annotations"))
     sample_name = os.path.basename(args.binning_main).replace(" ", "_").split(".")[0]
     app.title = f"Automappa: {sample_name}"
     app.run_server(host=args.host, port=args.port, debug=args.debug)
