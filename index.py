@@ -17,18 +17,18 @@ from automappa.utils import (
     get_contig_marker_counts,
 )
 
-from apps import mag_refinement, mag_summary
+from apps import home, mag_refinement, mag_summary
 from app import app
 
 
 @app.callback(Output("tab_content", "children"), [Input("tabs", "active_tab")])
 def render_content(active_tab):
-    if active_tab == "mag_refinement":
-        return mag_refinement.layout
-    elif active_tab == "mag_summary":
-        return mag_summary.layout
-    else:
-        return active_tab
+    layouts = {
+        "home": home.layout,
+        "mag_refinement": mag_refinement.layout,
+        "mag_summary": mag_summary.layout,
+    }
+    return layouts.get(active_tab, "home")
 
 
 def main():
@@ -129,6 +129,7 @@ def main():
         "Data loaded. It may take a minute or two to construct all interactive graphs..."
     )
 
+    home_tab = dbc.Tab(label="Home", tab_id="home")
     refinement_tab = dbc.Tab(label="MAG Refinement", tab_id="mag_refinement")
     summary_tab = dbc.Tab(label="MAG Summary", tab_id="mag_summary")
 
@@ -140,7 +141,9 @@ def main():
             dbc.Col(contig_marker_symbols_store),
             # Navbar
             dbc.Tabs(
-                id="tabs", children=[refinement_tab, summary_tab], className="nav-fill"
+                id="tabs",
+                children=[home_tab, refinement_tab, summary_tab],
+                className="nav-fill",
             ),
             html.Div(id="tab_content"),
         ],

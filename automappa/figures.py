@@ -159,7 +159,7 @@ def get_scatterplot_2d(
             customdata=df[metadata_cols],
             text=dff.index,
             mode="markers",
-            opacity=0.65,
+            opacity=0.85,
             hovertemplate=hovertemplate,
             name=color_col_name,
         )
