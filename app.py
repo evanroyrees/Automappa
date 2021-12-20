@@ -1,6 +1,10 @@
-import flask
 import dash
+import dash_bootstrap_components as dbc
 
-server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server)
+app = dash.Dash(
+    name=__name__,
+    title="Automappa",
+    external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP],
+    update_title="Automapping...",
+)
 app.config.suppress_callback_exceptions = True

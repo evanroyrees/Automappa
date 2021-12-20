@@ -1,7 +1,8 @@
 dash
-dash_daq
-dash-extensions==0.0.31
+dash-bootstrap-components
+dash-daq
+dash-extensions
 Flask
 numpy
 pandas
-plotly==3.1.1
+plotly

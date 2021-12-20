@@ -1,4 +1,4 @@
-.PHONY: clean data requirements
+.PHONY: clean docker test_environment create_environment requirements
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -21,6 +21,13 @@ else
 HAS_DOCKER=True
 endif
 
+ifneq ($(wildcard Autometa/*),)
+HAS_AUTOMETA=True
+else
+HAS_AUTOMETA=False
+endif
+
+
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
@@ -30,10 +37,9 @@ requirements:
 	$(PYTHON_INTERPRETER) -m pip install -U -r requirements.txt
 
 ## Retrieve test dataset for testing Automappa
-test_data: requirements
-	mkdir -p test
-	$(PYTHON_INTERPRETER) -m pip install -U gdown
-	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
+# test_data: requirements
+# 	$(PYTHON_INTERPRETER) -m pip install -U gdown
+# 	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
 
 ## Retrieve automappa docker image
 docker:
@@ -44,9 +50,13 @@ else
 	@echo ">>> Docker not detected. Please install docker to use the Automappa docker image"
 endif
 
-## Run Automapp on test data
-test: test_data
-	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
+## Build docker image from Dockerfile (auto-taggged as evanrees/automappa:<current-branch>)
+image: docker/Dockerfile
+	docker build . -f $< -t evanrees/automappa:`git branch --show-current`
+
+## Run Automappa on test data
+# test: test_data
+# 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
 
 ## Delete all compiled Python files
 clean:
@@ -58,13 +68,13 @@ test_environment: requirements
 	$(PYTHON_INTERPRETER) scripts/test_environment.py
 
 ## Set up python interpreter environment
-create_environment:
+create_environment: requirements.txt
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
 else
-	conda create --name $(PROJECT_NAME) python=3.7
+	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
@@ -74,6 +84,23 @@ else
 	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
 endif
+
+## Remove python interpreter environment
+delete_environment:
+	conda env remove -n $(PROJECT_NAME)
+
+## install autometa modules (first activate automappa env)
+install_autometa:
+ifeq (True,$(HAS_AUTOMETA))
+	@echo ">>> Autometa found"
+	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
+	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
+else
+	git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git
+	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
+	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
+endif
+
 
 #################################################################################
 # Self Documenting Commands                                                     #
