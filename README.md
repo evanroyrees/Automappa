@@ -22,7 +22,7 @@ The only required input for this script is the autometa main binning output tabl
 
 ```bash
 # First retrieve the script:
-curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/develop/docker/run_automappa.sh
+curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa.sh
 # (make it executable)
 chmod a+x run_automappa.sh
 ```
@@ -41,8 +41,8 @@ Now run automappa on autometa binning results using the downloaded script: `run_
 
 ```bash
 # Set automappa parameters (required)
-binning="$HOME/test/bins.tsv"
-markers="$HOME/test/markers.tsv"
+binning="$HOME/test/binning.main.tsv"
+markers="$HOME/test/binning.markers.tsv"
 
 # Set docker image/container parameters (optional)
 localport=8050
@@ -94,7 +94,7 @@ make create_environment
 # Activate environment
 source activate automappa
 # The following will install dependencies and download test data then start automappa
-make test
+make install_autometa
 ```
 
 Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
@@ -105,40 +105,65 @@ Now that all of the dependencies are installed, you may run the app on your loca
 
 ```bash
 cd $HOME/Automappa
-python index.py -i <path/to/recursive_dbscan_output.tab>
+python index.py --binning-main <path to binning.main.tsv> --markers <path to binning.markers.tsv>
 ```
 
-### Remote:
+### Remote using remote install
 
-If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel.
+If you'd like to run the app on the server but view the output on your local machine, 
+you first need to login to the server with a tunnel (`ssh -L localport:localhost:serverport user@hostaddress`).
 
 ```bash
 #ssh -L localport:127.0.0.1:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
 #example
-ssh -L 6920:127.0.0.1:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
+ssh -L 8888:127.0.0.1:8050 sam@kwan-bioinformatics.pharmacy.wisc.edu
 ```
 
 Now once you're on the server, navigate to your Automappa repository and start the Automappa server.
 
 ```bash
-cd $HOME/Automappa && python index.py -i <path/to/recursive_dbscan_output.tab>
+cd $HOME/Automappa && python index.py \
+    --binning-main <path to binning.main.tsv> \
+    --markers <path to binning.markers.tsv> \
+    --port 8050
 ```
 
-Navigate to the app view in your browser. This will correspond to the localport that was passed in upon login to the remote server. In the previous example above we would navigate to `localhost:6920`.
+Navigate to the app view in your browser. 
+This will correspond to the localport that was passed in upon login to the remote server. 
+In the previous example above we would navigate to `localhost:8888`.
 
-If you'd like to run the app on the server but view the output on your local machine, you first need to login to the server with a tunnel (`ssh -L localport:localhost:serverport user@hostaddress`).
+#### Remote using Docker
+
+To access Automappa through a docker container that is on a remote machine, one additional bridge
+must be constructed. 
+
+1. We first need to forward a port from the server back to our local machine.
 
 ```bash
 #ssh -L localport:localhost:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
-ssh -L 8888:localhost:8050 jkwan@kwan-bioinformatics.pharmacy.wisc.edu
+ssh -L 8888:localhost:8887 sam@kwan-bioinformatics.pharmacy.wisc.edu
+```
 
-# Wrapper available to run docker with port-forwarding.
-curl -o run_automappa https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa
-chmod a+x run_automappa
+2. run automappa using the docker wrapper script: `run_automappa.sh`
 
-# Now run automappa using wrapper script: `run_automappa`
+A wrapper is available for download to run docker with port-forwarding.
+
+```bash
+curl -o $HOME/run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa.sh
+chmod a+x $HOME/run_automappa.sh
+```
+
+Now start automappa while setting `--localport` to match the `serverport` (`8887`) from above.
+
+```bash
 # NOTE: This will pull the automappa docker image if it is not already available.
-./run_automappa <path/to/recursive_dbscan_output.tsv>
+$HOME/run_automappa.sh \
+    --imagetag main \
+    # NOTE: The 'localport' here is referring to the port on the remote
+    --localport 8887 \
+    --containerport 8050 \
+    --binning binning.main.tsv \
+    --markers binning.markers.tsv
 ```
 
 Now navigate to `http://localhost:8888` and you will see the loaded data.
@@ -158,5 +183,13 @@ I've numbered the ports here to help illustrate the network communication.
 
 | Bridge | Port Bridge | Communication Context |
 | :------------- | :------------- | :------------- |
-| remote_server_port:container_port | 8887:8050 | [bioinformatics\|CHTC server]:docker |
-| localhost_port:remote_server_port | 8888:8887 | local machine:[bioinformatics\|CHTC server] |
+| `remoteport:containerport` | `8887:8050` | `remote:docker` |
+| `localport:remoteport` | `8888:8887` | `local:remote` |
+
+e.g.
+
+- `localhost:8888` <-> `8888:8887` <-> `8887:8050`
+
+or
+
+- `localhost:localport` <-> `localport:serverport` <-> `serverport:containerport`
