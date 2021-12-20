@@ -108,8 +108,6 @@ def main():
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
 
-    print(binning[binning_cols].columns)
-
     refinement_data_store = dcc.Store(
         id="refinement-data",
         storage_type="session",
