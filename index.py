@@ -21,7 +21,7 @@ from apps import mag_refinement, mag_summary
 from app import app
 
 
-@app.callback(Output("tab_content", "children"), [Input("tabs", "active_tab")])
+@app.callback(Output("tab-content", "children"), [Input("tabs", "active_tab")])
 def render_content(active_tab):
     if active_tab == "mag_refinement":
         return mag_refinement.layout
@@ -89,19 +89,26 @@ def main():
     )
 
     # Kingdom Markers Store
-    kingdom_markers_store = dcc.Store(
-        id="kingdom-markers",
+    markers_store = dcc.Store(
+        id="markers-store",
         storage_type="session",
         data=markers.to_json(orient="split"),
     )
 
     # MAG Refinement Data Store
     # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
+    if "cluster" not in binning.columns:
+        binning["cluster"] = "unclustered"
+    else:
+        binning["cluster"].fillna("unclustered", inplace=True)
+
     binning_cols = [
         col
         for col in binning.columns
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
+
+    print(binning[binning_cols].columns)
 
     refinement_data_store = dcc.Store(
         id="refinement-data",
@@ -134,7 +141,7 @@ def main():
 
     app.layout = dbc.Container(
         [
-            dbc.Col(kingdom_markers_store),
+            dbc.Col(markers_store),
             dbc.Col(metagenome_annotations_store),
             dbc.Col(refinement_data_store),
             dbc.Col(contig_marker_symbols_store),
@@ -142,14 +149,14 @@ def main():
             dbc.Tabs(
                 id="tabs", children=[refinement_tab, summary_tab], className="nav-fill"
             ),
-            html.Div(id="tab_content"),
+            html.Div(id="tab-content"),
         ],
         fluid=True,
     )
 
     # TODO: Replace cli inputs (as well as updating title once file is uploaded...)
     # dcc.Upload(id='metagenome-annotations-upload', children=dbc.Button("Upload annotations"))
-    # dcc.Upload(id='kingdom-markers-upload', children=dbc.Button("Upload annotations"))
+    # dcc.Upload(id='markers-upload', children=dbc.Button("Upload annotations"))
     sample_name = os.path.basename(args.binning_main).replace(" ", "_").split(".")[0]
     app.title = f"Automappa: {sample_name}"
     app.run_server(host=args.host, port=args.port, debug=args.debug)

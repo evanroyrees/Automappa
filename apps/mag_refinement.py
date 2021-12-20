@@ -303,7 +303,7 @@ scatterplot_3d = [
                 config={
                     "toImageButtonOptions": dict(
                         format="svg",
-                        filename="scatter3dPlot.autometa.binning",
+                        filename="figure_2_3D_metagenome_overview",
                     ),
                     "displayModeBar": True,
                     "displaylogo": False,
@@ -450,7 +450,7 @@ def color_by_column_options_callback(annotations_json: "str | None"):
 @app.callback(
     Output("mag-metrics-datatable", "children"),
     [
-        Input("kingdom-markers", "data"),
+        Input("markers-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
@@ -771,12 +771,9 @@ def store_binning_refinement_selections(
     n_clicks: int,
     intermediate_selections: "str | None",
 ) -> "str | None":
+    # Initial load...
     if not selected_data:
         bin_df = pd.read_json(refinement_data, orient="split")
-        if "cluster" not in bin_df.columns:
-            bin_df["cluster"] = "unclustered"
-        else:
-            bin_df["cluster"].fillna("unclustered", inplace=True)
         return bin_df.to_json(orient="split"), 0
     if not n_clicks or (n_clicks and not selected_data):
         raise PreventUpdate

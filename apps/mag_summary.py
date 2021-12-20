@@ -313,7 +313,7 @@ def mag_summary_cluster_col_dropdown_options_callback(df_json):
     Output("mag-summary-stats-datatable", "children"),
     [
         Input("metagenome-annotations", "data"),
-        Input("kingdom-markers", "data"),
+        Input("markers-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )

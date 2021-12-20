@@ -130,8 +130,6 @@ def get_scatterplot_2d(
             hovermode="closest",
         ),
     )
-
-    # TODO: Add other contig metadata (i.e. coverage, length, markers, etc.)
     # Hovertemplate
     x_hover_label = f"{x_axis.title()}: " + "%{x:.2f}"
     y_hover_label = f"{y_axis.title()}: " + "%{y:.2f}"
