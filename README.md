@@ -1,28 +1,77 @@
 Automappa
 =========
 
-![docker CI/CD](https://github.com/WiscEvan/Automappa/workflows/docker%20CI/CD/badge.svg "evanrees/automappa:latest")
+| Image Name           | Image Tag       | Status                                                                                                                                                                                                                |
+|----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
+| `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
 
 ![automappa](images/automappa.gif)
 
-### Quickstart using Docker (Easiest and Quickest):
+## Quickstart using Docker (No installation required):
 
  To quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
-```bash
-# Wrapper available to run docker with port-forwarding.
-curl -o run_automappa https://raw.githubusercontent.com/WiscEvan/Automappa/main/docker/run_automappa
-chmod a+x run_automappa
+### Running with a docker container using `run_automappa.sh`
 
-# Now run automappa using wrapper script: `run_automappa`
-# NOTE: This will pull the automappa docker image if it is not already available.
-./run_automappa <path/to/recursive_dbscan_output.tsv>
+A docker wrapper is available to run a docker container of `Automappa`.
+The only required input for this script is the autometa main binning output table.
+
+```bash
+# First retrieve the script:
+curl -o run_automappa.sh https://raw.githubusercontent.com/WiscEvan/Automappa/develop/docker/run_automappa.sh
+# (make it executable)
+chmod a+x run_automappa.sh
 ```
 
-### Installation
+Now run automappa on autometa binning results using the downloaded script: `run_automappa.sh`.
+#### Start automappa docker container
+
+```bash
+# NOTE: This will pull the automappa docker image if it is not already available.
+./run_automappa.sh --imagetag develop \
+  --binning binning.main.tsv \
+  --markers binning.markers.tsv
+```
+
+### Full `docker run` command example
+
+```bash
+# Set automappa parameters (required)
+binning="$HOME/test/bins.tsv"
+markers="$HOME/test/markers.tsv"
+
+# Set docker image/container parameters (optional)
+localport=8050
+containerport=8886
+imagetag="develop"
+
+#NOTE: Some necessary path handling here for binding docker volumes
+binning_dirname="$( cd -- "$(dirname "$binning")" >/dev/null 2>&1 ; pwd -P )"
+binning_filename=$(basename $binning)
+markers_dirname="$( cd -- "$(dirname "$markers")" >/dev/null 2>&1 ; pwd -P )"
+markers_filename=$(basename $markers)
+
+# Run with provided parameters
+docker run \
+    --publish $localport:$containerport \
+    --detach=false \
+    -v $binning_dirname:/binning:rw \
+    -v $markers_dirname:/markers:ro \
+    --rm \
+    evanrees/automappa:$imagetag \
+      --binning-main /binning/$binning_filename \
+      --markers /markers/$markers_filename \
+      --port $containerport \
+      --host 0.0.0.0
+```
+
+----------------------------------------------------------------------------------------------------
+
+## Installation
 
 You can install all of Automappa's dependencies using the Makefile found within the repository.
 

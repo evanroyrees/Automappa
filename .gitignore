@@ -5,3 +5,4 @@ apps/__pycache__/*.pyc
 *.pyc
 app/__pycache__
 *.tsv
+.DS_Store
