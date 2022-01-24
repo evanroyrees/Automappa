@@ -14,7 +14,7 @@ RUN conda install \
     --channel anaconda --channel conda-forge \
     --yes  git
 
-RUN git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git /tmp/Autometa
+RUN git clone -b dev https://github.com/KwanLab/Autometa.git /tmp/Autometa
 RUN conda install --name base -c conda-forge -c bioconda --file=/tmp/Autometa/requirements.txt -y
 WORKDIR /tmp/Autometa
 RUN /opt/conda/bin/python setup.py install
