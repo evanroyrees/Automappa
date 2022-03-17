@@ -9,7 +9,8 @@ Automappa
 An interactive interface for exploration of highly complex metagenomes
 ----------------------------------------------------------------------
 
-![automappa](images/automappa.gif)
+![automappa_demo_920](https://user-images.githubusercontent.com/25933122/158899748-bf21c1fc-6f67-4fd8-af89-4e732fa2edcd.gif)
+
 
 ## Quickstart using Docker (No installation required):
 
