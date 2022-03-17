@@ -12,14 +12,14 @@ if [ $# -eq 0 ]
     echo "      run_automappa.sh Arguments     "
     echo "====================================="
     echo "Required"
-    echo "--binning    :   default => none"
-    echo "--markers         :   default => none"
+    echo "    --binning       : Path to main binning table"
+    echo "    --markers       : Path to markers table"
     echo
     echo "Optional"
-    echo "--imagetag        :   default => ${DEFAULT_IMAGE_TAG}"
-    echo "--containerport   :   default => ${DEFAULT_CONTAINER_PORT}"
-    echo "--localport       :   default => ${DEFAULT_LOCAL_PORT}"
-    echo "--help            :   (see automappa parameters)"
+    echo "    --imagetag      : (default -> ${DEFAULT_IMAGE_TAG})"
+    echo "    --containerport : (default -> ${DEFAULT_CONTAINER_PORT})"
+    echo "    --localport     : (default -> ${DEFAULT_LOCAL_PORT})"
+    echo "    --help          : (see automappa parameters)"
     echo "====================================="
     echo 
     exit 0
