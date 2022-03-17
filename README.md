@@ -18,7 +18,7 @@ An interactive interface for exploration of highly complex metagenomes
 ### Running with a docker container using `run_automappa.sh`
 
 A docker wrapper is available to run a docker container of `Automappa`.
-The only required input for this script is the autometa main binning output table.
+The only required input for this script is the autometa main binning output table and the respective markers table.
 
 ```bash
 # First retrieve the script:
