@@ -38,7 +38,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           push: true
-          tags: evanrees/automappa:${{ steps.extract_branch.outputs.branch }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/automappa:${{ steps.extract_branch.outputs.branch }}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
