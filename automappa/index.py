@@ -3,7 +3,6 @@
 
 import argparse
 import os
-import pandas as pd
 
 from dash.dependencies import Input, Output
 from dash import dcc, html
@@ -12,13 +11,13 @@ import pandas as pd
 
 from autometa.common.markers import load as load_markers
 
-from automappa.utils import (
+from automappa.utils.markers import (
     convert_marker_counts_to_marker_symbols,
     get_contig_marker_counts,
 )
 
-from apps import mag_refinement, mag_summary
-from app import app
+from automappa.apps import mag_refinement, mag_summary
+from automappa.app import app
 
 
 @app.callback(Output("tab-content", "children"), [Input("tabs", "active_tab")])

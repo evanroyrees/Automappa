@@ -6,3 +6,6 @@ apps/__pycache__/*.pyc
 app/__pycache__
 *.tsv
 .DS_Store
+dist
+build
+Automappa.egg-info

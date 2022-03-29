@@ -14,9 +14,8 @@ import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 import plotly.io as pio
 
-from app import app
-
-from automappa.figures import taxonomy_sankey, metric_boxplot
+from automappa.app import app
+from automappa.utils.figures import taxonomy_sankey, metric_boxplot
 
 pio.templates.default = "plotly_white"
 

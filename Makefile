@@ -1,4 +1,4 @@
-.PHONY: clean docker test_environment create_environment requirements
+.PHONY: clean docker test_environment create_environment
 
 #################################################################################
 # GLOBALS                                                                       #
@@ -21,22 +21,13 @@ else
 HAS_DOCKER=True
 endif
 
-ifneq ($(wildcard Autometa/*),)
-HAS_AUTOMETA=True
-else
-HAS_AUTOMETA=False
-endif
 
 
 #################################################################################
 # COMMANDS                                                                      #
 #################################################################################
 
-## Install Python Dependencies into environment
-requirements:
-	$(PYTHON_INTERPRETER) -m pip install -U -r requirements.txt
-
-## Retrieve test dataset for testing Automappa
+# Retrieve test dataset for testing Automappa
 # test_data: requirements
 # 	$(PYTHON_INTERPRETER) -m pip install -U gdown
 # 	gdown https://drive.google.com/uc\?\id=1M6cCOGX-lcM7ymIA5BsXwm6CbaDau0Qm -O test/bins.tsv
@@ -51,10 +42,10 @@ else
 endif
 
 ## Build docker image from Dockerfile (auto-taggged as evanrees/automappa:<current-branch>)
-image: docker/Dockerfile
+image: Dockerfile
 	docker build . -f $< -t evanrees/automappa:`git branch --show-current`
 
-## Run Automappa on test data
+# Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
 
@@ -64,8 +55,8 @@ clean:
 	find . -type d -name "__pycache__" -delete
 
 ## Test python environment is setup correctly
-test_environment: requirements
-	$(PYTHON_INTERPRETER) scripts/test_environment.py
+test_environment: scripts/test_environment.py
+	$(PYTHON_INTERPRETER) $<
 
 ## Set up python interpreter environment
 create_environment: requirements.txt
@@ -88,19 +79,6 @@ endif
 ## Remove python interpreter environment
 delete_environment:
 	conda env remove -n $(PROJECT_NAME)
-
-## install autometa modules (first activate automappa env)
-install_autometa:
-ifeq (True,$(HAS_AUTOMETA))
-	@echo ">>> Autometa found"
-	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
-	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
-else
-	git clone -b large-data-mode https://github.com/WiscEvan/Autometa.git
-	conda install -c conda-forge -c bioconda --name $(PROJECT_NAME) --file=Autometa/requirements.txt -y
-	cd Autometa && $(PYTHON_INTERPRETER) setup.py install
-endif
-
 
 #################################################################################
 # Self Documenting Commands                                                     #

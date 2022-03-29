@@ -8,7 +8,8 @@ RUN conda env update -n base -f=environment.yml \
 # Test command is functional
 COPY . /Automappa/
 WORKDIR /Automappa/
-RUN /opt/conda/bin/python index.py -h
+RUN python -m pip install . --ignore-installed --no-deps -vvv
+RUN automappa -h
 
 CMD [ "-h" ]
-ENTRYPOINT [ "/opt/conda/bin/python", "index.py" ]
+ENTRYPOINT [ "automappa" ]

@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict, List
+
 import pandas as pd
 import dash_daq as daq
+
 from dash import dcc, html
 from dash.dash_table import DataTable
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
-import dash_bootstrap_components as dbc
-from app import app
 from plotly import graph_objects as go
+
+import dash_bootstrap_components as dbc
 import plotly.io as pio
 
+from automappa.app import app
 
-from automappa.figures import (
+from automappa.utils.figures import (
     get_scatterplot_2d,
     taxonomy_sankey,
     get_scatterplot_3d,
