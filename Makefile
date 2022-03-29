@@ -45,6 +45,10 @@ endif
 image: Dockerfile
 	docker build . -f $< -t evanrees/automappa:`git branch --show-current`
 
+## Install automappa entrypoint into current environment
+install: 
+	$(PYTHON_INTERPRETER) -m pip install . --ignore-installed --no-deps -vvv
+
 # Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
@@ -53,6 +57,7 @@ image: Dockerfile
 clean:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
+	rm -rf dist build Automappa.egg-info
 
 ## Test python environment is setup correctly
 test_environment: scripts/test_environment.py
