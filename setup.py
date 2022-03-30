@@ -20,7 +20,7 @@ setup(
     python_requires=">=3.7",
     version=version,
     packages=find_packages(exclude=["tests"]),
-    package_data={"": ["*.config"]},
+    package_data={"": ["app/assets/*"]},
     entry_points={
         "console_scripts": [
             "automappa = automappa.__main__:main",
