@@ -262,6 +262,9 @@ mag_refinement_buttons = html.Div(
 # TODO: Add progress bar to emit MAG curation progress
 # See: https://dash-bootstrap-components.opensource.faculty.ai/docs/components/progress
 # Color using MIMAG thresholds listed below:
+# For current standards see the following links:
+# contamination: https://genomicsstandardsconsortium.github.io/mixs/contam_score/
+# completeness: https://genomicsstandardsconsortium.github.io/mixs/compl_score/
 # (success) alert --> passing thresholds (completeness >= 90%, contamination <= 5%)
 # (warning) alert --> within 10% thresholds, e.g. (completeness >=80%, contam. <= 15%)
 # (danger)  alert --> failing thresholds (completeness less than 80%, contam. >15%)
@@ -469,7 +472,7 @@ def update_mag_metrics_datatable_callback(
     expected_markers_count = markers_df.shape[1]
 
     pfam_counts = markers_df.sum()
-    if pfam_counts.empty:
+    if pfam_counts[pfam_counts.ge(1)].empty:
         total_markers = 0
         single_copy_marker_count = 0
         markers_present_count = 0
@@ -780,11 +783,11 @@ def store_binning_refinement_selections(
         return bin_df.to_json(orient="split"), 0
     if not n_clicks or (n_clicks and not selected_data):
         raise PreventUpdate
-    contigs = {point["text"] for point in selected_data["points"]}
     pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
     refinement_cols = [col for col in pdf.columns if "refinement" in col]
     refinement_num = len(refinement_cols) + 1
     group_name = f"refinement_{refinement_num}"
+    contigs = list({point["text"] for point in selected_data["points"]})
     pdf.loc[contigs, group_name] = group_name
     pdf = pdf.fillna(axis="columns", method="ffill")
     pdf.reset_index(inplace=True)
