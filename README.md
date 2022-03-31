@@ -1,6 +1,9 @@
 # Automappa: An interactive interface for exploration of metagenomes
 
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/WiscEvan/Automappa?label=latest)
+[![Anaconda-Server Install Badge](https://anaconda.org/bioconda/automappa/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
+[![Anaconda-Server Platforms Badge](https://anaconda.org/bioconda/automappa/badges/platforms.svg)](https://anaconda.org/bioconda/automappa)
+[![Anaconda-Server Downloads Badge](https://anaconda.org/bioconda/automappa/badges/downloads.svg)](https://anaconda.org/bioconda/automappa)
 
 | Image Name           | Image Tag       | Status                                                                                                                                                                                                                |
 |----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -11,12 +14,41 @@
 
 ## Getting Started
 
-- [Using docker](#quickstart-using-docker-no-installation-required)
-- [From source](#installation)
+- [Install with conda](#install-with-conda)
+- [Run `automappa` using docker](#quickstart-using-docker-no-installation-required)
+- [Install from source](#install-from-source)
 - [Advanced Usage](#advanced-usage)
   - [A breakdown of the docker run wrapper script](#full-docker-run-command-example)
   - [Using a remote Automappa server](#using-a-remote-automappa-server)
   - [Using a remote docker container Automappa server](#using-a-remote-docker-container-automappa-server)
+
+## Install with conda
+
+If you are using `conda` (or `mamba`) as a package manager, you can simply install `automappa` using one of the following one-liners.
+
+### with `conda`
+
+```bash
+conda install -c bioconda automappa
+```
+
+### with `mamba`
+
+```bash
+mamba install -c bioconda automappa
+```
+
+After you have installed `automappa`, you can simply run `automappa -h` to see a list of available arguments.
+
+To start the `automappa` app, you must specify your main binning results and respective kingdom's single-copy marker annotations 
+generated from an [Autometa analysis](https://www.github.com/KwanLab/Autometa). If you do not yet have these annotations and are 
+not sure where to start, I would recommend checking out [Autometa's documentation](https://autometa.readthedocs.io/en/latest/)
+
+### Example `automappa` command
+
+```bash
+automappa --binning-main </path/to/bacteria.binning.main.tsv> --markers </path/to/bacteria.markers.tsv>
+```
 
 ## Quickstart using Docker (No installation required)
 
@@ -46,39 +78,66 @@ Now run automappa on autometa binning results using the downloaded script: `run_
 
 ----------------------------------------------------------------------------------------------------
 
-## Installation
+## Install from source
+
+### Installation from source (using `make`)
 
 You can install all of Automappa's dependencies using the Makefile found within the repository.
+
+#### Clone the Automappa repository
 
 ```bash
 cd $HOME
 git clone https://github.com/WiscEvan/Automappa.git
 cd $HOME/Automappa
-
-# List available commands
-make
-# pull docker image
-make docker
-# build docker image
-make image
 ```
 
-### Quickstart from source
+#### First create environment
 
 ```bash
-# First create environment
 make create_environment
-# Activate environment
+```
+
+#### Activate environment
+
+```bash
 source activate automappa
-# The following will install the automappa entrypoint
+```
+
+#### The following will install the automappa entrypoint
+
+```bash
 make install
 ```
 
 Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
 
+
+### Listing available `make` commands
+
+You may also list other available make commands by simply typing `make` with no other arguments.
+
+```bash
+make
+```
+
+A few examples:
+
+#### pull docker image
+
+```bash
+make docker
+```
+
+#### build docker image
+
+```bash
+make image
+```
+
 ## Usage
 
-Simply provide the `automappa` entrypoint with the main binning file output by Autometa as well as the resepective markers file.
+Simply provide the `automappa` entrypoint with the main binning file output by Autometa as well as the respective markers file.
 
 ```bash
 automappa \
@@ -100,7 +159,7 @@ markers="$HOME/test/binning.markers.tsv"
 # Set docker image/container parameters (optional)
 localport=8050
 containerport=8886
-imagetag="develop"
+imagetag="latest"
 
 #NOTE: Some necessary path handling here for binding docker volumes
 binning_dirname="$( cd -- "$(dirname "$binning")" >/dev/null 2>&1 ; pwd -P )"
