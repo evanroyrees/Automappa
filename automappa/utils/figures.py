@@ -125,7 +125,7 @@ def get_scatterplot_2d(
                 xaxis=dict(title=x_axis.title()),
                 yaxis=dict(title=y_axis.title()),
             ),
-            legend={"x": 1, "y": 1},
+            legend=dict(x=1, y=1),
             margin=dict(r=50, b=50, l=50, t=50),
             hovermode="closest",
         ),
@@ -154,7 +154,7 @@ def get_scatterplot_2d(
         trace = go.Scattergl(
             x=dff[x_axis],
             y=dff[y_axis],
-            customdata=df[metadata_cols],
+            customdata=dff[metadata_cols],
             text=dff.index,
             mode="markers",
             opacity=0.65,
