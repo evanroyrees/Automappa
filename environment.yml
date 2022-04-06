@@ -16,3 +16,4 @@ dependencies:
   - numpy
   - pandas
   - plotly
+  - python-dotenv

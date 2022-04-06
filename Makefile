@@ -49,6 +49,18 @@ image: Dockerfile
 install: 
 	$(PYTHON_INTERPRETER) -m pip install . --ignore-installed --no-deps -vvv
 
+## docker compose build from docker-compose.yml
+build: docker-compose.yml
+	docker compose build
+
+## docker compose up from docker-compose.yml
+up: docker-compose.yml
+	docker compose up
+
+## docker compose down from docker-compose.yml
+down: docker-compose.yml
+	docker compose down
+
 # Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv

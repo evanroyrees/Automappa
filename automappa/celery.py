@@ -6,16 +6,28 @@ import glob
 
 from autometa.common.external import hmmscan
 from celery import Celery, chain
+from dotenv import load_dotenv
 
-app = Celery("tasks", broker="pyamqp://guest@localhost//")
+load_dotenv()
+
+REDIS_URL = os.environ.get('REDIS_URL')
+BROKER_URL = os.environ.get('BROKER_URL')
+
+CELERY = Celery('tasks', backend=REDIS_URL, broker=BROKER_URL)
 
 
-@app.task
+# TODO: Data loader
+# TODO: Create 2d-scatterplot figure
+# TODO: Marker symbols
+# TODO: CheckM annotation
+# TODO: kmer freq. analysis pipeline
+
+@CELERY.task
 def hmmdb_formatter(hmmdb) -> None:
     hmmscan.hmmpress(hmmdb)
 
 
-@app.task
+@CELERY.task
 def scanner(seqfile, hmmdb, out) -> str:
     # NOTE: returns outfpath
     # cmd = [
