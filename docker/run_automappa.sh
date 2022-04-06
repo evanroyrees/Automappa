@@ -12,21 +12,21 @@ if [ $# -eq 0 ]
     echo "      run_automappa.sh Arguments     "
     echo "====================================="
     echo "Required"
-    echo "--binning    :   default => none"
-    echo "--markers         :   default => none"
+    echo "    --binning       : Path to main binning table"
+    echo "    --markers       : Path to markers table"
     echo
     echo "Optional"
-    echo "--imagetag        :   default => ${DEFAULT_IMAGE_TAG}"
-    echo "--containerport   :   default => ${DEFAULT_CONTAINER_PORT}"
-    echo "--localport       :   default => ${DEFAULT_LOCAL_PORT}"
-    echo "--help            :   (see automappa parameters)"
+    echo "    --imagetag      : (default -> ${DEFAULT_IMAGE_TAG})"
+    echo "    --containerport : (default -> ${DEFAULT_CONTAINER_PORT})"
+    echo "    --localport     : (default -> ${DEFAULT_LOCAL_PORT})"
+    echo "    --help          : (see automappa parameters)"
     echo "====================================="
     echo 
     exit 0
 fi
 
 if [[ "$*" == *-h* ]];then
-    docker run --detach=false --rm evanrees/automappa:$IMAGE_TAG -h
+    docker run --detach=false --rm evanrees/automappa:$IMAGE_TAG
     exit 0
 fi
 
@@ -55,6 +55,7 @@ markers_dirname="$( cd -- "$(dirname "$markers")" >/dev/null 2>&1 ; pwd -P )"
 markers_filename=$(basename $markers)
 
 echo ":=================== Attention Automappa User ====================:"
+echo 
 echo "docker Automappa settings"
 echo "        imagetag : ${imagetag}"
 echo "       localport : ${localport}"
@@ -68,23 +69,24 @@ echo "Automappa settings"
 echo "         binning : ${binning}"
 echo "         markers : ${markers}"
 echo 
+echo 
 echo ":----------------------------------------------------------------:"
-echo
-echo "  *IGNORE* :       http://localhost:${containerport} *IGNORE*     "
-echo
-echo "  Navigate to ---> http://localhost:${localport}                  "
+echo "   IGNORE 'Dash is running on http://0.0.0.0:${containerport}'    "
 echo ":----------------------------------------------------------------:"
+
+echo ":----------------------------------------------------------------:"
+echo "  Instead navigate to ------> http://localhost:${localport}       "
+echo ":----------------------------------------------------------------:"
+
+# Run docker evanrees/automappa and publish to port $localport
 docker run \
     --publish $localport:$containerport \
     --detach=false \
-    -v $binning_dirname:/binning:rw \
-    -v $markers_dirname:/markers:ro \
+    --volume $binning_dirname:/binning:rw \
+    --volume $markers_dirname:/markers:ro \
     --rm \
     evanrees/automappa:$imagetag \
       --binning-main /binning/$binning_filename \
       --markers /markers/$markers_filename \
       --port $containerport \
       --host 0.0.0.0
-
-
-# docker run -v $PWD:/binning:rw -v $PWD:/markers:ro -p 8050:8886 --rm evanrees/automappa:develop --binning-main /binning/SRR13258664.bacteria.hdbscan.main.tsv --markers /markers/SRR13258664.bacteria.markers.tsv --port 8886

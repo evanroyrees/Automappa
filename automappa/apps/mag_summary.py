@@ -14,9 +14,8 @@ import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 import plotly.io as pio
 
-from app import app
-
-from automappa.figures import taxonomy_sankey, metric_boxplot
+from automappa.app import app
+from automappa.utils.figures import taxonomy_sankey, metric_boxplot
 
 pio.templates.default = "plotly_white"
 
@@ -80,7 +79,7 @@ mag_summary_stats_datatable = [
     dcc.Loading(
         id="loading-mag-summary-stats-datatable",
         children=[html.Div(id="mag-summary-stats-datatable")],
-        type="dot",
+        type="circle",
         color="#646569",
     ),
 ]
@@ -101,8 +100,8 @@ mag_metrics_boxplot = dcc.Loading(
             config={"displayModeBar": False, "displaylogo": False},
         )
     ],
-    type="default",
-    color="#0479a8",
+    type="dot",
+    color="#646569",
 )
 
 mag_gc_content_boxplot = dcc.Loading(
@@ -113,8 +112,8 @@ mag_gc_content_boxplot = dcc.Loading(
             config={"displayModeBar": False, "displaylogo": False},
         )
     ],
-    type="dot",
-    color="#646569",
+    type="default",
+    color="#0479a8",
 )
 
 mag_length_boxplot = dcc.Loading(
@@ -125,8 +124,8 @@ mag_length_boxplot = dcc.Loading(
             config={"displayModeBar": False, "displaylogo": False},
         )
     ],
-    type="default",
-    color="#0479a8",
+    type="dot",
+    color="#646569",
 )
 
 mag_coverage_boxplot = dcc.Loading(
@@ -137,8 +136,8 @@ mag_coverage_boxplot = dcc.Loading(
             config={"displayModeBar": False, "displaylogo": False},
         )
     ],
-    type="dot",
-    color="#646569",
+    type="default",
+    color="#0479a8",
 )
 
 ########################################################################
@@ -230,7 +229,6 @@ def mag_overview_metrics_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(df=mag_summary_df, metrics=["completeness", "purity"])
     return fig
 
@@ -250,7 +248,6 @@ def mag_overview_gc_content_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(df=mag_summary_df, metrics=["gc_content"])
     fig.update_traces(name="GC Content")
     return fig
@@ -271,7 +268,6 @@ def mag_overview_length_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(mag_summary_df, metrics=["length"])
     return fig
 
@@ -291,7 +287,6 @@ def mag_overview_coverage_boxplot_callback(
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_summary_df = mag_summary_df.loc[mag_summary_df[cluster_col].ne("unclustered")]
-    mag_summary_df = mag_summary_df.round(2)
     fig = metric_boxplot(mag_summary_df, metrics=["coverage"])
     return fig
 
@@ -352,8 +347,6 @@ def mag_summary_stats_datatable_callback(
                     "min_coverage": bin_df.coverage.min(),
                     "max_coverage": bin_df.coverage.max(),
                     "std_coverage": bin_df.coverage.std(),
-                    "completeness": pd.NA,
-                    "purity": pd.NA,
                     "num_total_markers": total_markers,
                     f"num_unique_markers (expected {num_expected_markers})": num_markers_present,
                     "num_single_copy_markers": num_single_copy_markers,
@@ -361,11 +354,15 @@ def mag_summary_stats_datatable_callback(
             ]
         ).convert_dtypes()
     else:
-        stats_df = get_metabin_stats(
-            bin_df=bin_df, markers=markers, cluster_col=cluster_col
-        ).reset_index()
-    stats_df = stats_df.fillna("NA").round(2)
-    stats_df = stats_df.drop(columns=["size_pct", "seqs_pct"], errors="ignore")
+        stats_df = (
+            get_metabin_stats(
+                bin_df=bin_df.set_index("contig"),
+                markers=markers,
+                cluster_col=cluster_col,
+            )
+            .reset_index()
+            .fillna(0)
+        )
     return DataTable(
         data=stats_df.to_dict("records"),
         columns=[
