@@ -20,7 +20,7 @@ setup(
     python_requires=">=3.7",
     version=version,
     packages=find_packages(exclude=["tests"]),
-    package_data={"": ["app/assets/*"]},
+    package_data={"": ["assets/*"]},
     entry_points={
         "console_scripts": [
             "automappa = automappa.__main__:main",
@@ -32,6 +32,10 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/WiscEvan/Automappa",
+    project_urls={
+        "Bug Tracker": "https://github.com/WiscEvan/Automappa/issues",
+        "Bioconda": "https://anaconda.org/bioconda/automappa",
+    },
     license="GNU Affero General Public License v3 or later (AGPLv3+)",
     classifiers=[
         "Programming Language :: Python",

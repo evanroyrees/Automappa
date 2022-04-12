@@ -16,4 +16,10 @@ dependencies:
   - numpy
   - pandas
   - plotly
+<<<<<<< Updated upstream
   - python-dotenv
+=======
+  - pip
+  - pip:
+    - geom-median
+>>>>>>> Stashed changes

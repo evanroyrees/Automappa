@@ -10,3 +10,4 @@ dist
 build
 Automappa.egg-info
 .env
+data
