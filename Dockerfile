@@ -2,8 +2,9 @@ FROM condaforge/miniforge3:latest
 
 COPY environment.yml ./environment.yml
 
-RUN conda env update -n base -f=environment.yml \
-    && conda clean --all --force-pkgs-dirs --yes
+RUN conda install --prune --name base mamba --yes
+RUN mamba env update --name base --file=./environment.yml \
+    && mamba clean --all --force-pkgs-dirs --yes
 
 # Test command is functional
 COPY . /Automappa/
@@ -11,5 +12,8 @@ WORKDIR /Automappa/
 RUN python -m pip install . --ignore-installed --no-deps -vvv
 RUN automappa -h
 
-CMD [ "-h" ]
-ENTRYPOINT [ "automappa" ]
+# Create an unprivileged user for running our Python code.
+RUN adduser --disabled-password --gecos '' automappa
+
+# CMD [ "-h" ]
+# ENTRYPOINT [ "automappa" ]

@@ -1,3 +1,3 @@
-#!/bin/sh
+#!/usr/bin/env bash
 cd automappa
-su -m automappa -c "celery -A tasks worker --loglevel INFO"  
+su -m automappa -c "celery --app=tasks worker --loglevel INFO"

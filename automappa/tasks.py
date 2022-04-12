@@ -1,23 +1,35 @@
 #!/usr/bin/env python
 
 
-
 import os
 import glob
 import pandas as pd
 
 from geom_median.numpy import compute_geometric_median
+from celery.utils.log import get_task_logger
 from celery import Celery, chain
+from celery.result import AsyncResult
+
 from dotenv import load_dotenv
+
 from autometa.common.external import hmmscan
+from autometa.common.kmers import normalize,embed,count
 
 load_dotenv()
 
-REDIS_URL = os.environ.get('REDIS_URL')
-BROKER_URL = os.environ.get('BROKER_URL')
+CELERY_REDIS_URL = os.environ.get('CELERY_REDIS_URL')
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
 
-CELERY = Celery('tasks', backend=REDIS_URL, broker=BROKER_URL)
+queue = Celery(__name__, backend=CELERY_REDIS_URL, broker=CELERY_BROKER_URL)
 
+logger = get_task_logger(__name__)
+
+def get_job(job_id):
+    '''
+    To be called from automappa web app.
+    The job ID is passed and the celery job is returned.
+    '''
+    return AsyncResult(job_id, app=queue)
 
 # TODO: Data loader
 # TODO: Create 2d-scatterplot figure
@@ -26,12 +38,26 @@ CELERY = Celery('tasks', backend=REDIS_URL, broker=BROKER_URL)
 # TODO: kmer freq. analysis pipeline
 # TODO: scatterplot 2-d embedding views
 
-@CELERY.task
+@queue.task
+def get_embedding(assembly: str, norm_method: str= "am_clr", embed_method:str="densmap"):
+    counts = count(
+        assembly=assembly,
+        size=5,
+        out=None,
+        force=False,
+        verbose=True,
+        cpus=1,
+    )
+    norm_df = normalize(counts, method=norm_method)
+    return embed(norm_df, method=embed_method, embed_dimensions=2)
+
+
+@queue.task
 def hmmdb_formatter(hmmdb) -> None:
     hmmscan.hmmpress(hmmdb)
 
 
-@CELERY.task
+@queue.task
 def scanner(seqfile, hmmdb, out) -> str:
     # NOTE: returns outfpath
     # cmd = [
@@ -56,23 +82,6 @@ def scanner(seqfile, hmmdb, out) -> str:
         seed=42,
         force=True,
     )
-
-
-if __name__ == "__main__":
-    hmmdb_dir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/hmms"
-    orfs_dir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/orfs"
-    outdir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/hmmscan"
-    if not os.path.exists(outdir) or not os.path.isdir(outdir):
-        os.makedirs(outdir)
-    for seqfile in glob.glob(os.path.join(orfs_dir, "*.orfs.faa")):
-        hmmdb_filename = os.path.basename(seqfile).replace(".orfs.faa", ".hmm")
-        hmmdb = os.path.join(hmmdb_dir, hmmdb_filename)
-        if not os.path.exists(hmmdb):
-            continue
-        outfilename = os.path.basename(seqfile).replace(".faa", ".hmmscan.tsv")
-        out = os.path.join(outdir, outfilename)
-        hmmdb_formatter.s(hmmdb).apply_async()
-        scanner.s(seqfile, hmmdb, out).apply_async(countdown=2)
 
 
 def get_clusters_geom_medians(df: pd.DataFrame, cluster_col: str = "cluster", weight_col: str='length') -> pd.DataFrame:
@@ -106,3 +115,20 @@ def get_clusters_geom_medians(df: pd.DataFrame, cluster_col: str = "cluster", we
         medians.append({cluster_col: cluster, "x_1": median[0], "x_2": median[1], "termination": out.termination, "weighted":weight_col})
     medians_df = pd.DataFrame(medians)
     return medians_df
+
+
+if __name__ == "__main__":
+    hmmdb_dir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/hmms"
+    orfs_dir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/orfs"
+    outdir = "/Users/rees/Wisc/kwan/for_brian/complex_metagenomes/marker_annotater/test_data/hmmscan"
+    if not os.path.exists(outdir) or not os.path.isdir(outdir):
+        os.makedirs(outdir)
+    for seqfile in glob.glob(os.path.join(orfs_dir, "*.orfs.faa")):
+        hmmdb_filename = os.path.basename(seqfile).replace(".orfs.faa", ".hmm")
+        hmmdb = os.path.join(hmmdb_dir, hmmdb_filename)
+        if not os.path.exists(hmmdb):
+            continue
+        outfilename = os.path.basename(seqfile).replace(".faa", ".hmmscan.tsv")
+        out = os.path.join(outdir, outfilename)
+        hmmdb_formatter.s(hmmdb).apply_async()
+        scanner.s(seqfile, hmmdb, out).apply_async(countdown=2)

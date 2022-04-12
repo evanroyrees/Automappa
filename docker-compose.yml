@@ -6,8 +6,8 @@ services:
     image: redis:latest
     hostname: redis
 
-  rabbit:
-    hostname: rabbit
+  rabbitmq:
+    hostname: rabbitmq
     image: rabbitmq:latest
     environment:
       - RABBITMQ_DEFAULT_USER=admin
@@ -24,18 +24,19 @@ services:
     ports:
       - "5000:5000"
     links:
-      - rabbit
+      - rabbitmq
       - redis
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ./automappa/utils/run_celery.sh
+    command: celery --app=automappa.tasks.queue worker --loglevel INFO
     volumes:
       - .:/automappa
     links:
-      - rabbit
+      - rabbitmq
       - redis
     depends_on:
-      - rabbit
+      - rabbitmq
+      - redis
