@@ -9,3 +9,5 @@ app/__pycache__
 dist
 build
 Automappa.egg-info
+.env
+data

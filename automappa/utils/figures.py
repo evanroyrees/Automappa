@@ -6,7 +6,6 @@ import pandas as pd
 from dash.exceptions import PreventUpdate
 from plotly import graph_objects as go
 
-
 def taxonomy_sankey(df: pd.DataFrame, selected_rank: str = "species") -> go.Figure:
     ranks = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
     n_ranks = len(ranks[: ranks.index(selected_rank)])
@@ -111,6 +110,8 @@ def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
         x_ceil = np.ceil(x_min_scaler / x_max_scaler)
     x_scaled = x_ceil * 2 + 4
     return x_scaled
+
+
 
 
 def get_scatterplot_2d(

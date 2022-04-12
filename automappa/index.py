@@ -115,11 +115,24 @@ def main():
 
     # Check dataset size for dcc.Store(...) with browser limits...
     # For details see: https://stackoverflow.com/a/61018107 and https://arty.name/localstorage.html
-    chrome_browser_quota = 5200000
+    chrome_browser_quota = 5_200_000
     dataset_chars = len(binning.to_json(orient="split"))
     if dataset_chars >= chrome_browser_quota:
-        logger.warning(f"{args.binning_main} exceeds browser storage limits ({dataset_chars} > {chrome_browser_quota}).")
+        logger.warning(f"{args.binning_main} exceeds browser storage limits ({dataset_chars:,} > {chrome_browser_quota:,}).")
         logger.warning("Persisting refinements is DISABLED!")
+
+        browser_storage_toast = dbc.Toast(
+            f"{args.binning_main} exceeds browser storage limits ({dataset_chars:,} > {chrome_browser_quota:,}).",
+            id="positioned-toast",
+            header="Persisting refinements DISABLED",
+            is_open=True,
+            dismissable=True,
+            icon="danger",
+            # top: 66 positions the toast below the navbar
+            style={"position": "fixed", "top": 66, "right": 10, "width": 350},
+        )
+    else:
+        browser_storage_toast = dbc.Toast(is_open=False)
 
     # Metagenome Annotations Store
     metagenome_annotations_store = dcc.Store(
@@ -197,6 +210,7 @@ def main():
                 children=[home_tab, refinement_tab, summary_tab],
                 className="nav-fill",
             ),
+            html.Div(browser_storage_toast),
             html.Div(id="tab-content"),
         ],
         fluid=True,
