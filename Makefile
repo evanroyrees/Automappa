@@ -55,7 +55,7 @@ build: docker-compose.yml
 
 ## docker compose up from docker-compose.yml
 up: docker-compose.yml
-	docker compose up
+	docker compose --remove-orphans up
 
 ## docker compose down from docker-compose.yml
 down: docker-compose.yml
@@ -76,13 +76,13 @@ test_environment: scripts/test_environment.py
 	$(PYTHON_INTERPRETER) $<
 
 ## Set up python interpreter environment
-create_environment: requirements.txt
+create_environment: environment.yml
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
+	mamba env create --name $(PROJECT_NAME) --file=$<
 else
-	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
+	mamba env create --name $(PROJECT_NAME) --file=$<
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else

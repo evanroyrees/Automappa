@@ -28,7 +28,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
 @app.callback(Output("tab-content", "children"), [Input("tabs", "active_tab")])
 def render_content(active_tab):
     layouts = {
@@ -118,7 +117,9 @@ def main():
     chrome_browser_quota = 5_200_000
     dataset_chars = len(binning.to_json(orient="split"))
     if dataset_chars >= chrome_browser_quota:
-        logger.warning(f"{args.binning_main} exceeds browser storage limits ({dataset_chars:,} > {chrome_browser_quota:,}).")
+        logger.warning(
+            f"{args.binning_main} exceeds browser storage limits ({dataset_chars:,} > {chrome_browser_quota:,})."
+        )
         logger.warning("Persisting refinements is DISABLED!")
 
         browser_storage_toast = dbc.Toast(
@@ -185,7 +186,9 @@ def main():
     )
 
     if args.clear_store_data:
-        logger.info(f"Store data cleared. Now re-run automappa *without* --clear-store-data")
+        logger.info(
+            f"Store data cleared. Now re-run automappa *without* --clear-store-data"
+        )
         exit()
 
     logger.info(f"binning shape:\t\t{binning.shape}")

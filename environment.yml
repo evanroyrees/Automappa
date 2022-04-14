@@ -16,7 +16,10 @@ dependencies:
   - numpy
   - pandas
   - plotly
+  - psycopg2
   - python-dotenv
+  - sqlalchemy
   - pip
   - pip:
     - geom-median
+    - dash-uploader

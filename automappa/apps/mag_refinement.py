@@ -19,6 +19,7 @@ import plotly.io as pio
 from automappa.app import app
 
 from automappa.utils.figures import (
+    format_axis_title,
     get_scatterplot_2d,
     taxonomy_sankey,
     get_scatterplot_3d,
@@ -42,6 +43,17 @@ color_by_col_dropdown = [
         clearable=False,
     ),
 ]
+
+# Scatterplot 2D Legend Toggle
+scatterplot_2d_legend_toggle = daq.ToggleSwitch(
+    id="scatterplot-2d-legend-toggle",
+    size=40,
+    color="#c5040d",
+    label="Legend",
+    labelPosition="top",
+    vertical=False,
+    value=True,
+)
 
 scatterplot_2d_xaxis_dropdown = [
     html.Label("X-axis:"),
@@ -73,6 +85,17 @@ scatterplot_2d_yaxis_dropdown = [
     ),
 ]
 
+# Scatterplot 3D Legend Toggle
+scatterplot_3d_legend_toggle = daq.ToggleSwitch(
+    id="scatterplot-3d-legend-toggle",
+    size=40,
+    color="#c5040d",
+    label="Legend",
+    labelPosition="top",
+    vertical=False,
+    value=True,
+)
+
 scatterplot_3d_zaxis_dropdown = [
     html.Label("Z-axis:"),
     dcc.Dropdown(
@@ -102,28 +125,6 @@ taxa_rank_dropdown = [
         clearable=False,
     ),
 ]
-
-# Scatterplot 2D Legend Toggle
-scatterplot_2d_legend_toggle = daq.ToggleSwitch(
-    id="show-legend-toggle",
-    size=40,
-    color="#c5040d",
-    label="Legend",
-    labelPosition="top",
-    vertical=False,
-    value=True,
-)
-
-# Scatterplot 3D Legend Toggle
-scatterplot_3d_legend_toggle = daq.ToggleSwitch(
-    id="scatterplot-3d-legend-toggle",
-    size=40,
-    color="#c5040d",
-    label="Legend",
-    labelPosition="top",
-    vertical=False,
-    value=True,
-)
 
 # Download Refinements Button
 binning_refinements_download_button = [
@@ -541,7 +542,7 @@ def update_mag_metrics_datatable_callback(
         Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
-        Input("show-legend-toggle", "value"),
+        Input("scatterplot-2d-legend-toggle", "value"),
         Input("color-by-column", "value"),
         Input("hide-selections-toggle", "value"),
     ],
@@ -561,9 +562,17 @@ def scatterplot_2d_figure_callback(
     markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
         "contig"
     )
-    color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
+    if color_by_col not in bin_df.columns:
+        for col in ["phylum", "class", "order", "family"]:
+            if col in bin_df.columns:
+                color_by_col = col
+                break
+    if color_by_col not in bin_df.columns:
+        raise ValueError(
+            f"No columns were found in binning-main that could be used to group traces. {color_by_col} not found in table..."
+        )
+
     # Subset metagenome-annotations by selections iff selections have been made
-    bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
     if hide_selection_toggle:
         refine_df = pd.read_json(refinement, orient="split").set_index("contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
@@ -576,13 +585,23 @@ def scatterplot_2d_figure_callback(
             bin_df.drop(
                 refined_contigs_index, axis="index", inplace=True, errors="ignore"
             )
-
+    # TODO: Refactor figure s.t. updates are applied in
+    # batches for respective styling,layout,traces, etc.
+    # TODO: Put figure or traces in store, get/update/select
+    # based on current contig selections
     fig = get_scatterplot_2d(
         bin_df,
         x_axis=xaxis_column,
         y_axis=yaxis_column,
         color_by_col=color_by_col,
+        fillna="unclustered",
     )
+
+    with fig.batch_update():
+        fig.layout.xaxis.title = format_axis_title(xaxis_column)
+        fig.layout.yaxis.title = format_axis_title(yaxis_column)
+        fig.layout.legend.title = color_by_col.title()
+        fig.layout.showlegend = show_legend
 
     # Update markers with symbol and size corresponding to marker count
     fig.for_each_trace(
@@ -591,7 +610,6 @@ def scatterplot_2d_figure_callback(
             marker_size=markers.marker_size.loc[trace.text],
         )
     )
-    fig.update_layout(showlegend=show_legend)
     return fig
 
 
@@ -609,9 +627,9 @@ def taxonomy_distribution_figure_callback(
     selected_rank: str,
 ) -> go.Figure:
     df = pd.read_json(annotations, orient="split")
-    if selected_contigs:
-        ctg_list = {point["text"] for point in selected_contigs["points"]}
-        df = df[df.contig.isin(ctg_list)]
+    if selected_contigs and selected_contigs["points"]:
+        contigs = {point["text"] for point in selected_contigs["points"]}
+        df = df[df.contig.isin[contigs]]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
     return fig
 
@@ -636,7 +654,7 @@ def scatterplot_3d_figure_callback(
     df = pd.read_json(annotations, orient="split")
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     if not selected_contigs:
-        contigs = df.contig.tolist()
+        contigs = set(df.contig.tolist())
     else:
         contigs = {point["text"] for point in selected_contigs["points"]}
     # Subset DataFrame by selected contigs
@@ -647,6 +665,7 @@ def scatterplot_3d_figure_callback(
     else:
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
+
     fig = get_scatterplot_3d(
         df=df,
         x_axis="x_1",
