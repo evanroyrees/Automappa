@@ -20,20 +20,20 @@ services:
   #   image: rabbitmq:latest
   #   env_file:
   #     - .env
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    hostname: web
-    command: automappa
-    volumes:
-      - .:/automappa 
-    ports:
-      - "5000:5000"
-    links:
-      # - rabbitmq
-      # - redis
-      - postgres
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   hostname: web
+  #   command: automappa
+  #   volumes:
+  #     - .:/automappa 
+  #   ports:
+  #     - "5000:5000"
+  #   links:
+  #     # - rabbitmq
+  #     # - redis
+  #     - postgres
 
   # worker:
   #   build:

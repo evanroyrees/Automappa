@@ -739,8 +739,8 @@ def mag_summary_length_boxplot_callback(
     Output("refinements-table", "children"),
     [Input("refinement-data", "data")],
 )
-def refinements_table_callback(df: "str | None") -> DataTable:
-    df = pd.read_json(df, orient="split")
+def refinements_table_callback(refinement_store_data: "str | None") -> DataTable:
+    df = pd.read_json(refinement_store_data, orient="split")
     return DataTable(
         data=df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in df.columns],

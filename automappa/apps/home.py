@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 import os
 import logging
 from pathlib import Path
-from dash import html
-from dash import dcc
+from dash import html, dcc
+from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
+import pandas as pd
 import plotly.io as pio
 
 import dash_uploader as du
 
 from automappa.app import app
 from automappa.utils.serializers import (
+    convert_bytes,
     store_binning_main,
     store_markers,
     store_metagenome,
@@ -114,9 +117,6 @@ upload_modal = html.Div(
                         binning_main_upload,
                         markers_upload,
                         metagenome_upload,
-                        html.Div(id="output-binning-main-data-upload"),
-                        html.Div(id="output-markers-data-upload"),
-                        html.Div(id="output-metagenome-data-upload"),
                     ]
                 ),
                 dbc.ModalFooter(
@@ -132,6 +132,10 @@ upload_modal = html.Div(
         ),
     ],
 )
+
+# html.Div(id="output-binning-main-data-upload"),
+html.Div(id="output-markers-data-upload"),
+html.Div(id="output-metagenome-data-upload"),
 
 example_card = dbc.Card(
     [
@@ -188,136 +192,261 @@ row_example_cards = dbc.Row(
 binning_main_upload_store = dcc.Store(
     id="binning-main-upload-store", storage_type="local"
 )
+markers_upload_store = dcc.Store(id="markers-upload-store", storage_type="local")
+metagenome_upload_store = dcc.Store(id="metagenome-upload-store", storage_type="local")
+samples_store = dcc.Store(id="samples-store", storage_type="local")
+
+# samples_datatable = html.Div(id="samples-datatable")
+samples_datatable = dcc.Loading(
+        id="loading-samples-datatable",
+        children=[html.Div(id="samples-datatable")],
+        type="dot",
+        color="#646569",
+    ),
 
 layout = dbc.Container(
     children=[
         binning_main_upload_store,
+        markers_upload_store,
+        metagenome_upload_store,
+        samples_store,
         dbc.Row(upload_modal),
         html.Br(),
-        row_example_cards,
+        # row_example_cards,
+        dbc.Row(samples_datatable),
     ],
     fluid=True,
 )
 
 
 @app.callback(
-    Output("binning-main-samples-cardheader", "children"),
-    [Input("binning-main-upload-store", "modified_timestamp")],
-    [State("binning-main-upload-store", "data")],
+    Output('samples-store', 'data'),
+    [
+        Input("binning-main-upload-store", "modified_timestamp"),
+        Input("markers-upload-store", "modified_timestamp"),
+        Input("metagenome-upload-store", "modified_timestamp"),
+    ],
+    [
+    State("binning-main-upload-store", "data"),
+    State("markers-upload-store", "data"),
+    State("metagenome-upload-store", "data"),
+    State('samples-store', 'data'),
+    ],
 )
-def on_binning_main_upload_store_data(timestamp, data):
-    if timestamp is None:
+def on_binning_main_upload_store_data(
+    binning_uploads_timestamp,
+    markers_uploads_timestamp,
+    metagenome_uploads_timestamp,
+    binning_uploads,
+    markers_uploads,
+    metagenome_uploads,
+    samples_store_data,
+):
+    if (
+        binning_uploads is None
+        and markers_uploads is None
+        and metagenome_uploads is None
+    ):
         raise PreventUpdate
-    if data is None:
-        return "No samples uploaded"
-    print(data)
-    samples_count = len(data)
-    if samples_count and samples_count == 1:
-        return f"{samples_count} sample uploaded"
-    return f"{samples_count} samples uploaded"
+    if (
+        binning_uploads_timestamp is None
+        and markers_uploads_timestamp is None
+        and metagenome_uploads_timestamp is None
+    ):
+        raise PreventUpdate
+    # We need to ensure we prevent an update if there has not been one, otherwise all of our datastore
+    # gets removed...
+    binning_samples_df = pd.read_json(binning_uploads, orient="split") if binning_uploads else pd.DataFrame()
+    marker_samples_df = pd.read_json(markers_uploads, orient="split") if markers_uploads else pd.DataFrame()
+    metagenome_samples_df = pd.read_json(metagenome_uploads, orient="split") if metagenome_uploads else pd.DataFrame()
+    samples_store_df = pd.read_json(samples_store_data, orient='split') if samples_store_data else pd.DataFrame()
+    samples_df = pd.concat(
+        [
+            samples_store_df,
+            binning_samples_df,
+            marker_samples_df, 
+            metagenome_samples_df,
+        ]
+    ).drop_duplicates(subset=["table_id"])
 
+    logger.debug(f"{samples_df.shape[0]:,} samples retrieved from data upload stores")
 
-# TODO: Add Output('store-id', 'data') s.t. upload-id respective to files are available
-# for later retrieval
-# Chain callback... 
-# Output("binning-main-upload-store", "data")
-# Input('output-binning-main-data-upload', 'children'),
+    return samples_df.to_json(orient='split')
+
 @app.callback(
-    Output('output-binning-main-data-upload', 'children'),
-    # Output("binning-main-upload-store", "data"),
-    [Input('upload-binning-main-data', 'isCompleted')],
-    [State('upload-binning-main-data', 'fileNames'),
-     State('upload-binning-main-data', 'upload_id')],
+    Output("samples-datatable", "children"),
+    [Input('samples-store', 'data')],
+    State('samples-store', 'data'),
+)
+def on_samples_store_data(samples_store_data, new_samples_store_data):
+    # if samples_store_data is None:
+    #     # Show upload button...?
+    #     raise PreventUpdate
+
+    # import pdb;pdb.set_trace()
+
+    samples_df = pd.read_json(samples_store_data, orient='split')
+    if new_samples_store_data is not None:
+        new_samples_df = pd.read_json(new_samples_store_data, orient='split')
+        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(subset=['table_id'])
+
+    logger.debug(f"retrieved {samples_df.shape[0]:,} samples from samples store")
+
+    if samples_df.empty:
+        raise PreventUpdate
+
+    return DataTable(
+        data=samples_df.to_dict("records"),
+        columns=[{"id": col, "name": col, "editable": False} for col in samples_df.columns],
+        
+    )
+
+
+@app.callback(
+    Output("binning-main-upload-store", "data"),
+    [Input("upload-binning-main-data", "isCompleted")],
+    [
+        State("upload-binning-main-data", "fileNames"),
+        State("upload-binning-main-data", "upload_id"),
+    ],
 )
 def on_binning_main_upload(iscompleted, filenames, upload_id):
     if not iscompleted:
         return
+    if filenames is None:
+        return
+    if upload_id:
+        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    else:
+        root_folder = Path(UPLOAD_FOLDER_ROOT)
 
-    out = []
-    if filenames is not None:
-        if upload_id:
-            root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
-        else:
-            root_folder = Path(UPLOAD_FOLDER_ROOT)
+    uploaded_files = []
+    for filename in filenames:
+        file = root_folder / filename
+        uploaded_files.append(file)
 
-        for filename in filenames:
-            file = root_folder / filename
-            out.append(file)
-        if len(out) > 1:
-            return html.Div(f"You must only upload one file at a time! {len(out)} uploaded...")
-        binning_main = out[0]
-        session_uid = os.path.basename(os.path.dirname(binning_main))
-        info = store_binning_main(binning_main, session_uid)
-        return info
-        # # return info, {upload_id: binning_main}
-        # binning_main_filepath = str(binning_main.resolve())
-        # if uploaded_data is None or upload_id not in uploaded_data:
-        #     uploaded_data = {upload_id: [binning_main_filepath]}
-        # elif upload_id in uploaded_data:
-        #     uploaded_data[upload_id].append(binning_main_filepath)
-        # return uploaded_data
+    if len(uploaded_files) > 1:
+        logger.error("You may only upload one file at a time!")
+        raise PreventUpdate
 
-    return html.Div("No Files Uploaded Yet!")
+    filepath = uploaded_files[0]
+    filename = os.path.basename(filepath)
+    unit = "MB"
+    filesize = convert_bytes(os.path.getsize(filepath), unit)
+    timestamp = os.path.getmtime(filepath)
+    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
+    table_id = store_binning_main(filepath)
+
+    return pd.DataFrame(
+        [
+            {
+                "filetype": "binning_main",
+                "filename": filename,
+                f"filesize ({unit})": filesize,
+                "table_id": table_id,
+                "uploaded": last_modified,
+                "timestamp": timestamp,
+            }
+        ]
+    ).to_json(orient="split")
+
 
 @app.callback(
-    Output('output-markers-data-upload', 'children'),
-    [Input('upload-markers-data', 'isCompleted')],
-    [State('upload-markers-data', 'fileNames'),
-     State('upload-markers-data', 'upload_id')],
+    Output("markers-upload-store", "data"),
+    [Input("upload-markers-data", "isCompleted")],
+    [
+        State("upload-markers-data", "fileNames"),
+        State("upload-markers-data", "upload_id"),
+    ],
 )
 def on_markers_upload(iscompleted, filenames, upload_id):
     if not iscompleted:
         return
+    if filenames is None:
+        return
+    if upload_id:
+        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    else:
+        root_folder = Path(UPLOAD_FOLDER_ROOT)
 
-    out = []
-    if filenames is not None:
-        if upload_id:
-            root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
-        else:
-            root_folder = Path(UPLOAD_FOLDER_ROOT)
+    uploaded_files = []
+    for filename in filenames:
+        file = root_folder / filename
+        uploaded_files.append(file)
+    if len(uploaded_files) > 1:
+        logger.error("You may only upload one file at a time!")
+        raise PreventUpdate
 
-        for filename in filenames:
-            file = root_folder / filename
-            out.append(file)
-        if len(out) > 1:
-            return html.Div(f"You must only upload one file at a time! {len(out)} uploaded...")
-        markers_fpath = out[0]
-        session_uid = os.path.basename(os.path.dirname(markers_fpath))
-        info = store_markers(markers_fpath, session_uid=session_uid)
-        return info
+    filepath = uploaded_files[0]
+    filename = os.path.basename(filepath)
+    unit = "MB"
+    filesize = convert_bytes(os.path.getsize(filepath), unit)
+    timestamp = os.path.getmtime(filepath)
+    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
+    table_id = store_markers(filepath)
 
-    return html.Div("No Files Uploaded Yet!")
+    return pd.DataFrame(
+        [
+            {
+                "filetype": "markers",
+                "filename": filename,
+                f"filesize ({unit})": filesize,
+                "timestamp": timestamp,
+                "uploaded": last_modified,
+                "table_id": table_id,
+            }
+        ]
+    ).to_json(orient="split")
+
 
 # For information on the dash_uploader component and callbacks...
 # See https://github.com/np-8/dash-uploader#example-with-callback-and-other-options
 @app.callback(
-    Output('output-metagenome-data-upload', 'children'),
-    [Input('upload-metagenome-data', 'isCompleted')],
-    [State('upload-metagenome-data', 'fileNames'),
-     State('upload-metagenome-data', 'upload_id')],
+    Output("metagenome-upload-store", "data"),
+    [Input("upload-metagenome-data", "isCompleted")],
+    [
+        State("upload-metagenome-data", "fileNames"),
+        State("upload-metagenome-data", "upload_id"),
+    ],
 )
 def on_metagenome_upload(iscompleted, filenames, upload_id):
     if not iscompleted:
         return
+    if filenames is None:
+        return
+    if upload_id:
+        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+    else:
+        root_folder = Path(UPLOAD_FOLDER_ROOT)
 
-    out = []
-    if filenames is not None:
-        if upload_id:
-            root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
-        else:
-            root_folder = Path(UPLOAD_FOLDER_ROOT)
+    uploaded_files = []
+    for filename in filenames:
+        file = root_folder / filename
+        uploaded_files.append(file)
+    if len(uploaded_files) > 1:
+        logger.error("You may only upload one file at a time!")
+        raise PreventUpdate
 
-        for filename in filenames:
-            file = root_folder / filename
-            out.append(file)
-        if len(out) > 1:
-            return html.Div(f"You must only upload one file at a time! {len(out)} uploaded...")
-        filepath = out[0]
-        session_uid = os.path.basename(os.path.dirname(filepath))
-        info = store_metagenome(filepath, session_uid=session_uid)
-        return info
+    filepath = uploaded_files[0]
+    filename = os.path.basename(filepath)
+    unit = "MB"
+    filesize = convert_bytes(os.path.getsize(filepath), unit)
+    timestamp = os.path.getmtime(filepath)
+    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
+    table_id = store_metagenome(filepath)
 
-    return html.Div("No Files Uploaded Yet!")
+    return pd.DataFrame(
+        [
+            {
+                "filetype": "metagenome",
+                "filename": filename,
+                f"filesize ({unit})": filesize,
+                "timestamp": timestamp,
+                "uploaded": last_modified,
+                "table_id": table_id,
+            }
+        ]
+    ).to_json(orient="split")
 
 
 @app.callback(

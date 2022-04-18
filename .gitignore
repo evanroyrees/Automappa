@@ -11,3 +11,4 @@ build
 Automappa.egg-info
 .env
 data
+db-data

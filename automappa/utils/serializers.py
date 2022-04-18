@@ -2,17 +2,15 @@
 
 import os
 import logging
-import base64
-from datetime import datetime
-import io
+from pathlib import Path
+from typing import List
 import pandas as pd
 
-from dash import html
 
-import psycopg2
 from sqlalchemy import create_engine
 
 from autometa.common.markers import load as load_markers
+from autometa.common.utilities import calc_checksum
 from autometa.common.metagenome import Metagenome
 
 logging.basicConfig(
@@ -23,122 +21,187 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
 POSTGRES_URL = os.environ.get("POSTGRES_URL")
 
-def parse_contig_annotations(contents: str, filename: str) -> pd.DataFrame:
-    content_type, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-    df = pd.DataFrame()
-    if "csv" in filename:
-        # Assume that the user uploaded a CSV file
-        df = pd.read_csv(io.StringIO(decoded.decode("utf-8")))
-    elif "xls" in filename:
-        # Assume that the user uploaded an excel file
-        df = pd.read_excel(io.BytesIO(decoded))
-    elif ".tsv" in filename:
-        # Assume that the user uploaded an excel file
-        df = pd.read_csv(
-            io.StringIO(decoded.decode("utf-8")),
-            sep="\t",
-        )
-    if "contig" not in df.columns:
-        raise ValueError(f"contig not in {df.columns}")
-    if df.empty:
-        raise ValueError(f"{filename} is empty!")
-    return df
 
+def get_uploaded_datatables() -> List[str]:
+    engine = create_engine(url=POSTGRES_URL, echo=False)
+    tables = engine.table_names()
+    return tables
 
-def store_binning_main(filepath: str, session_uid: str) -> html.Div:
-    try:
-        df = pd.read_csv(filepath, sep="\t")
-        engine = create_engine(url=POSTGRES_URL, echo=False)
-        table_name = f"{session_uid}-binning"
-        df.to_sql(table_name, engine, if_exists='replace', index=False)
-        logger.debug(f"{filepath} ({df.shape[0]:,} contigs) saved to datatable {table_name}")
-    except Exception as err:
-        logger.error(err)
-        return html.Div(["There was an error processing this file."])
-    filename = os.path.basename(filepath)
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    return html.Div(
-        [
-            html.H5("binning-main annotations uploaded:"),
-            html.H6(f"filename: {filename}"),
-            html.H6(f"last modified: {last_modified}"),
-            html.H6(f"contigs: {df.shape[0]:,}, columns: {df.shape[1]}"),
-            html.Pre(f"table_name: {table_name}"),
-        ]
-    )
-
-def read_binning_main(session_uid: str)->pd.DataFrame:
-    table_name = f"{session_uid}-binning"
-    return retrieve_datatable(table_name)
-
-def retrieve_datatable(table_name: str) -> pd.DataFrame:
+def get_datatable(table_name: str) -> pd.DataFrame:
     engine = create_engine(url=POSTGRES_URL, echo=False)
     if not engine.has_table(table_name):
         tables = engine.table_names()
         raise ValueError(f"{table_name} not in postgres database! available: {tables}")
-    engine.table_names()
     df = pd.read_sql(table_name, engine).set_index("contig")
     logger.debug(f"retrieved {df.shape[0]} contigs from {table_name} datatable")
     return df
 
-def store_markers(filepath: str, session_uid: str) -> html.Div:
+
+def convert_bytes(size: int, unit: str="MB", ndigits: int= 2) -> float:
+    """Convert bytes from os.path.getsize(...) to provided `unit`
+    choices include: 'KB', 'MB' or 'GB'
+
+    Parameters
+    ----------
+    size : int
+        bytes returned from `os.path.getsize(...)`
+    unit : str, optional
+        size to convert from bytes, by default MB
+
+    Returns
+    -------
+    float
+        Converted bytes value
+    """
+    # Yoinked from 
+    # https://amiradata.com/python-get-file-size-in-kb-mb-or-gb/#Get_file_size_in_KiloBytes_MegaBytes_or_GigaBytes
+    if unit == "KB":
+        return round(size / 1024, ndigits)
+    elif unit == "MB":
+        return round(size / (1024 * 1024), ndigits)
+    elif unit == "GB":
+        return round(size / (1024 * 1024 * 1024), ndigits)
+    else:
+        return size
+
+
+def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
+    """Parse `filepath` into `pd.DataFrame` then save to postgres table
+
+    `table_id` is composed of 2 pieces:
+
+        1. md5 checksum of 'filepath'
+        2. binning
+
+        e.g. `'{checksum}-binning'`
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to binning.main.tsv Autometa results
+    if_exists : str
+        {'fail', 'replace', 'append'}, by default 'replace'
+        How to behave if the table already exists.
+
+    Returns
+    -------
+    str
+        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
+        e.g. `'{checksum}-binning'`
+    """
     try:
+        # Construct table name
+        checksum = calc_checksum(str(filepath)).split()[0]
+        table_name = f"{checksum}-binning"
+        # Read filepath contents
+        df = pd.read_csv(filepath, sep="\t")
+        # Create postgres connection then write table to DB
+        engine = create_engine(url=POSTGRES_URL, echo=False)
+        # NOTE: table_name must not exceed maximum length of 63 characters
+        df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+        logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
+    except Exception as err:
+        logger.error(err)
+        logger.error("There was an error processing this file.")
+        table_name = ""
+
+    return table_name
+
+
+
+def store_markers(filepath: Path, if_exists: str = "replace") -> str:
+    """Parse `filepath` into `pd.DataFrame` then save to postgres table
+
+    `table_id` is composed of 2 pieces:
+
+        1. md5 checksum of 'filepath'
+        2. binning
+
+        e.g. `'{checksum}-markers'`
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to markers.tsv Autometa results
+    if_exists : str
+        {'fail', 'replace', 'append'}, by default 'replace'
+        How to behave if the table already exists.
+
+    Returns
+    -------
+    str
+        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
+        e.g. `'{checksum}-markers'`
+    """
+    try:
+        # Construct table name
+        checksum = calc_checksum(str(filepath)).split()[0]
+        table_name = f"{checksum}-markers"
+        # Read filepath contents
         df = load_markers(filepath)
+        # Create postgres connection then write table to DB
         engine = create_engine(url=POSTGRES_URL, echo=False)
-        table_name = f"{session_uid}-markers"
-        df.to_sql(table_name, engine, if_exists='replace', index=True)
-        logger.debug(f"{filepath} ({df.shape[0]:,} contigs) saved to datatable {table_name}")
+        # NOTE: table_name must not exceed maximum length of 63 characters
+        df.to_sql(table_name, engine, if_exists=if_exists, index=True)
+        logger.debug(f"Saved {df.shape[0]:,} contigs and {df.shape[1]:,} markers to postgres table: {table_name}")
     except Exception as err:
         logger.error(err)
-        return html.Div(["There was an error processing this file."])
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    filename = os.path.basename(filepath)
-    return html.Div(
-        [
-            html.H5("markers annotations uploaded:"),
-            html.H6(f"filename: {filename}"),
-            html.H6(f"last modified: {last_modified}"),
-            html.H6(f"contigs: {df.shape[0]:,}, markers: {df.shape[1]}"),
-            html.Pre(f"table_name: {table_name}"),
-        ]
-    )
+        logger.error("There was an error processing this file.")
+        table_name = ""
 
+    return table_name
 
-def store_metagenome(filepath: str, session_uid: str) -> html.Div:
+def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
+    """Parse `filepath` into `pd.DataFrame` then save to postgres table
+
+    `table_id` is composed of 2 pieces:
+
+        1. md5 checksum of 'filepath'
+        2. metagenome
+
+        e.g. `'{checksum}-metagenome'`
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to metagenome.main.tsv Autometa results
+    if_exists : str
+        {'fail', 'replace', 'append'}, by default 'replace'
+        How to behave if the table already exists.
+
+    Returns
+    -------
+    str
+        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
+        e.g. `'{checksum}-metagenome'`
+    """
     try:
+        # Read filepath contents
+        logger.debug(f"{filepath} uploaded... converting for datatable...")
         metagenome = Metagenome(assembly=filepath)
-        logger.debug(f"{filepath} uploaded... saving to datatable...")
         df = pd.DataFrame(
-            [{"contig":seqrecord.id, "sequence":str(seqrecord.seq)} for seqrecord in metagenome.seqrecords]
+            [
+                {"contig": seqrecord.id, "sequence": str(seqrecord.seq)}
+                for seqrecord in metagenome.seqrecords
+            ]
         )
+        logger.debug(f"converted... saving to datatable...")
+        # Create postgres connection then write table to DB
         engine = create_engine(url=POSTGRES_URL, echo=False)
-        table_name = f"{session_uid}-metagenome-seqrecords"
-        df.to_sql(table_name, engine, if_exists='replace', index=False)
-        logger.debug(f"{filepath} ({df.shape[0]:,} contigs) saved to datatable {table_name}")
+        # NOTE: table_name must not exceed maximum length of 63 characters
+        # Construct table name
+        checksum = calc_checksum(str(filepath)).split()[0]
+        table_name = f"{checksum}-metagenome"
+        df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+        logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
     except Exception as err:
         logger.error(err)
-        return html.Div(["There was an error processing this file."])
-    filename = os.path.basename(filepath)
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    # TODO: Store parsed data
-    tables = engine.table_names()
-    return html.Div(
-        [
-            html.H5("metagenome assembly uploaded:"),
-            html.H6(f"filename: {filename}"),
-            html.H6(f"last modified: {last_modified}"),
-            html.H6(f"nseqs: {metagenome.nseqs:,}, size: {metagenome.size:,} (bp)"),
-            html.Pre(f"all tables in pgdb: {', '.join(tables)}"),
-        ]
-    )
+        logger.error("There was an error processing this file.")
+        table_name = ""
 
+    return table_name
 
 if __name__ == "__main__":
     pass

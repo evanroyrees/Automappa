@@ -12,7 +12,7 @@ app = dash.Dash(
     title="Automappa",
     external_stylesheets=[dbc.themes.LUX, dbc.icons.BOOTSTRAP],
     update_title="Automapping...",
-    suppress_callback_exceptions = True,
+    suppress_callback_exceptions=True,
 )
 
 du.configure_upload(app, os.environ.get("UPLOAD_FOLDER_ROOT"))
