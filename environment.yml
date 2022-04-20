@@ -18,6 +18,7 @@ dependencies:
   - plotly
   - psycopg2
   - python-dotenv
+  - pydantic
   - sqlalchemy
   - pip
   - pip:

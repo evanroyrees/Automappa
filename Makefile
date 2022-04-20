@@ -55,7 +55,7 @@ build: docker-compose.yml
 
 ## docker compose up from docker-compose.yml
 up: docker-compose.yml
-	docker compose up --remove-orphans
+	docker-compose up --always-recreate-deps --remove-orphans --force-recreate
 
 ## docker compose down from docker-compose.yml
 down: docker-compose.yml

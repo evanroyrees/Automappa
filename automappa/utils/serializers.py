@@ -6,8 +6,7 @@ from pathlib import Path
 from typing import List
 import pandas as pd
 
-
-from sqlalchemy import create_engine
+from automappa.db import engine
 
 from autometa.common.markers import load as load_markers
 from autometa.common.utilities import calc_checksum
@@ -21,16 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-POSTGRES_URL = os.environ.get("POSTGRES_URL")
-
-
 def get_uploaded_datatables() -> List[str]:
-    engine = create_engine(url=POSTGRES_URL, echo=False)
     tables = engine.table_names()
     return tables
 
+
 def get_datatable(table_name: str) -> pd.DataFrame:
-    engine = create_engine(url=POSTGRES_URL, echo=False)
     if not engine.has_table(table_name):
         tables = engine.table_names()
         raise ValueError(f"{table_name} not in postgres database! available: {tables}")
@@ -39,7 +34,7 @@ def get_datatable(table_name: str) -> pd.DataFrame:
     return df
 
 
-def convert_bytes(size: int, unit: str="MB", ndigits: int= 2) -> float:
+def convert_bytes(size: int, unit: str = "MB", ndigits: int = 2) -> float:
     """Convert bytes from os.path.getsize(...) to provided `unit`
     choices include: 'KB', 'MB' or 'GB'
 
@@ -55,7 +50,7 @@ def convert_bytes(size: int, unit: str="MB", ndigits: int= 2) -> float:
     float
         Converted bytes value
     """
-    # Yoinked from 
+    # Yoinked from
     # https://amiradata.com/python-get-file-size-in-kb-mb-or-gb/#Get_file_size_in_KiloBytes_MegaBytes_or_GigaBytes
     if unit == "KB":
         return round(size / 1024, ndigits)
@@ -97,8 +92,6 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
         table_name = f"{checksum}-binning"
         # Read filepath contents
         df = pd.read_csv(filepath, sep="\t")
-        # Create postgres connection then write table to DB
-        engine = create_engine(url=POSTGRES_URL, echo=False)
         # NOTE: table_name must not exceed maximum length of 63 characters
         df.to_sql(table_name, engine, if_exists=if_exists, index=False)
         logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
@@ -108,7 +101,6 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
         table_name = ""
 
     return table_name
-
 
 
 def store_markers(filepath: Path, if_exists: str = "replace") -> str:
@@ -141,17 +133,18 @@ def store_markers(filepath: Path, if_exists: str = "replace") -> str:
         table_name = f"{checksum}-markers"
         # Read filepath contents
         df = load_markers(filepath)
-        # Create postgres connection then write table to DB
-        engine = create_engine(url=POSTGRES_URL, echo=False)
         # NOTE: table_name must not exceed maximum length of 63 characters
         df.to_sql(table_name, engine, if_exists=if_exists, index=True)
-        logger.debug(f"Saved {df.shape[0]:,} contigs and {df.shape[1]:,} markers to postgres table: {table_name}")
+        logger.debug(
+            f"Saved {df.shape[0]:,} contigs and {df.shape[1]:,} markers to postgres table: {table_name}"
+        )
     except Exception as err:
         logger.error(err)
         logger.error("There was an error processing this file.")
         table_name = ""
 
     return table_name
+
 
 def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
     """Parse `filepath` into `pd.DataFrame` then save to postgres table
@@ -188,8 +181,6 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
             ]
         )
         logger.debug(f"converted... saving to datatable...")
-        # Create postgres connection then write table to DB
-        engine = create_engine(url=POSTGRES_URL, echo=False)
         # NOTE: table_name must not exceed maximum length of 63 characters
         # Construct table name
         checksum = calc_checksum(str(filepath)).split()[0]
@@ -202,6 +193,7 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
         table_name = ""
 
     return table_name
+
 
 if __name__ == "__main__":
     pass

@@ -17,6 +17,7 @@ import dash_uploader as du
 from automappa.app import app
 from automappa.utils.serializers import (
     convert_bytes,
+    get_uploaded_datatables,
     store_binning_main,
     store_markers,
     store_metagenome,
@@ -197,12 +198,14 @@ metagenome_upload_store = dcc.Store(id="metagenome-upload-store", storage_type="
 samples_store = dcc.Store(id="samples-store", storage_type="local")
 
 # samples_datatable = html.Div(id="samples-datatable")
-samples_datatable = dcc.Loading(
+samples_datatable = (
+    dcc.Loading(
         id="loading-samples-datatable",
         children=[html.Div(id="samples-datatable")],
         type="dot",
         color="#646569",
     ),
+)
 
 layout = dbc.Container(
     children=[
@@ -220,17 +223,17 @@ layout = dbc.Container(
 
 
 @app.callback(
-    Output('samples-store', 'data'),
+    Output("samples-store", "data"),
     [
         Input("binning-main-upload-store", "modified_timestamp"),
         Input("markers-upload-store", "modified_timestamp"),
         Input("metagenome-upload-store", "modified_timestamp"),
     ],
     [
-    State("binning-main-upload-store", "data"),
-    State("markers-upload-store", "data"),
-    State("metagenome-upload-store", "data"),
-    State('samples-store', 'data'),
+        State("binning-main-upload-store", "data"),
+        State("markers-upload-store", "data"),
+        State("metagenome-upload-store", "data"),
+        State("samples-store", "data"),
     ],
 )
 def on_binning_main_upload_store_data(
@@ -246,49 +249,50 @@ def on_binning_main_upload_store_data(
         binning_uploads is None
         and markers_uploads is None
         and metagenome_uploads is None
-    ):
-        raise PreventUpdate
-    if (
+    ) or (
         binning_uploads_timestamp is None
         and markers_uploads_timestamp is None
         and metagenome_uploads_timestamp is None
     ):
+        # Check if db has any samples in table
+        tables = get_uploaded_datatables()
+        if tables:
+            samples_df = pd.DataFrame(
+                [
+                    {
+                        "filetype": os.path.basename(table_id).split("-")[-1],
+                        "table_id": table_id,
+                    }
+                    for table_id in tables
+                ]
+            )
+            return samples_df.to_json(orient="split")
         raise PreventUpdate
     # We need to ensure we prevent an update if there has not been one, otherwise all of our datastore
     # gets removed...
-    binning_samples_df = pd.read_json(binning_uploads, orient="split") if binning_uploads else pd.DataFrame()
-    marker_samples_df = pd.read_json(markers_uploads, orient="split") if markers_uploads else pd.DataFrame()
-    metagenome_samples_df = pd.read_json(metagenome_uploads, orient="split") if metagenome_uploads else pd.DataFrame()
-    samples_store_df = pd.read_json(samples_store_data, orient='split') if samples_store_data else pd.DataFrame()
-    samples_df = pd.concat(
-        [
-            samples_store_df,
-            binning_samples_df,
-            marker_samples_df, 
-            metagenome_samples_df,
-        ]
-    ).drop_duplicates(subset=["table_id"])
+    samples = []
+    for data_upload in [binning_uploads, markers_uploads, metagenome_uploads, samples_store_data]:
+        df = pd.read_json(data_upload, orient="split") if data_upload else pd.DataFrame()
+        samples.append(df)
+    samples_df = pd.concat(samples).drop_duplicates(subset=["table_id"])
 
     logger.debug(f"{samples_df.shape[0]:,} samples retrieved from data upload stores")
 
-    return samples_df.to_json(orient='split')
+    return samples_df.to_json(orient="split")
+
 
 @app.callback(
     Output("samples-datatable", "children"),
-    [Input('samples-store', 'data')],
-    State('samples-store', 'data'),
+    [Input("samples-store", "data")],
+    State("samples-store", "data"),
 )
 def on_samples_store_data(samples_store_data, new_samples_store_data):
-    # if samples_store_data is None:
-    #     # Show upload button...?
-    #     raise PreventUpdate
-
-    # import pdb;pdb.set_trace()
-
-    samples_df = pd.read_json(samples_store_data, orient='split')
+    samples_df = pd.read_json(samples_store_data, orient="split")
     if new_samples_store_data is not None:
-        new_samples_df = pd.read_json(new_samples_store_data, orient='split')
-        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(subset=['table_id'])
+        new_samples_df = pd.read_json(new_samples_store_data, orient="split")
+        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(
+            subset=["table_id"]
+        )
 
     logger.debug(f"retrieved {samples_df.shape[0]:,} samples from samples store")
 
@@ -297,8 +301,9 @@ def on_samples_store_data(samples_store_data, new_samples_store_data):
 
     return DataTable(
         data=samples_df.to_dict("records"),
-        columns=[{"id": col, "name": col, "editable": False} for col in samples_df.columns],
-        
+        columns=[
+            {"id": col, "name": col, "editable": False} for col in samples_df.columns
+        ],
     )
 
 
@@ -391,9 +396,9 @@ def on_markers_upload(iscompleted, filenames, upload_id):
                 "filetype": "markers",
                 "filename": filename,
                 f"filesize ({unit})": filesize,
-                "timestamp": timestamp,
-                "uploaded": last_modified,
                 "table_id": table_id,
+                "uploaded": last_modified,
+                "timestamp": timestamp,
             }
         ]
     ).to_json(orient="split")
@@ -441,9 +446,9 @@ def on_metagenome_upload(iscompleted, filenames, upload_id):
                 "filetype": "metagenome",
                 "filename": filename,
                 f"filesize ({unit})": filesize,
-                "timestamp": timestamp,
-                "uploaded": last_modified,
                 "table_id": table_id,
+                "uploaded": last_modified,
+                "timestamp": timestamp,
             }
         ]
     ).to_json(orient="split")
