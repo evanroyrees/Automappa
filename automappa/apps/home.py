@@ -15,6 +15,7 @@ import plotly.io as pio
 import dash_uploader as du
 
 from automappa.app import app
+from automappa.settings import server
 from automappa.utils.serializers import (
     convert_bytes,
     get_uploaded_datatables,
@@ -31,8 +32,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 pio.templates.default = "plotly_white"
-
-UPLOAD_FOLDER_ROOT = os.environ.get("UPLOAD_FOLDER_ROOT")
 
 ########################################################################
 # LAYOUT
@@ -321,9 +320,9 @@ def on_binning_main_upload(iscompleted, filenames, upload_id):
     if filenames is None:
         return
     if upload_id:
-        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+        root_folder = Path(server.upload_folder_root) / upload_id
     else:
-        root_folder = Path(UPLOAD_FOLDER_ROOT)
+        root_folder = Path(server.upload_folder_root)
 
     uploaded_files = []
     for filename in filenames:
@@ -370,9 +369,9 @@ def on_markers_upload(iscompleted, filenames, upload_id):
     if filenames is None:
         return
     if upload_id:
-        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+        root_folder = Path(server.upload_folder_root) / upload_id
     else:
-        root_folder = Path(UPLOAD_FOLDER_ROOT)
+        root_folder = Path(server.upload_folder_root)
 
     uploaded_files = []
     for filename in filenames:
@@ -420,9 +419,9 @@ def on_metagenome_upload(iscompleted, filenames, upload_id):
     if filenames is None:
         return
     if upload_id:
-        root_folder = Path(UPLOAD_FOLDER_ROOT) / upload_id
+        root_folder = Path(server.upload_folder_root) / upload_id
     else:
-        root_folder = Path(UPLOAD_FOLDER_ROOT)
+        root_folder = Path(server.upload_folder_root)
 
     uploaded_files = []
     for filename in filenames:

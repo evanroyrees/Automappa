@@ -7,8 +7,8 @@ RUN mamba env update --name base --file=./environment.yml \
     && mamba clean --all --force-pkgs-dirs --yes
 
 # Test command is functional
-COPY . /Automappa/
-WORKDIR /Automappa/
+COPY . /usr/src/app
+WORKDIR /usr/src/app
 RUN python -m pip install . --ignore-installed --no-deps -vvv
 RUN automappa -h
 

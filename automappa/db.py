@@ -2,10 +2,10 @@
 
 from sqlalchemy import create_engine
 
-from automappa.settings import settings
+from automappa.settings import db
 
 engine = create_engine(
-    url=settings.database_url,
-    # pool_size=settings.database_pool_size,
+    url=db.url,
+    pool_size=db.pool_size,
     # pool_pre_ping=True,
 )

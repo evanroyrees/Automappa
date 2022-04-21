@@ -7,7 +7,7 @@ services:
   #   ports:
   #     - 6379:6379
   
-  postgres:
+  db:
     image: postgres
     restart: always
     env_file:
@@ -23,23 +23,6 @@ services:
   #   env_file:
   #     - .env
 
-  # web:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: automappa --debug --port 8050
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - .:/automappa
-  #     - ./automappa:/usr/src/app
-  #   ports:
-  #     - 8050:8050
-  #   depends_on:
-  #     - postgres
-      # - rabbitmq
-      # - redis
-
   # worker:
   #   build:
   #     context: .
@@ -53,6 +36,22 @@ services:
   #   depends_on:
   #     - rabbitmq
   #     - redis
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: automappa --debug --port 8050
+    # env_file:
+    #   - .env
+    volumes:
+      # /usr/src/app is location of install in Dockerfile
+      - .:/usr/src/app
+    ports:
+      - 8050:8050
+    depends_on:
+      - db
+      # - rabbitmq
+      # - redis
 
 volumes:
   pg_data:

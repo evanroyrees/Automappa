@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import logging
 from pathlib import Path
 from typing import List
