@@ -2,47 +2,40 @@ version: '3.8'
 
 services:  
 
-  # redis:
-  #   image: "redis:latest"
-  #   ports:
-  #     - 6379:6379
   
   db:
     image: postgres
     restart: always
-    env_file:
-      - .env
     ports:
       - 5432:5432
     volumes:
       - pg_data:/var/lib/postgresql/data
 
   # rabbitmq:
-  #   hostname: rabbitmq
   #   image: rabbitmq:latest
-  #   env_file:
-  #     - .env
-
-  # worker:
+  # celery:
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
   #   command: celery --app=automappa.tasks.queue worker --loglevel INFO
   #   volumes:
-  #     - ./automappa:/usr/src/app
-  #   links:
-  #     - rabbitmq
-  #     - redis
-  #   depends_on:
-  #     - rabbitmq
-  #     - redis
+  #     - .:/usr/src/app
+  # flower:
+  #   image: "mher/flower:latest"
+  #   ports:
+  #     - 1234:1234
+  # redis:
+  #   image: "redis:latest"
+  #   ports:
+  #     - 6379:6379
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    command: automappa --debug --port 8050
-    # env_file:
-    #   - .env
+    # command: automappa --debug --port 8050
+    # This command allows live-reloading for dev
+    # Not sure which is more appropriate for production :shrug:
+    command: python -m automappa.index --debug --port 8050
     volumes:
       # /usr/src/app is location of install in Dockerfile
       - .:/usr/src/app
@@ -51,6 +44,7 @@ services:
     depends_on:
       - db
       # - rabbitmq
+      # - celery
       # - redis
 
 volumes:
