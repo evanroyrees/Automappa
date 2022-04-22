@@ -2,15 +2,15 @@
 
 1. [x] :art:::racehorse: Pass postgres datatable `table_name` back from `dash-uploader` callback
 2. [x] :racehorse::art: `dcc.Store(...)` datatable id in `dcc.Store(...)`
-3. [ ] :racehorse::art: Save uploaded file metadata to postgres datatable
-4. [ ] :racehorse::art: Populate `dcc.Store(...)` with user's existing datatables
+3. [x] :racehorse::art: Save uploaded file metadata to postgres datatable
+4. [x] :racehorse::art: Populate `dcc.Store(...)` with user's existing datatables
 5. [ ] :racehorse::art: Populate `data_table.DataTable` with clickable `dcc.Link` that navigates user to `mag_refinement.py` (will load data relevant to link, e.g. metagenome annotations, markers, etc.)
 6. [ ] :racehorse: Retrieve datatable within `mag_refinement.py` and `mag_summary.py`
 7. [ ] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
 8. [ ] :carrot::racehorse: Add task-queue for ingesting uploaded data to postgres table
 9. [ ] :carrot::racehorse: Add k-mer embedding tasks to task-queue
 10. [x] :fire: Remove parser args for data inputs (i.e. not relevant to running automappa server)
-11. [ ] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
+11. [x] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
 
 --------------------------------------------------------------------------------------------------
 

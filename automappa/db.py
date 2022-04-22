@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine,MetaData
 
 from automappa.settings import db
 
@@ -9,3 +9,5 @@ engine = create_engine(
     pool_size=db.pool_size,
     # pool_pre_ping=True,
 )
+
+metadata = MetaData(bind=engine)

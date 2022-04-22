@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+from datetime import datetime
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+import uuid
 import pandas as pd
 
-from automappa.db import engine
+from automappa.db import engine,metadata
+from automappa.settings import server
 
 from autometa.common.markers import load as load_markers
 from autometa.common.utilities import calc_checksum
@@ -20,16 +23,28 @@ logger = logging.getLogger(__name__)
 
 
 def get_uploaded_datatables() -> List[str]:
-    tables = engine.table_names()
-    return tables
+    return list(metadata.tables.keys())
+
+def get_uploaded_files_table() -> pd.DataFrame:
+    df = pd.DataFrame()
+    with engine.connect() as conn:
+        tables = [table for table in metadata.table.keys() if "fileupload" in table]
+        if tables:
+            df = pd.DataFrame([
+                pd.read_sql(table, conn)
+                for table in tables
+            ])
+    return df
 
 
-def get_datatable(table_name: str) -> pd.DataFrame:
+def get_table(table_name: str, index_col: Optional[str]) -> pd.DataFrame:
     if not engine.has_table(table_name):
-        tables = engine.table_names()
-        raise ValueError(f"{table_name} not in postgres database! available: {tables}")
-    df = pd.read_sql(table_name, engine).set_index("contig")
-    logger.debug(f"retrieved {df.shape[0]} contigs from {table_name} datatable")
+        tables = metadata.table.keys()
+        raise ValueError(f"{table_name} not in database! available: {tables}")
+    df = pd.read_sql(table_name, engine)
+    if index_col:
+        df = df.set_index(index_col)
+    logger.debug(f"retrieved {table_name} datatable, shape: {df.shape}")
     return df
 
 
@@ -85,20 +100,14 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
         table_id = postgres table id for retrieving stored data (AKA name of SQL table)
         e.g. `'{checksum}-binning'`
     """
-    try:
-        # Construct table name
-        checksum = calc_checksum(str(filepath)).split()[0]
-        table_name = f"{checksum}-binning"
-        # Read filepath contents
-        df = pd.read_csv(filepath, sep="\t")
-        # NOTE: table_name must not exceed maximum length of 63 characters
-        df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-        logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
-    except Exception as err:
-        logger.error(err)
-        logger.error("There was an error processing this file.")
-        table_name = ""
-
+    # Construct table name
+    checksum = calc_checksum(str(filepath)).split()[0]
+    table_name = f"{checksum}-binning"
+    # Read filepath contents
+    df = pd.read_csv(filepath, sep="\t")
+    # NOTE: table_name must not exceed maximum length of 63 characters
+    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
     return table_name
 
 
@@ -126,22 +135,16 @@ def store_markers(filepath: Path, if_exists: str = "replace") -> str:
         table_id = postgres table id for retrieving stored data (AKA name of SQL table)
         e.g. `'{checksum}-markers'`
     """
-    try:
-        # Construct table name
-        checksum = calc_checksum(str(filepath)).split()[0]
-        table_name = f"{checksum}-markers"
-        # Read filepath contents
-        df = load_markers(filepath)
-        # NOTE: table_name must not exceed maximum length of 63 characters
-        df.to_sql(table_name, engine, if_exists=if_exists, index=True)
-        logger.debug(
-            f"Saved {df.shape[0]:,} contigs and {df.shape[1]:,} markers to postgres table: {table_name}"
-        )
-    except Exception as err:
-        logger.error(err)
-        logger.error("There was an error processing this file.")
-        table_name = ""
-
+    # Construct table name
+    checksum = calc_checksum(str(filepath)).split()[0]
+    table_name = f"{checksum}-markers"
+    # Read filepath contents
+    df = load_markers(filepath)
+    # NOTE: table_name must not exceed maximum length of 63 characters
+    df.to_sql(table_name, engine, if_exists=if_exists, index=True)
+    logger.debug(
+        f"Saved {df.shape[0]:,} contigs and {df.shape[1]:,} markers to postgres table: {table_name}"
+    )
     return table_name
 
 
@@ -169,30 +172,126 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
         table_id = postgres table id for retrieving stored data (AKA name of SQL table)
         e.g. `'{checksum}-metagenome'`
     """
-    try:
-        # Read filepath contents
-        logger.debug(f"{filepath} uploaded... converting for datatable...")
-        metagenome = Metagenome(assembly=filepath)
-        df = pd.DataFrame(
-            [
-                {"contig": seqrecord.id, "sequence": str(seqrecord.seq)}
-                for seqrecord in metagenome.seqrecords
-            ]
-        )
-        logger.debug(f"converted... saving to datatable...")
-        # NOTE: table_name must not exceed maximum length of 63 characters
-        # Construct table name
-        checksum = calc_checksum(str(filepath)).split()[0]
-        table_name = f"{checksum}-metagenome"
-        df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-        logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
-    except Exception as err:
-        logger.error(err)
-        logger.error("There was an error processing this file.")
-        table_name = ""
-
+    # Read filepath contents
+    logger.debug(f"{filepath} uploaded... converting for datatable...")
+    metagenome = Metagenome(assembly=filepath)
+    df = pd.DataFrame(
+        [
+            {"contig": seqrecord.id, "sequence": str(seqrecord.seq)}
+            for seqrecord in metagenome.seqrecords
+        ]
+    )
+    logger.debug(f"converted... saving to datatable...")
+    # NOTE: table_name must not exceed maximum length of 63 characters
+    # Construct table name
+    checksum = calc_checksum(str(filepath)).split()[0]
+    table_name = f"{checksum}-metagenome"
+    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
     return table_name
 
+
+def save_to_db(filepath: Path, filetype: str, if_exists: str = "replace", rm_after_upload: bool = True) -> pd.DataFrame:
+    """Store `filepath` to db table based on `filetype`
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to uploaded file to be stored in db table
+    filetype : str
+        type of file to be stored
+        choices include 'markers', 'metagenome', 'binning'
+
+    Returns
+    -------
+    pd.DataFrame
+        cols=[filetype, filename, filesize (MB), table_id, uploaded, timestamp]
+
+    Raises
+    ------
+    ValueError
+        `filetype` not in filetype store methods
+    """
+    bytes_size = filepath.stat().st_size
+    filesize = convert_bytes(bytes_size, "MB")
+    timestamp = filepath.stat().st_mtime
+    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
+    filetype_store_methods = {
+        "markers": store_markers,
+        "metagenome": store_metagenome,
+        "binning": store_binning_main,
+    }
+    if filetype not in filetype_store_methods:
+        raise ValueError(f"{filetype} not in filetype store methods {','.join(filetype_store_methods.keys())}")
+    store_method = filetype_store_methods[filetype]
+    try:
+        table_id = store_method(filepath, if_exists=if_exists)
+        if rm_after_upload:
+            # TODO: Should have some way to retrieve data if already uploaded to server...
+            # ...but data ingestion fails for some reason...
+            logger.debug(f"Removed upload: {filepath.name} from server")
+            filepath.unlink(missing_ok=True)
+    except Exception as err:
+        logger.error(err)
+        return pd.DataFrame()
+    df = pd.DataFrame(
+        [
+            {
+                "filetype": filetype,
+                "filename": filepath.name,
+                "filesize (MB)": filesize,
+                "table_id": table_id,
+                "uploaded": last_modified,
+                "timestamp": timestamp,
+            }
+        ]
+    )
+    
+    # Create table_name specific to uploaded file with the upload file metadata...
+    # This should contain mapping to where the file contents are stored (i.e. table_id)
+    table_name = f"{uuid.uuid4()}-fileupload"
+    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(f"Saved {table_name} to db")
+    return df
+
+def validate_uploader(iscompleted: bool, filenames, upload_id) -> Path:
+    """Ensure only one file was uploaded and create Path to uploaded file
+
+    Parameters
+    ----------
+    iscompleted : bool
+        Whether or not the upload has finished
+    filenames : list
+        list of filenames
+    upload_id : uuid
+        unique user id associated with upload
+
+    Returns
+    -------
+    Path
+        Server-side path to uploaded file
+
+    Raises
+    ------
+    ValueError
+        You may only upload one file at a time!
+    """
+    if not iscompleted:
+        return
+    if filenames is None:
+        return
+    if upload_id:
+        root_folder = server.upload_folder_root / upload_id
+    else:
+        root_folder = server.upload_folder_root
+
+    uploaded_files = []
+    for filename in filenames:
+        file = root_folder / filename
+        uploaded_files.append(file)
+    if len(uploaded_files) > 1:
+        raise ValueError("You may only upload one file at a time!")
+    return uploaded_files[0]
 
 if __name__ == "__main__":
     pass

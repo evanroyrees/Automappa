@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
 import os
 import logging
-from pathlib import Path
 from dash import html, dcc
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
@@ -15,13 +13,10 @@ import plotly.io as pio
 import dash_uploader as du
 
 from automappa.app import app
-from automappa.settings import server
 from automappa.utils.serializers import (
-    convert_bytes,
-    get_uploaded_datatables,
-    store_binning_main,
-    store_markers,
-    store_metagenome,
+    get_uploaded_files_table,
+    save_to_db,
+    validate_uploader,
 )
 
 logging.basicConfig(
@@ -235,7 +230,7 @@ layout = dbc.Container(
         State("samples-store", "data"),
     ],
 )
-def on_binning_main_upload_store_data(
+def on_upload_stores_data(
     binning_uploads_timestamp,
     markers_uploads_timestamp,
     metagenome_uploads_timestamp,
@@ -254,18 +249,9 @@ def on_binning_main_upload_store_data(
         and metagenome_uploads_timestamp is None
     ):
         # Check if db has any samples in table
-        tables = get_uploaded_datatables()
-        if tables:
-            samples_df = pd.DataFrame(
-                [
-                    {
-                        "filetype": os.path.basename(table_id).split("-")[-1],
-                        "table_id": table_id,
-                    }
-                    for table_id in tables
-                ]
-            )
-            return samples_df.to_json(orient="split")
+        uploaded_files_df = get_uploaded_files_table()
+        if uploaded_files_df:
+            return uploaded_files_df.to_json(orient="split")
         raise PreventUpdate
     # We need to ensure we prevent an update if there has not been one, otherwise all of our datastore
     # gets removed...
@@ -315,44 +301,18 @@ def on_samples_store_data(samples_store_data, new_samples_store_data):
     ],
 )
 def on_binning_main_upload(iscompleted, filenames, upload_id):
-    if not iscompleted:
-        return
-    if filenames is None:
-        return
-    if upload_id:
-        root_folder = Path(server.upload_folder_root) / upload_id
-    else:
-        root_folder = Path(server.upload_folder_root)
-
-    uploaded_files = []
-    for filename in filenames:
-        file = root_folder / filename
-        uploaded_files.append(file)
-
-    if len(uploaded_files) > 1:
-        logger.error("You may only upload one file at a time!")
+    try:
+        filepath = validate_uploader(iscompleted, filenames, upload_id)
+    except ValueError as err:
+        logger.warn(err)
         raise PreventUpdate
-
-    filepath = uploaded_files[0]
-    filename = os.path.basename(filepath)
-    unit = "MB"
-    filesize = convert_bytes(os.path.getsize(filepath), unit)
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    table_id = store_binning_main(filepath)
-
-    return pd.DataFrame(
-        [
-            {
-                "filetype": "binning_main",
-                "filename": filename,
-                f"filesize ({unit})": filesize,
-                "table_id": table_id,
-                "uploaded": last_modified,
-                "timestamp": timestamp,
-            }
-        ]
-    ).to_json(orient="split")
+    if not filepath:
+        raise PreventUpdate
+    df = save_to_db(
+        filepath=filepath,
+        filetype="binning",
+    )
+    return df.to_json(orient="split")
 
 
 @app.callback(
@@ -364,43 +324,15 @@ def on_binning_main_upload(iscompleted, filenames, upload_id):
     ],
 )
 def on_markers_upload(iscompleted, filenames, upload_id):
-    if not iscompleted:
-        return
-    if filenames is None:
-        return
-    if upload_id:
-        root_folder = Path(server.upload_folder_root) / upload_id
-    else:
-        root_folder = Path(server.upload_folder_root)
-
-    uploaded_files = []
-    for filename in filenames:
-        file = root_folder / filename
-        uploaded_files.append(file)
-    if len(uploaded_files) > 1:
-        logger.error("You may only upload one file at a time!")
+    try:
+        filepath = validate_uploader(iscompleted, filenames, upload_id)
+    except ValueError as err:
+        logger.warn(err)
         raise PreventUpdate
-
-    filepath = uploaded_files[0]
-    filename = os.path.basename(filepath)
-    unit = "MB"
-    filesize = convert_bytes(os.path.getsize(filepath), unit)
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    table_id = store_markers(filepath)
-
-    return pd.DataFrame(
-        [
-            {
-                "filetype": "markers",
-                "filename": filename,
-                f"filesize ({unit})": filesize,
-                "table_id": table_id,
-                "uploaded": last_modified,
-                "timestamp": timestamp,
-            }
-        ]
-    ).to_json(orient="split")
+    if not filepath:
+        raise PreventUpdate
+    df = save_to_db(filepath, "markers")
+    return df.to_json(orient="split")
 
 
 # For information on the dash_uploader component and callbacks...
@@ -414,43 +346,15 @@ def on_markers_upload(iscompleted, filenames, upload_id):
     ],
 )
 def on_metagenome_upload(iscompleted, filenames, upload_id):
-    if not iscompleted:
-        return
-    if filenames is None:
-        return
-    if upload_id:
-        root_folder = Path(server.upload_folder_root) / upload_id
-    else:
-        root_folder = Path(server.upload_folder_root)
-
-    uploaded_files = []
-    for filename in filenames:
-        file = root_folder / filename
-        uploaded_files.append(file)
-    if len(uploaded_files) > 1:
-        logger.error("You may only upload one file at a time!")
+    try:
+        filepath = validate_uploader(iscompleted, filenames, upload_id)
+    except ValueError as err:
+        logger.warn(err)
         raise PreventUpdate
-
-    filepath = uploaded_files[0]
-    filename = os.path.basename(filepath)
-    unit = "MB"
-    filesize = convert_bytes(os.path.getsize(filepath), unit)
-    timestamp = os.path.getmtime(filepath)
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    table_id = store_metagenome(filepath)
-
-    return pd.DataFrame(
-        [
-            {
-                "filetype": "metagenome",
-                "filename": filename,
-                f"filesize ({unit})": filesize,
-                "table_id": table_id,
-                "uploaded": last_modified,
-                "timestamp": timestamp,
-            }
-        ]
-    ).to_json(orient="split")
+    if not filepath:
+        raise PreventUpdate
+    df = save_to_db(filepath, "metagenome")
+    return df.to_json(orient="split")
 
 
 @app.callback(

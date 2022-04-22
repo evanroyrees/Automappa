@@ -18,6 +18,8 @@ import plotly.io as pio
 
 from automappa.app import app
 
+from automappa.utils.serializers import get_table
+
 from automappa.utils.figures import (
     format_axis_title,
     get_scatterplot_2d,
@@ -465,6 +467,8 @@ def update_mag_metrics_datatable_callback(
     markers_json: "str | None", selected_contigs: Dict[str, List[Dict[str, str]]]
 ) -> DataTable:
     markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    # TODO: Replace pd.read_json get_table(table_name)
+    # TODO: Need to pass table_name from home.py...
     if selected_contigs:
         contigs = {point["text"] for point in selected_contigs["points"]}
         selected_contigs_count = len(contigs)
