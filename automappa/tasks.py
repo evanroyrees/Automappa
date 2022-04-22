@@ -15,6 +15,12 @@ from autometa.common.kmers import normalize, embed, count
 
 from automappa import settings
 
+from automappa.utils.markers import (
+    convert_marker_counts_to_marker_symbols,
+    get_contig_marker_counts,
+)
+
+
 queue = Celery(
     __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
 )
@@ -28,6 +34,13 @@ def get_job(job_id):
     The job ID is passed and the celery job is returned.
     """
     return AsyncResult(job_id, app=queue)
+
+
+# @queue.task
+def get_marker_symbols(bin_df: pd.DataFrame, markers_df: pd.DataFrame) -> pd.DataFrame:
+    marker_counts = get_contig_marker_counts(bin_df, markers_df)
+    marker_symbols = convert_marker_counts_to_marker_symbols(marker_counts)
+    return marker_symbols
 
 
 # TODO: Data loader

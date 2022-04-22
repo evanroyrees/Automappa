@@ -180,12 +180,12 @@ row_example_cards = dbc.Row(
     ]
 )
 
-binning_main_upload_store = dcc.Store(
-    id="binning-main-upload-store", storage_type="local"
-)
-markers_upload_store = dcc.Store(id="markers-upload-store", storage_type="local")
-metagenome_upload_store = dcc.Store(id="metagenome-upload-store", storage_type="local")
-samples_store = dcc.Store(id="samples-store", storage_type="local")
+# binning_main_upload_store = dcc.Store(
+#     id="binning-main-upload-store", storage_type="local"
+# )
+# markers_upload_store = dcc.Store(id="markers-upload-store", storage_type="local")
+# metagenome_upload_store = dcc.Store(id="metagenome-upload-store", storage_type="local")
+# samples_store = dcc.Store(id="samples-store", storage_type="local")
 
 # samples_datatable = html.Div(id="samples-datatable")
 samples_datatable = (
@@ -197,39 +197,57 @@ samples_datatable = (
     ),
 )
 
-markers_select = dbc.Select(
-    id="markers-select",
-    placeholder="Select marker set annotations",
+refine_mags_input_groups = html.Div(
+    [
+        dbc.InputGroup(
+            [
+                dbc.InputGroupText("Binning"),
+                dbc.Select(
+                    id="binning-select",
+                    placeholder="Select binning annotations",
+                ),
+            ]
+        ),
+        dbc.InputGroup(
+            [
+                dbc.InputGroupText("Markers"),
+                dbc.Select(
+                    id="markers-select",
+                    placeholder="Select marker annotations",
+                ),
+            ]
+        ),
+        dbc.InputGroup(
+            [
+                dbc.InputGroupText("Metagenome"),
+                dbc.Select(
+                    id="metagenome-select",
+                    placeholder="Select metagenome annotations",
+                ),
+            ]
+        ),
+    ]
 )
 
-metagenome_select = dbc.Select(
-    id="metagenome-select",
-    placeholder="Select metagenome annotations",
-)
-
-binning_select = dbc.Select(
-    id="binning-select",
-    placeholder="Select binning annotations",
+refine_mags_button = dbc.Button(
+    id="refine-mags-button",
+    children="Refine MAGs",
 )
 
 layout = dbc.Container(
     children=[
-        binning_main_upload_store,
-        markers_upload_store,
-        metagenome_upload_store,
-        samples_store,
+        # binning_main_upload_store,
+        # markers_upload_store,
+        # metagenome_upload_store,
+        # samples_store,
         dbc.Row(upload_modal),
         html.Br(),
         # row_example_cards,
         dbc.Row(samples_datatable),
         html.Br(),
-        dbc.Row([
-            dbc.Col(binning_select),
-            dbc.Col(markers_select),
-            dbc.Col(metagenome_select),
-        ]),
+        dbc.Row(refine_mags_input_groups),
         html.Br(),
-        dbc.Row(dbc.Button("Refine MAGs")),
+        dbc.Row(refine_mags_button),
     ],
     fluid=True,
 )
@@ -291,6 +309,7 @@ def on_upload_stores_data(
 
     return samples_df.to_json(orient="split")
 
+
 @app.callback(
     Output("binning-select", "options"),
     [Input("samples-store", "data")],
@@ -308,16 +327,16 @@ def binning_select_options(samples_store_data, new_samples_store_data):
         raise PreventUpdate
 
     # {"label": filename+truncated-hash, "value": table_id}
-    df = samples_df.loc[samples_df.filetype.eq('binning')]
+    df = samples_df.loc[samples_df.filetype.eq("binning")]
     logger.debug(f"{df.shape[0]:,} binning available for mag_refinement")
     return [
         {
-            "label":filename,
+            "label": filename,
             "value": table_id,
         }
-        for filename,table_id in
-        zip(df.filename.tolist(), df.table_id.tolist())
+        for filename, table_id in zip(df.filename.tolist(), df.table_id.tolist())
     ]
+
 
 @app.callback(
     Output("markers-select", "options"),
@@ -336,16 +355,18 @@ def markers_select_options(samples_store_data, new_samples_store_data):
         raise PreventUpdate
 
     # {"label": filename+truncated-hash, "value": table_id}
-    markers_samples = samples_df.loc[samples_df.filetype.eq('markers')]
+    markers_samples = samples_df.loc[samples_df.filetype.eq("markers")]
     logger.debug(f"{markers_samples.shape[0]:,} markers available for mag_refinement")
     return [
         {
-            "label":filename,
+            "label": filename,
             "value": table_id,
         }
-        for filename,table_id in
-        zip(markers_samples.filename.tolist(), markers_samples.table_id.tolist())
+        for filename, table_id in zip(
+            markers_samples.filename.tolist(), markers_samples.table_id.tolist()
+        )
     ]
+
 
 @app.callback(
     Output("metagenome-select", "options"),
@@ -363,16 +384,16 @@ def metagenome_select_options(samples_store_data, new_samples_store_data):
     if samples_df.empty:
         raise PreventUpdate
 
-    df = samples_df.loc[samples_df.filetype.eq('metagenome')]
+    df = samples_df.loc[samples_df.filetype.eq("metagenome")]
     logger.debug(f"{df.shape[0]:,} metagenomes available for mag_refinement")
     return [
         {
-            "label":filename,
+            "label": filename,
             "value": table_id,
         }
-        for filename,table_id in
-        zip(df.filename.tolist(), df.table_id.tolist())
+        for filename, table_id in zip(df.filename.tolist(), df.table_id.tolist())
     ]
+
 
 @app.callback(
     Output("samples-datatable", "children"),
@@ -474,3 +495,27 @@ def toggle_modal(n_open, n_close, is_open):
     if n_open or n_close:
         return not is_open
     return is_open
+
+
+# TODO: Disable refine-mags button when not all select values are provided
+
+
+@app.callback(
+    Output("selected-tables-store", "data"),
+    [
+        Input("refine-mags-button", "n_clicks"),
+        Input("binning-select", "value"),
+        Input("markers-select", "value"),
+        Input("metagenome-select", "value"),
+    ],
+)
+def on_refine_mags_button_click(
+    n, binning_select_value, markers_select_value, metagenome_select_value
+):
+    if n is None:
+        raise PreventUpdate
+    return {
+        "binning": binning_select_value,
+        "markers": markers_select_value,
+        "metagenome": metagenome_select_value,
+    }

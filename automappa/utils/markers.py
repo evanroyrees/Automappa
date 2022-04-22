@@ -62,3 +62,9 @@ def convert_marker_counts_to_marker_symbols(df: pd.DataFrame) -> pd.DataFrame:
     df["symbol"] = df.marker_count.map(lambda count: symbols.get(count, "circle"))
     df["marker_size"] = df.marker_count.fillna(0).map(lambda count: count + 7)
     return df
+
+
+def get_marker_symbols(bin_df: pd.DataFrame, markers_df: pd.DataFrame) -> pd.DataFrame:
+    marker_counts = get_contig_marker_counts(bin_df, markers_df)
+    marker_symbols = convert_marker_counts_to_marker_symbols(marker_counts)
+    return marker_symbols

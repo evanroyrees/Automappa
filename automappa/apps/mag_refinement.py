@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from typing import Dict, List
 
 import pandas as pd
@@ -18,8 +19,9 @@ import plotly.io as pio
 
 from automappa.app import app
 
+# from automappa.tasks import get_marker_symbols
 from automappa.utils.serializers import get_table
-
+from automappa.utils.markers import get_marker_symbols
 from automappa.utils.figures import (
     format_axis_title,
     get_scatterplot_2d,
@@ -27,6 +29,13 @@ from automappa.utils.figures import (
     get_scatterplot_3d,
     metric_boxplot,
 )
+
+logging.basicConfig(
+    format="[%(levelname)s] %(name)s: %(message)s",
+    level=logging.DEBUG,
+)
+
+logger = logging.getLogger(__name__)
 
 pio.templates.default = "plotly_white"
 
@@ -459,16 +468,16 @@ def color_by_column_options_callback(annotations_json: "str | None"):
 @app.callback(
     Output("mag-metrics-datatable", "children"),
     [
-        Input("markers-store", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def update_mag_metrics_datatable_callback(
-    markers_json: "str | None", selected_contigs: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: Dict[str, str],
+    selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> DataTable:
-    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
-    # TODO: Replace pd.read_json get_table(table_name)
-    # TODO: Need to pass table_name from home.py...
+    table_name = selected_tables_data["markers"]
+    markers_df = get_table(table_name, index_col="contig")
     if selected_contigs:
         contigs = {point["text"] for point in selected_contigs["points"]}
         selected_contigs_count = len(contigs)
@@ -541,9 +550,9 @@ def update_mag_metrics_datatable_callback(
 @app.callback(
     Output("scatterplot-2d", "figure"),
     [
-        Input("metagenome-annotations", "data"),
-        Input("refinement-data", "data"),
-        Input("contig-marker-symbols-store", "data"),
+        Input("selected-tables-store", "data"),
+        # Input("refinement-data", "data"),
+        # Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("scatterplot-2d-legend-toggle", "value"),
@@ -552,9 +561,9 @@ def update_mag_metrics_datatable_callback(
     ],
 )
 def scatterplot_2d_figure_callback(
-    annotations: "str | None",
-    refinement: "str | None",
-    contig_marker_symbols_json: "str | None",
+    selected_tables_data: Dict[str, str],
+    # refinement: "str | None",
+    # contig_marker_symbols_json: "str | None",
     xaxis_column: str,
     yaxis_column: str,
     show_legend: bool,
@@ -562,10 +571,14 @@ def scatterplot_2d_figure_callback(
     hide_selection_toggle: bool,
 ) -> go.Figure:
     # TODO: #23 refactor scatterplot callbacks
-    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
-        "contig"
-    )
+    bin_table_name = selected_tables_data["binning"]
+    bin_df = get_table(bin_table_name, index_col="contig")
+    markers_table_name = selected_tables_data["markers"]
+    markers_df = get_table(markers_table_name, index_col="contig")
+    markers = get_marker_symbols(bin_df, markers_df)
+    # markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
+    #     "contig"
+    # )
     if color_by_col not in bin_df.columns:
         for col in ["phylum", "class", "order", "family"]:
             if col in bin_df.columns:
@@ -578,7 +591,8 @@ def scatterplot_2d_figure_callback(
 
     # Subset metagenome-annotations by selections iff selections have been made
     if hide_selection_toggle:
-        refine_df = pd.read_json(refinement, orient="split").set_index("contig")
+        refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
+        refine_df = get_table(refine_table_name, index_col="contig")
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
         if refine_cols:
             latest_refine_col = refine_cols.pop()
@@ -620,17 +634,18 @@ def scatterplot_2d_figure_callback(
 @app.callback(
     Output("taxonomy-distribution", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
         Input("taxonomy-distribution-dropdown", "value"),
     ],
 )
 def taxonomy_distribution_figure_callback(
-    annotations: "str | None",
+    selected_tables_data: Dict[str, str],
     selected_contigs: Dict[str, List[Dict[str, str]]],
     selected_rank: str,
 ) -> go.Figure:
-    df = pd.read_json(annotations, orient="split")
+    table_name = selected_tables_data["binning"]
+    df = get_table(table_name)
     if selected_contigs and selected_contigs["points"]:
         contigs = {point["text"] for point in selected_contigs["points"]}
         df = df[df.contig.isin[contigs]]
@@ -641,7 +656,7 @@ def taxonomy_distribution_figure_callback(
 @app.callback(
     Output("scatterplot-3d", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-3d-zaxis-dropdown", "value"),
         Input("scatterplot-3d-legend-toggle", "value"),
         Input("color-by-column", "value"),
@@ -649,13 +664,14 @@ def taxonomy_distribution_figure_callback(
     ],
 )
 def scatterplot_3d_figure_callback(
-    annotations: "str | None",
+    selected_tables_data: Dict[str, str],
     z_axis: str,
     show_legend: bool,
     color_by_col: str,
     selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> go.Figure:
-    df = pd.read_json(annotations, orient="split")
+    table_name = selected_tables_data["binning"]
+    df = get_table(table_name)
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     if not selected_contigs:
         contigs = set(df.contig.tolist())
@@ -684,16 +700,17 @@ def scatterplot_3d_figure_callback(
 @app.callback(
     Output("mag-refinement-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_coverage_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    table_name = selected_tables_data["binning"]
+    df = get_table(table_name)
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
@@ -703,16 +720,17 @@ def mag_summary_coverage_boxplot_callback(
 @app.callback(
     Output("mag-refinement-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    table_name = selected_tables_data["binning"]
+    df = get_table(table_name)
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
@@ -723,16 +741,17 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-refinement-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_length_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    table_name = selected_tables_data["binning"]
+    df = get_table(table_name)
     contigs = {point["text"] for point in selected_data["points"]}
     df = df.loc[df.contig.isin(contigs)]
     fig = metric_boxplot(df, metrics=["length"])

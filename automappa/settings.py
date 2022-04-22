@@ -59,6 +59,6 @@ class ServerSettings(BaseSettings):
 
 server = ServerSettings()
 db = DatabaseSettings()
-database  = DatabaseSettings()
-rabbitmq  = RabbitmqSettings()
+database = DatabaseSettings()
+rabbitmq = RabbitmqSettings()
 celery = CelerySettings()

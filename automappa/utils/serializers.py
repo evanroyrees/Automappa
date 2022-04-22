@@ -35,9 +35,9 @@ def get_uploaded_files_table() -> pd.DataFrame:
     return df
 
 
-def get_table(table_name: str, index_col: Optional[str]) -> pd.DataFrame:
+def get_table(table_name: str, index_col: Optional[str] = None) -> pd.DataFrame:
     if not engine.has_table(table_name):
-        tables = metadata.table.keys()
+        tables = metadata.tables.keys()
         raise ValueError(f"{table_name} not in database! available: {tables}")
     df = pd.read_sql(table_name, engine)
     if index_col:
@@ -106,6 +106,23 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
     # NOTE: table_name must not exceed maximum length of 63 characters
     df.to_sql(table_name, engine, if_exists=if_exists, index=False)
     logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
+    # MAG Refinement Data Store
+    # TODO: Refactor this to move it out of store_binning(...)
+    # Should be another celery task...
+    # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
+    if "cluster" not in df.columns:
+        df["cluster"] = "unclustered"
+    else:
+        df["cluster"].fillna("unclustered", inplace=True)
+
+    df_cols = [
+        col
+        for col in df.columns
+        if "refinement_" in col or "cluster" in col or "contig" in col
+    ]
+    refinement_table_name = table_name.replace("-binning", "-refinement")
+    df[df_cols].to_sql(refinement_table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(f"Saved {df[df_cols]} refinements to postgres table: {refinement_table_name}")
     return table_name
 
 

@@ -206,9 +206,10 @@ def get_scattergl_traces(
         x_axis=x_axis, y_axis=y_axis
     )
     traces = []
+    metadata_cols = [col for col in metadata_cols if col in df.columns]
     for color_col_name in df[color_by_col].fillna(fillna).unique():
         dff = df.loc[df[color_by_col].eq(color_col_name)]
-        customdata = dff[metadata_cols] if metadata_cols in dff.columns else []
+        customdata = dff[metadata_cols] if metadata_cols else []
         trace = go.Scattergl(
             x=dff[x_axis],
             y=dff[y_axis],
@@ -263,7 +264,7 @@ def get_scatterplot_2d(
     df: pd.DataFrame,
     x_axis: str,
     y_axis: str,
-    embed_method: str,
+    # embed_method: str,
     color_by_col: str = "cluster",
     fillna: str = "unclustered",
 ) -> go.Figure:
