@@ -28,8 +28,8 @@ def get_uploaded_datatables() -> List[str]:
 
 def get_uploaded_files_table() -> pd.DataFrame:
     df = pd.DataFrame()
+    tables = [table for table in metadata.tables.keys() if "fileupload" in table]
     with engine.connect() as conn:
-        tables = [table for table in metadata.table.keys() if "fileupload" in table]
         if tables:
             df = pd.DataFrame([pd.read_sql(table, conn) for table in tables])
     return df

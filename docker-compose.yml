@@ -41,7 +41,7 @@ services:
     volumes:
       - .:/usr/src/app
     ports:
-      - 49555:5555
+      - 5555:5555
     env_file:
       - .env
     depends_on:
@@ -74,6 +74,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: always
     # command: automappa --debug --port 8050
     # This command allows live-reloading for dev
     # Not sure which is more appropriate for production :shrug:

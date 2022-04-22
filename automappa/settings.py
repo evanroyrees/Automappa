@@ -19,6 +19,7 @@ class DatabaseSettings(BaseSettings):
     # url: PostgresDsn = docker_url if is_docker_service else local_url
     url: PostgresDsn
     pool_size: Optional[int] = 3
+    pool_pre_ping: Optional[bool] = False
 
     class Config:
         env_prefix: str = "POSTGRES_"

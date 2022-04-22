@@ -128,10 +128,6 @@ upload_modal = html.Div(
     ],
 )
 
-# html.Div(id="output-binning-main-data-upload"),
-html.Div(id="output-markers-data-upload"),
-html.Div(id="output-metagenome-data-upload"),
-
 example_card = dbc.Card(
     [
         dbc.CardHeader(id="binning-main-samples-cardheader"),
@@ -201,6 +197,21 @@ samples_datatable = (
     ),
 )
 
+markers_select = dbc.Select(
+    id="markers-select",
+    placeholder="Select marker set annotations",
+)
+
+metagenome_select = dbc.Select(
+    id="metagenome-select",
+    placeholder="Select metagenome annotations",
+)
+
+binning_select = dbc.Select(
+    id="binning-select",
+    placeholder="Select binning annotations",
+)
+
 layout = dbc.Container(
     children=[
         binning_main_upload_store,
@@ -211,6 +222,14 @@ layout = dbc.Container(
         html.Br(),
         # row_example_cards,
         dbc.Row(samples_datatable),
+        html.Br(),
+        dbc.Row([
+            dbc.Col(binning_select),
+            dbc.Col(markers_select),
+            dbc.Col(metagenome_select),
+        ]),
+        html.Br(),
+        dbc.Row(dbc.Button("Refine MAGs")),
     ],
     fluid=True,
 )
@@ -272,6 +291,88 @@ def on_upload_stores_data(
 
     return samples_df.to_json(orient="split")
 
+@app.callback(
+    Output("binning-select", "options"),
+    [Input("samples-store", "data")],
+    State("samples-store", "data"),
+)
+def binning_select_options(samples_store_data, new_samples_store_data):
+    samples_df = pd.read_json(samples_store_data, orient="split")
+    if new_samples_store_data is not None:
+        new_samples_df = pd.read_json(new_samples_store_data, orient="split")
+        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(
+            subset=["table_id"]
+        )
+
+    if samples_df.empty:
+        raise PreventUpdate
+
+    # {"label": filename+truncated-hash, "value": table_id}
+    df = samples_df.loc[samples_df.filetype.eq('binning')]
+    logger.debug(f"{df.shape[0]:,} binning available for mag_refinement")
+    return [
+        {
+            "label":filename,
+            "value": table_id,
+        }
+        for filename,table_id in
+        zip(df.filename.tolist(), df.table_id.tolist())
+    ]
+
+@app.callback(
+    Output("markers-select", "options"),
+    [Input("samples-store", "data")],
+    State("samples-store", "data"),
+)
+def markers_select_options(samples_store_data, new_samples_store_data):
+    samples_df = pd.read_json(samples_store_data, orient="split")
+    if new_samples_store_data is not None:
+        new_samples_df = pd.read_json(new_samples_store_data, orient="split")
+        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(
+            subset=["table_id"]
+        )
+
+    if samples_df.empty:
+        raise PreventUpdate
+
+    # {"label": filename+truncated-hash, "value": table_id}
+    markers_samples = samples_df.loc[samples_df.filetype.eq('markers')]
+    logger.debug(f"{markers_samples.shape[0]:,} markers available for mag_refinement")
+    return [
+        {
+            "label":filename,
+            "value": table_id,
+        }
+        for filename,table_id in
+        zip(markers_samples.filename.tolist(), markers_samples.table_id.tolist())
+    ]
+
+@app.callback(
+    Output("metagenome-select", "options"),
+    [Input("samples-store", "data")],
+    State("samples-store", "data"),
+)
+def metagenome_select_options(samples_store_data, new_samples_store_data):
+    samples_df = pd.read_json(samples_store_data, orient="split")
+    if new_samples_store_data is not None:
+        new_samples_df = pd.read_json(new_samples_store_data, orient="split")
+        samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(
+            subset=["table_id"]
+        )
+
+    if samples_df.empty:
+        raise PreventUpdate
+
+    df = samples_df.loc[samples_df.filetype.eq('metagenome')]
+    logger.debug(f"{df.shape[0]:,} metagenomes available for mag_refinement")
+    return [
+        {
+            "label":filename,
+            "value": table_id,
+        }
+        for filename,table_id in
+        zip(df.filename.tolist(), df.table_id.tolist())
+    ]
 
 @app.callback(
     Output("samples-datatable", "children"),
