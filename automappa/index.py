@@ -35,41 +35,6 @@ def main():
         description="Automappa: An interactive interface for exploration of metagenomes",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    # parser.add_argument(
-    #     "--binning-main",
-    #     help="Path to --binning-main output of Autometa binning/recruitment results",
-    #     type=str,
-    #     metavar="filepath",
-    #     required=True,
-    # )
-    # parser.add_argument(
-    #     "--markers",
-    #     help="Path to Autometa-formatted markers table (may be taxon-specific)",
-    #     type=str,
-    #     metavar="filepath",
-    #     required=True,
-    # )
-    # parser.add_argument(
-    #     "--fasta",
-    #     help="Path to metagenome.fasta",
-    #     type=str,
-    #     metavar="filepath",
-    #     required=False,
-    # )
-    parser.add_argument(
-        "--port",
-        help="port to expose. (default: %(default)s)",
-        default=8050,
-        type=int,
-        metavar="number",
-    )
-    parser.add_argument(
-        "--host",
-        help="host ip address to expose. (default: %(default)s)",
-        type=str,
-        default="0.0.0.0",
-        metavar="ip address",
-    )
     parser.add_argument(
         "--storage-type",
         help=(
@@ -163,7 +128,7 @@ def main():
     # sample_name = os.path.basename(args.binning_main).replace(" ", "_").split(".")[0]
     # app.title = f"Automappa: {sample_name}"
     app.title = "Automappa"
-    app.run_server(host=args.host, port=args.port, debug=server.debug)
+    app.run_server(host=server.host, port=server.port, debug=server.debug)
 
 
 if __name__ == "__main__":

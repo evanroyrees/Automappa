@@ -49,6 +49,8 @@ class CelerySettings(BaseSettings):
 class ServerSettings(BaseSettings):
     root_upload_folder: Path
     # Dash/Plotly
+    host: Optional[str] = "localhost"
+    port: Optional[int] = 8050
     debug: Optional[bool] = True
 
     class Config:
