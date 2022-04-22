@@ -51,15 +51,19 @@ install:
 
 ## docker compose build from docker-compose.yml
 build: docker-compose.yml
-	docker compose build
+	docker-compose build
 
-## docker compose up from docker-compose.yml
+## alias for docker-compose up --always-recreate-deps --remove-orphans --force-recreate
 up: docker-compose.yml
 	docker-compose up --always-recreate-deps --remove-orphans --force-recreate
 
-## docker compose down from docker-compose.yml
+## alias for docker-compose down
 down: docker-compose.yml
-	docker compose down
+	docker-compose down --volumes
+
+## alias for docker-compose down --volumes
+down-v: docker-compose.yml
+	docker-compose down --volumes
 
 # Run Automappa on test data
 # test: test_data

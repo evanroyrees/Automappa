@@ -10,17 +10,14 @@ from celery.utils.log import get_task_logger
 from celery import Celery, chain
 from celery.result import AsyncResult
 
-from dotenv import load_dotenv
-
 from autometa.common.external import hmmscan
 from autometa.common.kmers import normalize, embed, count
 
-load_dotenv()
+from automappa import settings
 
-CELERY_REDIS_URL = os.environ.get("CELERY_REDIS_URL")
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL")
-
-queue = Celery(__name__, backend=CELERY_REDIS_URL, broker=CELERY_BROKER_URL)
+queue = Celery(
+    __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
+)
 
 logger = get_task_logger(__name__)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sqlalchemy import create_engine,MetaData
+from sqlalchemy import create_engine, MetaData
 
 from automappa.settings import db
 

@@ -256,8 +256,15 @@ def on_upload_stores_data(
     # We need to ensure we prevent an update if there has not been one, otherwise all of our datastore
     # gets removed...
     samples = []
-    for data_upload in [binning_uploads, markers_uploads, metagenome_uploads, samples_store_data]:
-        df = pd.read_json(data_upload, orient="split") if data_upload else pd.DataFrame()
+    for data_upload in [
+        binning_uploads,
+        markers_uploads,
+        metagenome_uploads,
+        samples_store_data,
+    ]:
+        df = (
+            pd.read_json(data_upload, orient="split") if data_upload else pd.DataFrame()
+        )
         samples.append(df)
     samples_df = pd.concat(samples).drop_duplicates(subset=["table_id"])
 

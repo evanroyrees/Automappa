@@ -7,7 +7,7 @@ from typing import List, Optional
 import uuid
 import pandas as pd
 
-from automappa.db import engine,metadata
+from automappa.db import engine, metadata
 from automappa.settings import server
 
 from autometa.common.markers import load as load_markers
@@ -25,15 +25,13 @@ logger = logging.getLogger(__name__)
 def get_uploaded_datatables() -> List[str]:
     return list(metadata.tables.keys())
 
+
 def get_uploaded_files_table() -> pd.DataFrame:
     df = pd.DataFrame()
     with engine.connect() as conn:
         tables = [table for table in metadata.table.keys() if "fileupload" in table]
         if tables:
-            df = pd.DataFrame([
-                pd.read_sql(table, conn)
-                for table in tables
-            ])
+            df = pd.DataFrame([pd.read_sql(table, conn) for table in tables])
     return df
 
 
@@ -191,7 +189,12 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
     return table_name
 
 
-def save_to_db(filepath: Path, filetype: str, if_exists: str = "replace", rm_after_upload: bool = True) -> pd.DataFrame:
+def save_to_db(
+    filepath: Path,
+    filetype: str,
+    if_exists: str = "replace",
+    rm_after_upload: bool = True,
+) -> pd.DataFrame:
     """Store `filepath` to db table based on `filetype`
 
     Parameters
@@ -222,7 +225,9 @@ def save_to_db(filepath: Path, filetype: str, if_exists: str = "replace", rm_aft
         "binning": store_binning_main,
     }
     if filetype not in filetype_store_methods:
-        raise ValueError(f"{filetype} not in filetype store methods {','.join(filetype_store_methods.keys())}")
+        raise ValueError(
+            f"{filetype} not in filetype store methods {','.join(filetype_store_methods.keys())}"
+        )
     store_method = filetype_store_methods[filetype]
     try:
         table_id = store_method(filepath, if_exists=if_exists)
@@ -246,13 +251,14 @@ def save_to_db(filepath: Path, filetype: str, if_exists: str = "replace", rm_aft
             }
         ]
     )
-    
+
     # Create table_name specific to uploaded file with the upload file metadata...
     # This should contain mapping to where the file contents are stored (i.e. table_id)
     table_name = f"{uuid.uuid4()}-fileupload"
     df.to_sql(table_name, engine, if_exists=if_exists, index=False)
     logger.debug(f"Saved {table_name} to db")
     return df
+
 
 def validate_uploader(iscompleted: bool, filenames, upload_id) -> Path:
     """Ensure only one file was uploaded and create Path to uploaded file
@@ -281,9 +287,9 @@ def validate_uploader(iscompleted: bool, filenames, upload_id) -> Path:
     if filenames is None:
         return
     if upload_id:
-        root_folder = server.upload_folder_root / upload_id
+        root_folder = server.root_upload_folder / upload_id
     else:
-        root_folder = server.upload_folder_root
+        root_folder = server.root_upload_folder
 
     uploaded_files = []
     for filename in filenames:
@@ -292,6 +298,7 @@ def validate_uploader(iscompleted: bool, filenames, upload_id) -> Path:
     if len(uploaded_files) > 1:
         raise ValueError("You may only upload one file at a time!")
     return uploaded_files[0]
+
 
 if __name__ == "__main__":
     pass

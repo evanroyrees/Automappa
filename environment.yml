@@ -6,12 +6,12 @@ channels:
   - defaults
 dependencies:
   - autometa
-  - flask
-  - celery[redis]
   - dash
   - dash-bootstrap-components
   - dash-daq
   - dash-extensions
+  - flask
+  - flower
   - msgpack-python
   - numpy
   - pandas
@@ -22,5 +22,6 @@ dependencies:
   - sqlalchemy
   - pip
   - pip:
+    - celery[redis]
     - geom-median
     - dash-uploader
