@@ -122,7 +122,7 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
     ]
     refinement_table_name = table_name.replace("-binning", "-refinement")
     df[df_cols].to_sql(refinement_table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {df[df_cols]} refinements to postgres table: {refinement_table_name}")
+    logger.debug(f"Saved {df[df_cols].info()} refinements to postgres table: {refinement_table_name}")
     return table_name
 
 

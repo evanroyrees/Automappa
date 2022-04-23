@@ -648,7 +648,7 @@ def taxonomy_distribution_figure_callback(
     df = get_table(table_name)
     if selected_contigs and selected_contigs["points"]:
         contigs = {point["text"] for point in selected_contigs["points"]}
-        df = df[df.contig.isin[contigs]]
+        df = df.loc[df.contig.isin[contigs]]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
     return fig
 

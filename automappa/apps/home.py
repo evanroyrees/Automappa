@@ -180,14 +180,6 @@ row_example_cards = dbc.Row(
     ]
 )
 
-# binning_main_upload_store = dcc.Store(
-#     id="binning-main-upload-store", storage_type="local"
-# )
-# markers_upload_store = dcc.Store(id="markers-upload-store", storage_type="local")
-# metagenome_upload_store = dcc.Store(id="metagenome-upload-store", storage_type="local")
-# samples_store = dcc.Store(id="samples-store", storage_type="local")
-
-# samples_datatable = html.Div(id="samples-datatable")
 samples_datatable = (
     dcc.Loading(
         id="loading-samples-datatable",
@@ -236,10 +228,6 @@ refine_mags_button = dbc.Button(
 
 layout = dbc.Container(
     children=[
-        # binning_main_upload_store,
-        # markers_upload_store,
-        # metagenome_upload_store,
-        # samples_store,
         dbc.Row(upload_modal),
         html.Br(),
         # row_example_cards,
@@ -287,11 +275,9 @@ def on_upload_stores_data(
     ):
         # Check if db has any samples in table
         uploaded_files_df = get_uploaded_files_table()
-        if uploaded_files_df:
+        if not uploaded_files_df.empty:
             return uploaded_files_df.to_json(orient="split")
         raise PreventUpdate
-    # We need to ensure we prevent an update if there has not been one, otherwise all of our datastore
-    # gets removed...
     samples = []
     for data_upload in [
         binning_uploads,
@@ -316,6 +302,8 @@ def on_upload_stores_data(
     State("samples-store", "data"),
 )
 def binning_select_options(samples_store_data, new_samples_store_data):
+    if samples_store_data is None:
+        raise PreventUpdate
     samples_df = pd.read_json(samples_store_data, orient="split")
     if new_samples_store_data is not None:
         new_samples_df = pd.read_json(new_samples_store_data, orient="split")
@@ -326,7 +314,6 @@ def binning_select_options(samples_store_data, new_samples_store_data):
     if samples_df.empty:
         raise PreventUpdate
 
-    # {"label": filename+truncated-hash, "value": table_id}
     df = samples_df.loc[samples_df.filetype.eq("binning")]
     logger.debug(f"{df.shape[0]:,} binning available for mag_refinement")
     return [
@@ -344,6 +331,8 @@ def binning_select_options(samples_store_data, new_samples_store_data):
     State("samples-store", "data"),
 )
 def markers_select_options(samples_store_data, new_samples_store_data):
+    if samples_store_data is None:
+        raise PreventUpdate
     samples_df = pd.read_json(samples_store_data, orient="split")
     if new_samples_store_data is not None:
         new_samples_df = pd.read_json(new_samples_store_data, orient="split")
@@ -354,7 +343,6 @@ def markers_select_options(samples_store_data, new_samples_store_data):
     if samples_df.empty:
         raise PreventUpdate
 
-    # {"label": filename+truncated-hash, "value": table_id}
     markers_samples = samples_df.loc[samples_df.filetype.eq("markers")]
     logger.debug(f"{markers_samples.shape[0]:,} markers available for mag_refinement")
     return [
@@ -374,6 +362,8 @@ def markers_select_options(samples_store_data, new_samples_store_data):
     State("samples-store", "data"),
 )
 def metagenome_select_options(samples_store_data, new_samples_store_data):
+    if samples_store_data is None:
+        raise PreventUpdate
     samples_df = pd.read_json(samples_store_data, orient="split")
     if new_samples_store_data is not None:
         new_samples_df = pd.read_json(new_samples_store_data, orient="split")
@@ -401,6 +391,8 @@ def metagenome_select_options(samples_store_data, new_samples_store_data):
     State("samples-store", "data"),
 )
 def on_samples_store_data(samples_store_data, new_samples_store_data):
+    if samples_store_data is None:
+        raise PreventUpdate
     samples_df = pd.read_json(samples_store_data, orient="split")
     if new_samples_store_data is not None:
         new_samples_df = pd.read_json(new_samples_store_data, orient="split")
@@ -498,7 +490,17 @@ def toggle_modal(n_open, n_close, is_open):
 
 
 # TODO: Disable refine-mags button when not all select values are provided
-
+@app.callback(
+    Output("refine-mags-button", "active"),
+    [Input("binning-select", "value"),
+    Input("markers-select", "value"),
+    Input("metagenome-select", "value"),],
+)
+def refine_mags_button_active_callback(binning_value, markers_value, metagenome_value):
+    if not binning_value or not markers_value or not metagenome_value:
+        return False
+    else:
+        return True
 
 @app.callback(
     Output("selected-tables-store", "data"),

@@ -8,7 +8,7 @@
 6. [x] :racehorse: Retrieve datatable within `mag_refinement.py`
     - [x] binning, markers, metagenome dropdowns for selecting data available in database
     - [x] dropdown values correspond to `table_id` and are sent to `mag_refinement.py` callbacks, replacing `pd.read_json(...)`
-    - [x] dropdowns should have a "NA" or placeholder causing inability to navigate to other layouts when data for the particular filetype is unavailable
+    - [ ] dropdowns should have a "NA" or placeholder causing inability to navigate to other layouts when data for the particular filetype is unavailable
 7. [ ] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
 8. [x] :carrot::racehorse: Add celery task-queue
 9. [x] :carrot::racehorse: Add celery-monitoring services
@@ -17,14 +17,21 @@
 12. [x] :fire: Remove parser args for data inputs (i.e. not relevant to running automappa server)
 13. [x] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
 14. [ ] :racehorse: Retrieve datatable within `mag_summary.py`
+15. [ ] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
+16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
 
 --------------------------------------------------------------------------------------------------
 
 ## docker-compose services configuration
 
-> NOTE: All of this assumes you have all docker services running via `make up` or `docker-compose up`
+***NOTE: All of this assumes you have all docker services running via `make up` or `docker-compose up`***
 
-TODO: Provision grafana from `docker-compose.yml`. See: [Grafana provisioning example data source config file](https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file)
+> ~Provision grafana from `docker-compose.yml`. See: [Grafana provisioning example data source config file](https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file)~
+> Found a nice blog post and accompanying GitHub repo to follow:
+>
+> - [Medium blog post](https://medium.com/swlh/easy-grafana-and-docker-compose-setup-d0f6f9fcec13)
+> - [github.com/annea-ai/grafana-infrastructure](<https://github.com/annea-ai/grafana-infrastructure>)
+> - [Grafana docs on Provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
 
 ## Monitoring Services
 

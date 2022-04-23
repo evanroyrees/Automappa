@@ -42,7 +42,7 @@
       }
     ]
   },
-  "description": "Basic celery monitoring example",
+  "description": "Basic celery monitoring",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
@@ -753,7 +753,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Celery Monitoring",
+  "title": "Automappa Celery Monitoring",
   "uid": "3OBI1flGz",
   "version": 9
 }

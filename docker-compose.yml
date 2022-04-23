@@ -61,8 +61,13 @@ services:
     image: grafana/grafana:latest
     ports:
       - 3000:3000
+    env_file:
+      - .env
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards
     depends_on:
       - prometheus
 

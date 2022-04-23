@@ -57,13 +57,13 @@ build: docker-compose.yml
 up: docker-compose.yml
 	docker-compose up --always-recreate-deps --remove-orphans --force-recreate
 
-## alias for docker-compose down
+## alias for docker-compose down --remove-orphans
 down: docker-compose.yml
-	docker-compose down --volumes
+	docker-compose down --remove-orphans
 
-## alias for docker-compose down --volumes
+## alias for docker-compose down --remove-orphans --volumes
 down-v: docker-compose.yml
-	docker-compose down --volumes
+	docker-compose down --remove-orphans -v
 
 # Run Automappa on test data
 # test: test_data
