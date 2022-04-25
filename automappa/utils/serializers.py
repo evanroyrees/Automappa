@@ -206,7 +206,30 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
     return table_name
 
 
-def save_to_db(
+def table_to_db(df:pd.DataFrame, name:str, if_exists: str = "replace", index:bool = False)->None:
+    """Write `df` to `table_name` in database.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Dataframe of data to write
+    table_name : str
+        Name of data table to store in database
+    if_exists : str, optional
+        What to do if `table_name` exists.
+        Choices include: 'fail', 'replace', 'append', by default "replace"
+    index : bool, optional
+        Whether to write the index to the database, by default False
+
+    Returns
+    -------
+    NoneType
+        Nothing is returned...
+    """
+    return df.to_sql(name=name, con=engine, if_exists=if_exists, index=index)
+
+
+def file_to_db(
     filepath: Path,
     filetype: str,
     if_exists: str = "replace",

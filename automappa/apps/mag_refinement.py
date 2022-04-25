@@ -20,7 +20,7 @@ import plotly.io as pio
 from automappa.app import app
 
 # from automappa.tasks import get_marker_symbols
-from automappa.utils.serializers import get_table
+from automappa.utils.serializers import get_table, table_to_db
 from automappa.utils.markers import get_marker_symbols
 from automappa.utils.figures import (
     format_axis_title,
@@ -551,13 +551,13 @@ def update_mag_metrics_datatable_callback(
     Output("scatterplot-2d", "figure"),
     [
         Input("selected-tables-store", "data"),
-        # Input("refinement-data", "data"),
         # Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("scatterplot-2d-legend-toggle", "value"),
         Input("color-by-column", "value"),
         Input("hide-selections-toggle", "value"),
+        Input("mag-refinement-save-button", "n_clicks"),
     ],
 )
 def scatterplot_2d_figure_callback(
@@ -569,6 +569,7 @@ def scatterplot_2d_figure_callback(
     show_legend: bool,
     color_by_col: str,
     hide_selection_toggle: bool,
+    btn_clicks: int,
 ) -> go.Figure:
     # TODO: #23 refactor scatterplot callbacks
     bin_table_name = selected_tables_data["binning"]
@@ -576,9 +577,6 @@ def scatterplot_2d_figure_callback(
     markers_table_name = selected_tables_data["markers"]
     markers_df = get_table(markers_table_name, index_col="contig")
     markers = get_marker_symbols(bin_df, markers_df)
-    # markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
-    #     "contig"
-    # )
     if color_by_col not in bin_df.columns:
         for col in ["phylum", "class", "order", "family"]:
             if col in bin_df.columns:
@@ -588,7 +586,6 @@ def scatterplot_2d_figure_callback(
         raise ValueError(
             f"No columns were found in binning-main that could be used to group traces. {color_by_col} not found in table..."
         )
-
     # Subset metagenome-annotations by selections iff selections have been made
     if hide_selection_toggle:
         refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
@@ -648,7 +645,7 @@ def taxonomy_distribution_figure_callback(
     df = get_table(table_name)
     if selected_contigs and selected_contigs["points"]:
         contigs = {point["text"] for point in selected_contigs["points"]}
-        df = df.loc[df.contig.isin[contigs]]
+        df = df.loc[df.contig.isin(contigs)]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
     return fig
 
@@ -760,10 +757,17 @@ def mag_summary_length_boxplot_callback(
 
 @app.callback(
     Output("refinements-table", "children"),
-    [Input("refinement-data", "data")],
+    [
+        Input("selected-tables-store", "data"),
+        Input("mag-refinement-save-button", "n_clicks"),
+    ],
 )
-def refinements_table_callback(refinement_store_data: "str | None") -> DataTable:
-    df = pd.read_json(refinement_store_data, orient="split")
+def refinements_table_callback(
+    selected_tables_data: Dict[str, str],
+    btn_clicks: int,
+) -> DataTable:
+    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
+    df = get_table(refine_table_name)
     return DataTable(
         data=df.to_dict("records"),
         columns=[{"name": col, "id": col} for col in df.columns],
@@ -777,15 +781,16 @@ def refinements_table_callback(refinement_store_data: "str | None") -> DataTable
     Output("refinements-download", "data"),
     [
         Input("refinements-download-button", "n_clicks"),
-        Input("refinement-data", "data"),
+        Input("selected-tables-store", "data"),
     ],
 )
 def download_refinements(
-    n_clicks: int, curated_mags: "str | None"
+    n_clicks: int, selected_tables_data: Dict[str, str],
 ) -> Dict[str, "str | bool"]:
     if not n_clicks:
         raise PreventUpdate
-    df = pd.read_json(curated_mags, orient="split")
+    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
+    df = get_table(refine_table_name)
     return send_data_frame(df.to_csv, "refinements.csv", index=False)
 
 
@@ -800,37 +805,29 @@ def mag_refinement_save_button_disabled_callback(
 
 
 @app.callback(
-    [
-        Output("refinement-data", "data"),
-        Output("mag-refinement-save-button", "n_clicks"),
-    ],
+    Output("mag-refinement-save-button", "n_clicks"),
     [
         Input("scatterplot-2d", "selectedData"),
-        Input("refinement-data", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-refinement-save-button", "n_clicks"),
-    ],
-    [
-        State("refinement-data", "data"),
     ],
 )
 def store_binning_refinement_selections(
     selected_data: Dict[str, List[Dict[str, str]]],
-    refinement_data: "str | None",
+    selected_tables_data: Dict[str, str],
     n_clicks: int,
-    intermediate_selections: "str | None",
-) -> "str | None":
+) -> int:
     # Initial load...
-    if not selected_data:
-        bin_df = pd.read_json(refinement_data, orient="split")
-        return bin_df.to_json(orient="split"), 0
-    if not n_clicks or (n_clicks and not selected_data):
+    if not n_clicks or (n_clicks and not selected_data) or not selected_data:
         raise PreventUpdate
-    pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
-    refinement_cols = [col for col in pdf.columns if "refinement" in col]
+    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
+    bin_df = get_table(refine_table_name, index_col="contig")
+    refinement_cols = [col for col in bin_df.columns if "refinement" in col]
     refinement_num = len(refinement_cols) + 1
-    group_name = f"refinement_{refinement_num}"
+    refinement_name = f"refinement_{refinement_num}"
     contigs = list({point["text"] for point in selected_data["points"]})
-    pdf.loc[contigs, group_name] = group_name
-    pdf = pdf.fillna(axis="columns", method="ffill")
-    pdf.reset_index(inplace=True)
-    return pdf.to_json(orient="split"), 0
+    bin_df.loc[contigs, refinement_name] = refinement_name
+    bin_df = bin_df.fillna(axis="columns", method="ffill")
+    bin_df.reset_index(inplace=True)
+    table_to_db(df=bin_df, name=refine_table_name)
+    return 0

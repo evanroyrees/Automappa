@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Dict, List
+from typing import Dict, List
 from dash.exceptions import PreventUpdate
 
 import numpy as np
@@ -15,7 +15,8 @@ from plotly import graph_objects as go
 import plotly.io as pio
 
 from automappa.app import app
-from automappa.utils.figures import taxonomy_sankey, metric_boxplot
+from automappa.utils.figures import metric_barplot, taxonomy_sankey, metric_boxplot
+from automappa.utils.serializers import get_table
 
 pio.templates.default = "plotly_white"
 
@@ -93,10 +94,10 @@ mag_taxonomy_sankey = dcc.Loading(
 )
 
 mag_metrics_boxplot = dcc.Loading(
-    id="loading-mag-metrics-boxplot",
+    id="loading-mag-metrics-barplot",
     children=[
         dcc.Graph(
-            id="mag-metrics-boxplot",
+            id="mag-metrics-barplot",
             config={"displayModeBar": False, "displaylogo": False},
         )
     ],
@@ -150,13 +151,18 @@ mag_summary_cluster_col_dropdown = [
     dcc.Dropdown(
         id="mag-summary-cluster-col-dropdown",
         value="cluster",
+        placeholder="Select a cluster column to compute MAG summary metrics",
         clearable=False,
     ),
 ]
 
 mag_selection_dropdown = [
     html.Label("MAG Selection Dropdown"),
-    dcc.Dropdown(id="mag-selection-dropdown", clearable=True),
+    dcc.Dropdown(
+        id="mag-selection-dropdown",
+        clearable=True,
+        placeholder="Select a MAG from this dropdown for a MAG-specific summary",
+    ),
 ]
 
 
@@ -208,12 +214,12 @@ layout = dbc.Container(
 @app.callback(
     Output("mag-overview-metrics-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_overview_metrics_boxplot_callback(
-    df_json: "str | None", cluster_col: str
+    selected_tables_data: Dict[str, str], cluster_col: str
 ) -> go.Figure:
     """
     Writes
@@ -224,7 +230,8 @@ def mag_overview_metrics_boxplot_callback(
     Returns:
         n_unique_bins - number of unique bins
     """
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    table_name = selected_tables_data["binning"]
+    mag_summary_df = get_table(table_name)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -236,14 +243,15 @@ def mag_overview_metrics_boxplot_callback(
 @app.callback(
     Output("mag-overview-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_overview_gc_content_boxplot_callback(
-    df_json: "str | None", cluster_col: str
+    selected_tables_data: Dict[str, str], cluster_col: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    table_name = selected_tables_data["binning"]
+    mag_summary_df = get_table(table_name)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -256,14 +264,15 @@ def mag_overview_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-overview-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_overview_length_boxplot_callback(
-    df_json: "str | None", cluster_col: str
+    selected_tables_data: Dict[str, str], cluster_col: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    table_name = selected_tables_data["binning"]
+    mag_summary_df = get_table(table_name)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -275,14 +284,15 @@ def mag_overview_length_boxplot_callback(
 @app.callback(
     Output("mag-overview-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_overview_coverage_boxplot_callback(
-    df_json: "str | None", cluster_col: str
+    selected_tables_data: Dict[str, str], cluster_col: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    table_name = selected_tables_data["binning"]
+    mag_summary_df = get_table(table_name)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -293,13 +303,14 @@ def mag_overview_coverage_boxplot_callback(
 
 @app.callback(
     Output("mag-summary-cluster-col-dropdown", "options"),
-    [Input("metagenome-annotations", "data")],
+    [Input("selected-tables-store", "data")],
 )
-def mag_summary_cluster_col_dropdown_options_callback(df_json):
-    bin_df = pd.read_json(df_json, orient="split")
+def mag_summary_cluster_col_dropdown_options_callback(selected_tables_data: Dict[str, str]):
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig')
     return [
         {"label": col.title(), "value": col}
-        for col in bin_df.columns
+        for col in refinement_df.columns
         if "cluster" in col or "refinement" in col
     ]
 
@@ -307,16 +318,20 @@ def mag_summary_cluster_col_dropdown_options_callback(df_json):
 @app.callback(
     Output("mag-summary-stats-datatable", "children"),
     [
-        Input("metagenome-annotations", "data"),
-        Input("markers-store", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_summary_stats_datatable_callback(
-    mag_annotations_json, markers_json, cluster_col
+    selected_tables_data: Dict[str, str], cluster_col:str
 ):
-    bin_df = pd.read_json(mag_annotations_json, orient="split")
-    markers = pd.read_json(markers_json, orient="split").set_index("contig")
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    bin_df = bin_df.join(refinement_df, how='right')
+    markers_table_name = selected_tables_data["markers"]
+    markers = get_table(markers_table_name, index_col="contig")
     if cluster_col not in bin_df.columns:
         num_expected_markers = markers.shape[1]
         length_weighted_coverage = np.average(
@@ -356,7 +371,7 @@ def mag_summary_stats_datatable_callback(
     else:
         stats_df = (
             get_metabin_stats(
-                bin_df=bin_df.set_index("contig"),
+                bin_df=bin_df,
                 markers=markers,
                 cluster_col=cluster_col,
             )
@@ -387,18 +402,22 @@ def mag_summary_stats_datatable_callback(
 @app.callback(
     Output("mag-taxonomy-sankey", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
 )
 def mag_taxonomy_sankey_callback(
-    mag_summary_json: "str | None", cluster_col: str, selected_mag: str
+    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(mag_summary_json, orient="split")
-    if cluster_col not in mag_summary_df.columns:
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    bin_df = bin_df.join(refinement_df, how='right')
+    if cluster_col not in bin_df.columns:
         raise PreventUpdate
-    mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
+    mag_df = bin_df.loc[bin_df[cluster_col].eq(selected_mag)]
     fig = taxonomy_sankey(mag_df)
     return fig
 
@@ -406,19 +425,23 @@ def mag_taxonomy_sankey_callback(
 @app.callback(
     Output("mag-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", cluster_col: str, selected_mag: str
+    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
-    if cluster_col not in mag_summary_df.columns:
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    bin_df = bin_df.join(refinement_df, how='right')
+    if cluster_col not in bin_df.columns:
         raise PreventUpdate
-    mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
-    mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
+    bin_df = bin_df.dropna(subset=[cluster_col])
+    mag_df = bin_df.loc[bin_df[cluster_col].eq(selected_mag)]
     mag_df = mag_df.round(2)
     fig = metric_boxplot(df=mag_df, metrics=["gc_content"])
     fig.update_traces(name="GC Content")
@@ -426,38 +449,50 @@ def mag_summary_gc_content_boxplot_callback(
 
 
 @app.callback(
-    Output("mag-metrics-boxplot", "figure"),
+    Output("mag-metrics-barplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
 )
-def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", cluster_col: str, selected_mag: str
+def mag_metrics_callback(
+    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    if not selected_mag:
+        raise PreventUpdate
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    mag_summary_df = bin_df.join(refinement_df, how='right')
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
     mag_df = mag_df.round(2)
-    fig = metric_boxplot(df=mag_df, metrics=["completeness", "purity"])
+    fig = metric_barplot(df=mag_df, metrics=["completeness", "purity"], name=selected_mag)
     return fig
 
 
 @app.callback(
     Output("mag-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", cluster_col: str, selected_mag: str
+    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    if not selected_mag:
+            raise PreventUpdate
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    mag_summary_df = bin_df.join(refinement_df, how='right')
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -470,15 +505,21 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
         Input("mag-selection-dropdown", "value"),
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", cluster_col: str, selected_mag: str
+    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    mag_summary_df = pd.read_json(df_json, orient="split")
+    if not selected_mag:
+            raise PreventUpdate
+    binning_table_name = selected_tables_data["binning"]
+    bin_df = get_table(binning_table_name, index_col='contig')
+    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
+    mag_summary_df = bin_df.join(refinement_df, how='right')
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -491,14 +532,15 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-selection-dropdown", "options"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-summary-cluster-col-dropdown", "value"),
     ],
 )
 def mag_selection_dropdown_options_callback(
-    mag_annotations_json: "str | None", cluster_col: str
+    selected_tables_data: Dict[str,str], cluster_col: str
 ) -> List[Dict[str, str]]:
-    df = pd.read_json(mag_annotations_json, orient="split")
+    table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
+    df = get_table(table_name, index_col="contig")
     if cluster_col not in df.columns:
         options = []
     else:

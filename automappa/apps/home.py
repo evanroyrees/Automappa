@@ -15,7 +15,7 @@ import dash_uploader as du
 from automappa.app import app
 from automappa.utils.serializers import (
     get_uploaded_files_table,
-    save_to_db,
+    file_to_db,
     validate_uploader,
 )
 
@@ -429,7 +429,7 @@ def on_binning_main_upload(iscompleted, filenames, upload_id):
         raise PreventUpdate
     if not filepath:
         raise PreventUpdate
-    df = save_to_db(
+    df = file_to_db(
         filepath=filepath,
         filetype="binning",
     )
@@ -452,7 +452,7 @@ def on_markers_upload(iscompleted, filenames, upload_id):
         raise PreventUpdate
     if not filepath:
         raise PreventUpdate
-    df = save_to_db(filepath, "markers")
+    df = file_to_db(filepath, "markers")
     return df.to_json(orient="split")
 
 
@@ -474,7 +474,7 @@ def on_metagenome_upload(iscompleted, filenames, upload_id):
         raise PreventUpdate
     if not filepath:
         raise PreventUpdate
-    df = save_to_db(filepath, "metagenome")
+    df = file_to_db(filepath, "metagenome")
     return df.to_json(orient="split")
 
 

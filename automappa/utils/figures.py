@@ -103,6 +103,20 @@ def metric_boxplot(
     return fig
 
 
+def metric_barplot(
+    df: pd.DataFrame,
+    metrics: List[str] = [],
+    horizontal: bool = False,
+    name: str = None,
+) -> go.Figure:
+    if not metrics:
+        raise PreventUpdate
+    x = [metric.replace("_", " ").title() for metric in metrics]
+    y = [df[metric].iat[0] for metric in metrics]
+    orientation = 'h' if horizontal else "v"
+    return go.Figure([go.Bar(x=x, y=y, orientation=orientation, name=name)])
+
+
 def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
     x_min_scaler = x[scale_by] - x[scale_by].min()
     x_max_scaler = x[scale_by].max() - x[scale_by].min()
