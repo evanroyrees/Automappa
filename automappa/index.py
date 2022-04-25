@@ -3,12 +3,13 @@
 
 import argparse
 import logging
+from typing import Dict
 
 from dash.dependencies import Input, Output
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
-from automappa.settings import server
+from automappa import settings
 from automappa.apps import home, mag_refinement, mag_summary
 from automappa.app import app
 
@@ -20,8 +21,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@app.callback(Output("tab-content", "children"), [Input("tabs", "active_tab")])
-def render_content(active_tab):
+@app.callback(
+    Output("tab-content", "children"),
+    [Input("tabs", "active_tab"),
+    Input("selected-tables-store", "data")]
+)
+def render_content(active_tab: str, selected_tables_data: Dict[str,str]) -> dbc.Container:
+    # Only alow user to navigate to mag refinement or summary if data is already uploaded
+    if selected_tables_data is None:
+        return home.layout
+    for data_table in ['markers', 'binning']:
+        if selected_tables_data[data_table] is None:
+            return home.layout
+        
     layouts = {
         "home": home.layout,
         "mag_refinement": mag_refinement.layout,
@@ -101,9 +113,6 @@ def main():
 
     app.layout = dbc.Container(
         [
-            # dbc.Col(markers_store),
-            # dbc.Col(metagenome_annotations_store),
-            # dbc.Col(refinement_data_store),
             # dbc.Col(contig_marker_symbols_store),
             dbc.Col(binning_main_upload_store),
             dbc.Col(markers_upload_store),
@@ -116,19 +125,15 @@ def main():
                 children=[home_tab, refinement_tab, summary_tab],
                 className="nav-fill",
             ),
-            # html.Div(browser_storage_toast),
             html.Div(id="tab-content"),
         ],
         fluid=True,
     )
 
     # TODO: Replace cli inputs (as well as updating title once file is uploaded...)
-    # dcc.Upload(id='metagenome-annotations-upload', children=dbc.Button("Upload annotations"))
-    # dcc.Upload(id='markers-upload', children=dbc.Button("Upload annotations"))
-    # sample_name = os.path.basename(args.binning_main).replace(" ", "_").split(".")[0]
     # app.title = f"Automappa: {sample_name}"
     app.title = "Automappa"
-    app.run_server(host=server.host, port=server.port, debug=server.debug)
+    app.run_server(host=settings.server.host, port=settings.server.port, debug=settings.server.debug)
 
 
 if __name__ == "__main__":

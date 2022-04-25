@@ -80,6 +80,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    mem_limit: 4GB
     # Not sure which is more appropriate for production :shrug:
     # This command allows live-reloading for dev
     # command: automappa

@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import logging
+
+numba_logger = logging.getLogger('numba')
+numba_logger.setLevel(logging.WARNING)
+h5py_logger = logging.getLogger('h5py')
+h5py_logger.setLevel(logging.WARNING)
+
 from typing import Dict, List
 
 import pandas as pd
@@ -19,9 +25,9 @@ import plotly.io as pio
 
 from automappa.app import app
 
-# from automappa.tasks import get_marker_symbols
+from automappa.tasks import get_marker_symbols
 from automappa.utils.serializers import get_table, table_to_db
-from automappa.utils.markers import get_marker_symbols
+# from automappa.utils.markers import get_marker_symbols
 from automappa.utils.figures import (
     format_axis_title,
     get_scatterplot_2d,
@@ -34,7 +40,6 @@ logging.basicConfig(
     format="[%(levelname)s] %(name)s: %(message)s",
     level=logging.DEBUG,
 )
-
 logger = logging.getLogger(__name__)
 
 pio.templates.default = "plotly_white"
@@ -571,6 +576,7 @@ def scatterplot_2d_figure_callback(
     hide_selection_toggle: bool,
     btn_clicks: int,
 ) -> go.Figure:
+    # NOTE: btn_clicks is an input so this figure is updated when new refinements are saved
     # TODO: #23 refactor scatterplot callbacks
     bin_table_name = selected_tables_data["binning"]
     bin_df = get_table(bin_table_name, index_col="contig")

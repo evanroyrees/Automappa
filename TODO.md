@@ -6,9 +6,9 @@
 4. [x] :racehorse::art: Populate `dcc.Store(...)` with user's existing datatables
 5. [ ] ~:racehorse::art: Populate `data_table.DataTable` with clickable `dcc.Link` that navigates user to `mag_refinement.py` (will load data relevant to link, e.g. metagenome annotations, markers, etc.)~
 6. [x] :racehorse: Retrieve datatable within `mag_refinement.py`
-    - [x] binning, markers, metagenome dropdowns for selecting data available in database
-    - [x] dropdown values correspond to `table_id` and are sent to `mag_refinement.py` callbacks, replacing `pd.read_json(...)`
-    - [ ] dropdowns should have a "NA" or placeholder causing inability to navigate to other layouts when data for the particular filetype is unavailable
+    - [x] (`home.py`) binning, markers, metagenome dropdowns for selecting data available in database
+    - [x] (`home.py`) dropdown values correspond to `table_id` and are sent to `mag_refinement.py` callbacks, replacing `pd.read_json(...)`
+    - [x] (`home.py`/`index.py`) dropdowns should have a "NA" or placeholder disabling navigation to other layouts when data for the particular filetype is unavailable
 7. [ ] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
 8. [x] :carrot::racehorse: Add celery task-queue
 9. [x] :carrot::racehorse: Add celery-monitoring services
@@ -16,8 +16,8 @@
 11. [ ] :carrot::racehorse: Add k-mer embedding tasks to task-queue
 12. [x] :fire: Remove parser args for data inputs (i.e. not relevant to running automappa server)
 13. [x] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
-14. [ ] :racehorse: Retrieve datatable within `mag_summary.py`
-15. [ ] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
+14. [x] :racehorse: Retrieve datatable within `mag_summary.py`
+15. [x] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
 16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
 
 --------------------------------------------------------------------------------------------------

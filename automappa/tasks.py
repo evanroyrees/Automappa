@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 
 
+import logging
 import os
 import glob
 import pandas as pd
 
 from geom_median.numpy import compute_geometric_median
-from celery.utils.log import get_task_logger
-from celery import Celery, chain
+from celery import Celery
 from celery.result import AsyncResult
 
-from autometa.common.external import hmmscan
 from autometa.common.kmers import normalize, embed, count
 
 from automappa import settings
@@ -25,7 +24,11 @@ queue = Celery(
     __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
 )
 
-logger = get_task_logger(__name__)
+logging.basicConfig(
+    format="[%(levelname)s] %(name)s: %(message)s",
+    level=logging.DEBUG,
+)
+logger = logging.getLogger(__name__)
 
 
 def get_job(job_id):
@@ -36,7 +39,7 @@ def get_job(job_id):
     return AsyncResult(job_id, app=queue)
 
 
-# @queue.task
+@queue.task
 def get_marker_symbols(bin_df: pd.DataFrame, markers_df: pd.DataFrame) -> pd.DataFrame:
     marker_counts = get_contig_marker_counts(bin_df, markers_df)
     marker_symbols = convert_marker_counts_to_marker_symbols(marker_counts)
@@ -49,7 +52,6 @@ def get_marker_symbols(bin_df: pd.DataFrame, markers_df: pd.DataFrame) -> pd.Dat
 # TODO: CheckM annotation
 # TODO: kmer freq. analysis pipeline
 # TODO: scatterplot 2-d embedding views
-
 
 @queue.task
 def get_embedding(
@@ -65,38 +67,6 @@ def get_embedding(
     )
     norm_df = normalize(counts, method=norm_method)
     return embed(norm_df, method=embed_method, embed_dimensions=2)
-
-
-# @queue.task
-# def hmmdb_formatter(hmmdb) -> None:
-#     hmmscan.hmmpress(hmmdb)
-
-
-# @queue.task
-# def scanner(seqfile, hmmdb, out) -> str:
-#     # NOTE: returns outfpath
-#     # cmd = [
-#     #     "hmmscan",
-#     #     "--cpu",
-#     #     "1",
-#     #     "--seed",
-#     #     "42",
-#     #     "--tblout",
-#     #     out,
-#     #     hmmdb,
-#     #     seqfile
-#     # ]
-#     # run_cmd = " ".join(cmd)
-#     # os.system(run_cmd)
-#     hmmscan.run(
-#         orfs=seqfile,
-#         hmmdb=hmmdb,
-#         outfpath=out,
-#         cpus=2,
-#         parallel=True,
-#         seed=42,
-#         force=True,
-#     )
 
 
 @queue.task

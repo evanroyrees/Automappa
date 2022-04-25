@@ -183,7 +183,22 @@ row_example_cards = dbc.Row(
 samples_datatable = (
     dcc.Loading(
         id="loading-samples-datatable",
-        children=[html.Div(id="samples-datatable")],
+        children=[
+            html.Label("Uploaded Datasets"),
+            html.Div(id="samples-datatable")
+        ],
+        type="dot",
+        color="#646569",
+    ),
+)
+
+selected_tables_datatable = (
+    dcc.Loading(
+        id="loading-selected-tables-datatable",
+        children=[
+            html.Label("Selected Datasets for Refinement & Summary:"),
+            html.Div(id="selected-tables-datatable")
+        ],
         type="dot",
         color="#646569",
     ),
@@ -236,6 +251,8 @@ layout = dbc.Container(
         dbc.Row(refine_mags_input_groups),
         html.Br(),
         dbc.Row(refine_mags_button),
+        html.Br(),
+        dbc.Row(selected_tables_datatable),
     ],
     fluid=True,
 )
@@ -489,18 +506,17 @@ def toggle_modal(n_open, n_close, is_open):
     return is_open
 
 
-# TODO: Disable refine-mags button when not all select values are provided
 @app.callback(
-    Output("refine-mags-button", "active"),
+    Output("refine-mags-button", "disabled"),
     [Input("binning-select", "value"),
     Input("markers-select", "value"),
     Input("metagenome-select", "value"),],
 )
 def refine_mags_button_active_callback(binning_value, markers_value, metagenome_value):
-    if not binning_value or not markers_value or not metagenome_value:
-        return False
-    else:
+    if binning_value is None or markers_value is None:
         return True
+    else:
+        return False
 
 @app.callback(
     Output("selected-tables-store", "data"),
@@ -521,3 +537,29 @@ def on_refine_mags_button_click(
         "markers": markers_select_value,
         "metagenome": metagenome_select_value,
     }
+
+@app.callback(
+    Output("selected-tables-datatable", "children"),
+    [
+        Input("selected-tables-store", "data"),
+        Input("tabs", "active_tab"),
+    ],
+    State("selected-tables-store", "data"),
+)
+def selected_tables_datatable_children(selected_tables_store_data, active_tab, new_selected_tables_store_data):
+    # Why Input("tabs", "active_tab"): Navigating to back to home tab triggers rendering of table from store
+    if selected_tables_store_data is None:
+        raise PreventUpdate
+    if new_selected_tables_store_data is not None:
+        selected_tables_store_data.update(new_selected_tables_store_data)
+
+    if not selected_tables_store_data:
+        raise PreventUpdate
+
+    return DataTable(
+        data=[{"filetype":filetype, "table_id": table_id} for filetype,table_id in selected_tables_store_data.items() if table_id is not None],
+        columns=[
+            {"id": "filetype", "name": "filetype", "editable": False},
+            {"id": "table_id", "name": "table_id", "editable": False},
+        ],
+    )

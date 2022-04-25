@@ -14,9 +14,6 @@ from pydantic import (
 
 
 class DatabaseSettings(BaseSettings):
-    # TODO: Figure out how to make the url dynamic to docker_url or local_url based on
-    # is_docker_service... e.g.
-    # url: PostgresDsn = docker_url if is_docker_service else local_url
     url: PostgresDsn
     pool_size: Optional[int] = 3
     pool_pre_ping: Optional[bool] = False
