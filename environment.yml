@@ -1,8 +1,8 @@
 name: automappa
 channels:
-  - plotly
   - conda-forge
   - bioconda
+  - plotly
   - defaults
 dependencies:
   - autometa
