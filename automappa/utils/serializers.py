@@ -124,7 +124,9 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
     refinement_table_name = table_name.replace("-binning", "-refinement")
-    df[refine_cols].to_sql(refinement_table_name, engine, if_exists=if_exists, index=False)
+    df[refine_cols].to_sql(
+        refinement_table_name, engine, if_exists=if_exists, index=False
+    )
     logger.debug(
         f"Saved refinements (shape={df[refine_cols].shape}) to postgres table: {refinement_table_name}"
     )

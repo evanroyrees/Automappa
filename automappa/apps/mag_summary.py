@@ -307,7 +307,7 @@ def mag_overview_coverage_boxplot_callback(
     [Input("selected-tables-store", "data")],
 )
 def mag_summary_cluster_col_dropdown_options_callback(
-    selected_tables_data: SampleTables
+    selected_tables_data: SampleTables,
 ):
     tables = SampleTables.parse_raw(selected_tables_data)
     refinement_df = get_table(tables.refinements, index_col="contig")

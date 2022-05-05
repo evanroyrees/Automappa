@@ -9,7 +9,7 @@
     - [x] (`home.py`) binning, markers, metagenome dropdowns for selecting data available in database
     - [x] (`home.py`) dropdown values correspond to `table_id` and are sent to `mag_refinement.py` callbacks, replacing `pd.read_json(...)`
     - [x] (`home.py`/`index.py`) dropdowns should have a "NA" or placeholder disabling navigation to other layouts when data for the particular filetype is unavailable
-7. [ ] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
+7. [x] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
 8. [x] :carrot::racehorse: Add celery task-queue
 9. [x] :carrot::racehorse: Add celery-monitoring services
 10. [ ] :carrot::racehorse: Add uploaded data ingestion to task-queue
@@ -20,7 +20,7 @@
 15. [x] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
 16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
 17. [ ] :art::carrot: Add selections/dropdowns/progress updates for metagenome embeddings
-18. [ ] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
+18. [x] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
 
 --------------------------------------------------------------------------------------------------
 

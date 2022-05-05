@@ -21,7 +21,11 @@ from autometa.common import kmers
 from automappa import settings
 
 from automappa.utils.markers import get_marker_symbols
-from automappa.utils.serializers import get_metagenome_seqrecords, get_table,table_to_db
+from automappa.utils.serializers import (
+    get_metagenome_seqrecords,
+    get_table,
+    table_to_db,
+)
 
 
 queue = Celery(
@@ -47,10 +51,10 @@ def get_job(job_id):
 
 @queue.task(bind=True)
 def preprocess_marker_symbols(self, binning_table: str, markers_table: str) -> str:
-    bin_df = get_table(binning_table, index_col='contig')
-    markers_df = get_table(markers_table, index_col='contig')
-    marker_symbols_df = get_marker_symbols(bin_df, markers_df).set_index('contig')
-    marker_symbols_table = markers_table.replace('-markers', '-marker-symbols')
+    bin_df = get_table(binning_table, index_col="contig")
+    markers_df = get_table(markers_table, index_col="contig")
+    marker_symbols_df = get_marker_symbols(bin_df, markers_df).set_index("contig")
+    marker_symbols_table = markers_table.replace("-markers", "-marker-symbols")
     table_to_db(marker_symbols_df, marker_symbols_table, index=True)
     return marker_symbols_table
 
@@ -67,7 +71,7 @@ def preprocess_marker_symbols(self, binning_table: str, markers_table: str) -> s
 
 
 @queue.task(bind=True)
-def count_kmer(self, metagenome_table:str, size:int = 5, cpus:int = None) -> str:
+def count_kmer(self, metagenome_table: str, size: int = 5, cpus: int = None) -> str:
     records = get_metagenome_seqrecords(metagenome_table)
     # Uncomment next line to speed-up debugging...
     # FIXME: Comment out below:
@@ -89,9 +93,10 @@ def count_kmer(self, metagenome_table:str, size:int = 5, cpus:int = None) -> str
     table_to_db(counts, name=counts_table, index=True)
     return counts_table
 
+
 @queue.task(bind=True)
-def normalize_kmer(self, counts_table: str, norm_method:str) -> str:
-    counts = get_table(counts_table, index_col='contig')
+def normalize_kmer(self, counts_table: str, norm_method: str) -> str:
+    counts = get_table(counts_table, index_col="contig")
     norm_df = kmers.normalize(counts, method=norm_method)
     norm_table = f"{counts_table}-{norm_method}"
     table_to_db(norm_df, name=norm_table, index=True)
@@ -99,27 +104,50 @@ def normalize_kmer(self, counts_table: str, norm_method:str) -> str:
 
 
 @queue.task(bind=True)
-def embed_kmer(self, norm_table:str, embed_method:str, n_jobs: int= 1) -> str:
-    norm_df = get_table(norm_table, index_col='contig')
+def embed_kmer(self, norm_table: str, embed_method: str, n_jobs: int = 1) -> str:
+    norm_df = get_table(norm_table, index_col="contig")
     # FIXME: Refactor renaming of embed_df.columns
-    prev_kmer_params = norm_table.split('-', 1)[-1]
+    prev_kmer_params = norm_table.split("-", 1)[-1]
     embed_df = kmers.embed(
         # TODO: (on autometa[2.0.4] release): norm_df, method=embed_method, embed_dimensions=2, n_jobs=n_jobs
-        norm_df, method=embed_method, embed_dimensions=2
-    ).rename(columns={"x_1": f"{prev_kmer_params}-{embed_method}_x_1", "x_2": f"{prev_kmer_params}-{embed_method}_x_2"})
+        norm_df,
+        method=embed_method,
+        embed_dimensions=2,
+    ).rename(
+        columns={
+            "x_1": f"{prev_kmer_params}-{embed_method}_x_1",
+            "x_2": f"{prev_kmer_params}-{embed_method}_x_2",
+        }
+    )
     embed_table = f"{norm_table}-{embed_method}"
     table_to_db(embed_df, name=embed_table, index=True)
     return embed_table
 
+
 @queue.task(bind=True)
-def aggregate_embeddings(self, embed_tables:List[str], table_name:str) -> str:
-    df = pd.concat([get_table(embed_table, index_col='contig') for embed_table in embed_tables], axis=1)
+def aggregate_embeddings(self, embed_tables: List[str], table_name: str) -> str:
+    df = pd.concat(
+        [get_table(embed_table, index_col="contig") for embed_table in embed_tables],
+        axis=1,
+    )
     table_to_db(df, table_name, index=True)
     return table_name
 
-def preprocess_embeddings(metagenome_table: str, cpus:int=1, kmer_size: int = 5, norm_method:str ="am_clr", embed_methods: List[str]=["bhsne", "densmap", "trimap", "umap"]):
-    embeddings_table = metagenome_table.replace("-metagenome","-embeddings")
-    kmer_pipeline = count_kmer.s(metagenome_table, kmer_size, cpus) | normalize_kmer.s(norm_method) | group(embed_kmer.s(embed_method, cpus) for embed_method in embed_methods) | aggregate_embeddings.s(embeddings_table)
+
+def preprocess_embeddings(
+    metagenome_table: str,
+    cpus: int = 1,
+    kmer_size: int = 5,
+    norm_method: str = "am_clr",
+    embed_methods: List[str] = ["bhsne", "densmap", "trimap", "umap"],
+):
+    embeddings_table = metagenome_table.replace("-metagenome", "-embeddings")
+    kmer_pipeline = (
+        count_kmer.s(metagenome_table, kmer_size, cpus)
+        | normalize_kmer.s(norm_method)
+        | group(embed_kmer.s(embed_method, cpus) for embed_method in embed_methods)
+        | aggregate_embeddings.s(embeddings_table)
+    )
     result = kmer_pipeline()
     # while not result.ready():
     #     time.sleep(1)
@@ -153,7 +181,7 @@ def preprocess_clusters_geom_medians(
         `weighted` denotes the value that was used for weighting the cluster's geometric median (`weight_col`)
 
     """
-    df = get_table(binning_table, index_col='contig')
+    df = get_table(binning_table, index_col="contig")
     medians = []
     for cluster, dff in df.groupby(cluster_col):
         points = dff[["x_1", "x_2"]].to_numpy()
@@ -171,7 +199,7 @@ def preprocess_clusters_geom_medians(
             }
         )
     medians_df = pd.DataFrame(medians)
-    medians_table = binning_table.replace("-binning",f"{cluster_col}-gmedians")
+    medians_table = binning_table.replace("-binning", f"{cluster_col}-gmedians")
     table_to_db(medians_df, medians_table)
     return medians_table
 
@@ -181,7 +209,7 @@ def get_embedding_traces_df(embeddings_table: str) -> pd.DataFrame:
     # 1. Compute all embeddings for assembly...
     # 2. groupby cluster
     # 3. Extract k-mer size, norm method, embed method
-    
+
     embed_traces = []
     for embed_method in ["trimap", "densmap", "bhsne", "umap", "sksne"]:
         traces_df = get_scattergl_traces(

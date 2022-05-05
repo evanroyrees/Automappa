@@ -1,11 +1,13 @@
 from pydantic import BaseModel, Field, PydanticValueError, create_model
 from pydantic.fields import ModelField
 from typing import List, Literal, Optional
+
 # from cached_property import cached_property_with_ttl
 from celery.result import AsyncResult
 
-from automappa.db import engine,metadata
+from automappa.db import engine, metadata
 from automappa.utils.serializers import get_table
+
 
 class RestrictedAlphabetStr(str):
     @classmethod
@@ -14,16 +16,17 @@ class RestrictedAlphabetStr(str):
 
     @classmethod
     def validate(cls, value, field: ModelField):
-        alphabet = field.field_info.extra['alphabet']
+        alphabet = field.field_info.extra["alphabet"]
         if any(c not in alphabet for c in value):
-            raise ValueError(f'{value!r} is not restricted to {alphabet!r}')
+            raise ValueError(f"{value!r} is not restricted to {alphabet!r}")
         return cls(value)
 
     @classmethod
     def __modify_schema__(cls, field_schema, field: Optional[ModelField]):
         if field:
-            alphabet = field.field_info.extra['alphabet']
-            field_schema['examples'] = [c * 4 for c in alphabet]
+            alphabet = field.field_info.extra["alphabet"]
+            field_schema["examples"] = [c * 4 for c in alphabet]
+
 
 class MetagenomeAnnotations(BaseModel):
     contig: str
@@ -35,7 +38,7 @@ class MetagenomeAnnotations(BaseModel):
 
 
 class NotInDatabaseError(PydanticValueError):
-    code = 'table_name_not_in_db'
+    code = "table_name_not_in_db"
     tables = metadata.tables.keys()
     msg_template = f'value "TEMPLATE" is not in {tables}'
     msg_template = msg_template.replace("TEMPLATE", "{table_name}")
@@ -64,19 +67,18 @@ class AnnotationTable(BaseModel):
     # class Config:
     #     keep_untouched=(cached_property,)
 
-
     @property
     def sample(self):
-        return self.id.split('-')[0]
-    
+        return self.id.split("-")[0]
+
     @property
     def name(self):
-        return '-'.join(self.id.split('-')[1:])
+        return "-".join(self.id.split("-")[1:])
 
     @property
     def table(self):
         return get_table(self.id, index_col=self.index_col)
-    
+
     @property
     def exists(self):
         return engine.has_table(self.id)
@@ -85,41 +87,55 @@ class AnnotationTable(BaseModel):
     def columns(self):
         return self.table.columns
 
+
 # class ResultTable(AnnotationTable):
 #     task: Optional[AsyncResult]
-    
-#     @cached_property_with_ttl(60) # cache invalidates after 60 sec
 #     def table(self):
 #         return get_table(self.id, index_col=self.index_col)
 
 #     class Config:
 #         arbitrary_types_allowed = True
 #         smart_union = True
+
+
 class KmerTable(BaseModel):
     assembly: AnnotationTable
     size: Literal[3, 4, 5] = 5
     norm_method: Literal["am_clr", "ilr", "clr"] = "am_clr"
     embed_dims: Optional[int] = 2
+    # embed_dims: conint(gt=1, lt=100) = 2
     embed_method: Literal["bhsne", "sksne", "umap", "densmap", "trimap"] = "bhsne"
 
     @property
     def counts(self) -> AnnotationTable:
-        return AnnotationTable(id=self.assembly.id.replace("-metagenome", f"-{self.size}mers"))
-    
+        return AnnotationTable(
+            id=self.assembly.id.replace("-metagenome", f"-{self.size}mers")
+        )
+
     @property
     def norm_freqs(self) -> AnnotationTable:
-        return AnnotationTable(id=self.assembly.id.replace("-metagenome", f"-{self.size}mers-{self.norm_method}"))
-    
+        return AnnotationTable(
+            id=self.assembly.id.replace(
+                "-metagenome", f"-{self.size}mers-{self.norm_method}"
+            )
+        )
+
     @property
     def embedding(self) -> AnnotationTable:
-        return AnnotationTable(id=self.assembly.id.replace("-metagenome", f"-{self.size}mers-{self.norm_method}-{self.embed_method}"))
+        return AnnotationTable(
+            id=self.assembly.id.replace(
+                "-metagenome",
+                f"-{self.size}mers-{self.norm_method}-{self.embed_method}",
+            )
+        )
+
 
 class SampleTables(BaseModel):
     binning: Optional[AnnotationTable]
     markers: Optional[AnnotationTable]
     metagenome: Optional[AnnotationTable]
     # The following are created after user upload
-    # via: 
+    # via:
     # db ingestion (see serializers.py)
     # celery tasks (see tasks.py)
     refinements: Optional[AnnotationTable]
@@ -128,28 +144,34 @@ class SampleTables(BaseModel):
     @property
     def kmers(self) -> List[KmerTable]:
         settings = []
-        for size in [3,4,5]:
+        for size in [3, 4, 5]:
             for norm_method in ["am_clr"]:
                 for embed_method in ["bhsne", "densmap", "umap", "sksne", "trimap"]:
-                    settings.append(KmerTable(
-                        assembly=self.metagenome,
-                        size=size,
-                        norm_method=norm_method,
-                        embed_dims=2,
-                        embed_method=embed_method,
-                    ))
+                    settings.append(
+                        KmerTable(
+                            assembly=self.metagenome,
+                            size=size,
+                            norm_method=norm_method,
+                            embed_dims=2,
+                            embed_method=embed_method,
+                        )
+                    )
         return settings
-            
+
     @property
     def embeddings(self) -> AnnotationTable:
-        return AnnotationTable(id=self.metagenome.id.replace("-metagenome","-embeddings"))
+        return AnnotationTable(
+            id=self.metagenome.id.replace("-metagenome", "-embeddings")
+        )
 
     @property
     def marker_symbols(self) -> AnnotationTable:
-        return AnnotationTable(id=self.markers.id.replace('-markers','-marker-symbols'))
-    
+        return AnnotationTable(
+            id=self.markers.id.replace("-markers", "-marker-symbols")
+        )
+
     # embeddings: Union[AsyncResult,str]
-   
+
     # validators
     # @validator('*')
     # def table_must_exist_in_database(cls, v):
@@ -167,15 +189,15 @@ class SampleTables(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         smart_union = True
-    
 
 
 MarkerAnnotations = create_model(
-    'MarkerAnnotations',
-    apple='russet',
-    banana='yellow',
+    "MarkerAnnotations",
+    apple="russet",
+    banana="yellow",
     __base__=MetagenomeAnnotations,
 )
+
 
 class TaxonomyAnnotations(MetagenomeAnnotations):
     taxid: int
@@ -186,9 +208,11 @@ class TaxonomyAnnotations(MetagenomeAnnotations):
     family: Optional[str]
     genus: Optional[str]
     species: Optional[str]
-    
+
+
 class CoverageAnnotations(MetagenomeAnnotations):
     coverage: float
+
 
 class KmerAnnotations(MetagenomeAnnotations):
     x_1: float
@@ -197,12 +221,15 @@ class KmerAnnotations(MetagenomeAnnotations):
     norm_method: Optional[str]
     embed_method: Optional[str]
 
+
 class Kmer(BaseModel):
-    value: RestrictedAlphabetStr = Field(alphabet='ATCG')
+    value: RestrictedAlphabetStr = Field(alphabet="ATCG")
+
 
 class KmerCounts(MetagenomeAnnotations):
     # kmers: Field(..., regex = 'ATCG')
     kmers: List[Kmer]
+
 
 class BinningAnnotations(MetagenomeAnnotations):
     cluster: str

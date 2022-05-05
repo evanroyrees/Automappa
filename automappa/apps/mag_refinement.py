@@ -452,62 +452,55 @@ def toggle_offcanvas(n1: int, is_open: bool) -> bool:
 
 
 @app.callback(
-    Output("color-by-column", "options"),
-    Input("selected-tables-store", "data")
+    Output("color-by-column", "options"), Input("selected-tables-store", "data")
 )
 def color_by_column_options_callback(selected_tables_data: SampleTables):
     sample = SampleTables.parse_raw(selected_tables_data)
     df = sample.binning.table
     return [
         {"label": col.title().replace("_", " "), "value": col}
-        for col in df.select_dtypes('object').columns
+        for col in df.select_dtypes("object").columns
     ]
 
 
-@app.callback(
-    Output("x-axis-2d", "options"),
-    Input("selected-tables-store", "data")
-)
+@app.callback(Output("x-axis-2d", "options"), Input("selected-tables-store", "data"))
 def x_axis_2d_options_callback(selected_tables_data: SampleTables):
     sample = SampleTables.parse_raw(selected_tables_data)
     binning_df = sample.binning.table
     binning_cols = [
-        {"label": col.title().replace("_", " "), "value": col, 'disabled': False}
+        {"label": col.title().replace("_", " "), "value": col, "disabled": False}
         for col in binning_df.select_dtypes({"float64", "int64"}).columns
         if col not in {"completeness", "purity", "taxid"}
     ]
     kmer_cols = [
         {
-             "label": f"{kmer.embedding.name.replace('-',' ')}_x_1",
-             "value": f"{kmer.embedding.name}_x_1",
-             'disabled': not kmer.embedding.exists,
+            "label": f"{kmer.embedding.name.replace('-',' ')}_x_1",
+            "value": f"{kmer.embedding.name}_x_1",
+            "disabled": not kmer.embedding.exists,
         }
         for kmer in sample.kmers
     ]
     return binning_cols + kmer_cols
 
-@app.callback(
-    Output("y-axis-2d", "options"),
-    Input("selected-tables-store", "data")
-)
+
+@app.callback(Output("y-axis-2d", "options"), Input("selected-tables-store", "data"))
 def y_axis_2d_options_callback(selected_tables_data: Json[SampleTables]):
     sample = SampleTables.parse_raw(selected_tables_data)
     binning_df = sample.binning.table
     binning_cols = [
-        {"label": col.title().replace("_", " "), "value": col, 'disabled': False}
+        {"label": col.title().replace("_", " "), "value": col, "disabled": False}
         for col in binning_df.select_dtypes({"float64", "int64"}).columns
         if col not in {"completeness", "purity", "taxid"}
     ]
     kmer_cols = [
         {
-             "label": f"{kmer.embedding.name.replace('-',' ')}_x_2",
-             "value": f"{kmer.embedding.name}_x_2",
-             'disabled': not kmer.embedding.exists,
+            "label": f"{kmer.embedding.name.replace('-',' ')}_x_2",
+            "value": f"{kmer.embedding.name}_x_2",
+            "disabled": not kmer.embedding.exists,
         }
         for kmer in sample.kmers
     ]
     return binning_cols + kmer_cols
-
 
 
 @app.callback(
@@ -654,22 +647,25 @@ def scatterplot_2d_figure_callback(
     if "_x_1" in xaxis_column or "_x_2" in yaxis_column:
         if sample.embeddings.exists:
             embedding_df = sample.embeddings.table
-            bin_df = bin_df.join(embedding_df, how='left')
+            bin_df = bin_df.join(embedding_df, how="left")
         else:
             for kmer_table in sample.kmers:
-                if kmer_table.embedding.name == xaxis_column and kmer_table.embedding.name == yaxis_column:
-                    bin_df = bin_df.join(kmer_table.embedding.table, how='left')
+                if (
+                    kmer_table.embedding.name == xaxis_column
+                    and kmer_table.embedding.name == yaxis_column
+                ):
+                    bin_df = bin_df.join(kmer_table.embedding.table, how="left")
                     break
 
     fillnas = {
-        "cluster":"unclustered",
-        "superkingdom":"unclassified",
-        "phylum":"unclassified",
-        "class":"unclassified",
-        "order":"unclassified",
-        "family":"unclassified",
-        "genus":"unclassified",
-        "species":"unclassified",
+        "cluster": "unclustered",
+        "superkingdom": "unclassified",
+        "phylum": "unclassified",
+        "class": "unclassified",
+        "order": "unclassified",
+        "family": "unclassified",
+        "genus": "unclassified",
+        "species": "unclassified",
     }
     fillna = fillnas.get(color_by_col, "unclustered")
     fig = get_scatterplot_2d(
@@ -860,7 +856,9 @@ def download_refinements(
     if not n_clicks:
         raise PreventUpdate
     sample = SampleTables.parse_raw(selected_tables_data)
-    return send_data_frame(sample.refinements.table.to_csv, "refinements.csv", index=False)
+    return send_data_frame(
+        sample.refinements.table.to_csv, "refinements.csv", index=False
+    )
 
 
 @app.callback(

@@ -24,13 +24,11 @@ logger = logging.getLogger(__name__)
 
 @app.callback(
     Output("tab-content", "children"),
-    [
-        Input("tabs", "active_tab"),
-        Input("selected-tables-store", "data")
-    ],
+    [Input("tabs", "active_tab"), Input("selected-tables-store", "data")],
 )
 def render_content(
-    active_tab: str, selected_tables_data: SampleTables,
+    active_tab: str,
+    selected_tables_data: SampleTables,
 ) -> dbc.Container:
     # Only alow user to navigate to mag refinement or summary if data is already uploaded
     if selected_tables_data is None:

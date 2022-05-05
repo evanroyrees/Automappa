@@ -12,8 +12,9 @@ def get_cluster_marker_counts(
 
 
 def get_contig_marker_counts(
-    df: pd.DataFrame, marker_count_range_end: int = 7) -> pd.DataFrame:
-    """Retrieves marker counts pd.DataFrame 
+    df: pd.DataFrame, marker_count_range_end: int = 7
+) -> pd.DataFrame:
+    """Retrieves marker counts pd.DataFrame
 
     Parameters
     ----------

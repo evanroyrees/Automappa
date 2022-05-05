@@ -221,7 +221,7 @@ def get_scattergl_traces(
     )
     traces = []
     metadata_cols = [col for col in metadata_cols if col in df.columns]
-    df = df.fillna(value={color_by_col:fillna})
+    df = df.fillna(value={color_by_col: fillna})
     for color_col_name in df[color_by_col].unique():
         dff = df.loc[df[color_by_col].eq(color_col_name)]
         customdata = dff[metadata_cols] if metadata_cols else []
@@ -239,7 +239,7 @@ def get_scattergl_traces(
     return pd.DataFrame(traces).set_index(color_by_col)
 
 
-def get_embedding_traces_df(df:pd.DataFrame) -> pd.DataFrame:
+def get_embedding_traces_df(df: pd.DataFrame) -> pd.DataFrame:
     embed_traces = []
     for embed_method in ["trimap", "densmap", "bhsne", "umap", "sksne"]:
         traces_df = get_scattergl_traces(
