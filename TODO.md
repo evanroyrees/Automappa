@@ -13,14 +13,22 @@
 8. [x] :carrot::racehorse: Add celery task-queue
 9. [x] :carrot::racehorse: Add celery-monitoring services
 10. [ ] :carrot::racehorse: Add uploaded data ingestion to task-queue
-11. [ ] :carrot::racehorse: Add k-mer embedding tasks to task-queue
+11. [x] :carrot::racehorse: Add k-mer embedding tasks to task-queue
 12. [x] :fire: Remove parser args for data inputs (i.e. not relevant to running automappa server)
 13. [x] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
 14. [x] :racehorse: Retrieve datatable within `mag_summary.py`
 15. [x] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
 16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
+17. [ ] :art::carrot: Add selections/dropdowns/progress updates for metagenome embeddings
+18. [ ] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
 
 --------------------------------------------------------------------------------------------------
+
+## Troubleshooting Celery, RabbitMQ task-queue
+
+### Resources
+
+- [celery rabbitmq tutorial](https://suzannewang.com/celery-rabbitmq-tutorial/)
 
 ## docker-compose services configuration
 

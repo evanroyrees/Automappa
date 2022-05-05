@@ -16,6 +16,7 @@ import plotly.io as pio
 
 from automappa.app import app
 from automappa.utils.figures import metric_barplot, taxonomy_sankey, metric_boxplot
+from automappa.utils.models import SampleTables
 from automappa.utils.serializers import get_table
 
 pio.templates.default = "plotly_white"
@@ -219,7 +220,7 @@ layout = dbc.Container(
     ],
 )
 def mag_overview_metrics_boxplot_callback(
-    selected_tables_data: Dict[str, str], cluster_col: str
+    selected_tables_data: SampleTables, cluster_col: str
 ) -> go.Figure:
     """
     Writes
@@ -230,8 +231,8 @@ def mag_overview_metrics_boxplot_callback(
     Returns:
         n_unique_bins - number of unique bins
     """
-    table_name = selected_tables_data["binning"]
-    mag_summary_df = get_table(table_name)
+    tables = SampleTables.parse_raw(selected_tables_data)
+    mag_summary_df = get_table(tables.binning)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -248,10 +249,10 @@ def mag_overview_metrics_boxplot_callback(
     ],
 )
 def mag_overview_gc_content_boxplot_callback(
-    selected_tables_data: Dict[str, str], cluster_col: str
+    selected_tables_data: SampleTables, cluster_col: str
 ) -> go.Figure:
-    table_name = selected_tables_data["binning"]
-    mag_summary_df = get_table(table_name)
+    tables = SampleTables.parse_raw(selected_tables_data)
+    mag_summary_df = get_table(tables.binning)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -269,10 +270,10 @@ def mag_overview_gc_content_boxplot_callback(
     ],
 )
 def mag_overview_length_boxplot_callback(
-    selected_tables_data: Dict[str, str], cluster_col: str
+    selected_tables_data: SampleTables, cluster_col: str
 ) -> go.Figure:
-    table_name = selected_tables_data["binning"]
-    mag_summary_df = get_table(table_name)
+    tables = SampleTables.parse_raw(selected_tables_data)
+    mag_summary_df = get_table(tables.binning)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -289,10 +290,10 @@ def mag_overview_length_boxplot_callback(
     ],
 )
 def mag_overview_coverage_boxplot_callback(
-    selected_tables_data: Dict[str, str], cluster_col: str
+    selected_tables_data: SampleTables, cluster_col: str
 ) -> go.Figure:
-    table_name = selected_tables_data["binning"]
-    mag_summary_df = get_table(table_name)
+    tables = SampleTables.parse_raw(selected_tables_data)
+    mag_summary_df = get_table(tables.binning)
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -305,9 +306,11 @@ def mag_overview_coverage_boxplot_callback(
     Output("mag-summary-cluster-col-dropdown", "options"),
     [Input("selected-tables-store", "data")],
 )
-def mag_summary_cluster_col_dropdown_options_callback(selected_tables_data: Dict[str, str]):
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig')
+def mag_summary_cluster_col_dropdown_options_callback(
+    selected_tables_data: SampleTables
+):
+    tables = SampleTables.parse_raw(selected_tables_data)
+    refinement_df = get_table(tables.refinements, index_col="contig")
     return [
         {"label": col.title(), "value": col}
         for col in refinement_df.columns
@@ -323,15 +326,15 @@ def mag_summary_cluster_col_dropdown_options_callback(selected_tables_data: Dict
     ],
 )
 def mag_summary_stats_datatable_callback(
-    selected_tables_data: Dict[str, str], cluster_col:str
+    selected_tables_data: SampleTables, cluster_col: str
 ):
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    bin_df = bin_df.join(refinement_df, how='right')
-    markers_table_name = selected_tables_data["markers"]
-    markers = get_table(markers_table_name, index_col="contig")
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    bin_df = bin_df.join(refinement_df, how="right")
+    markers = get_table(tables.markers, index_col="contig")
     if cluster_col not in bin_df.columns:
         num_expected_markers = markers.shape[1]
         length_weighted_coverage = np.average(
@@ -408,13 +411,14 @@ def mag_summary_stats_datatable_callback(
     ],
 )
 def mag_taxonomy_sankey_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
+    selected_tables_data: SampleTables, cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    bin_df = bin_df.join(refinement_df, how='right')
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    bin_df = bin_df.join(refinement_df, how="right")
     if cluster_col not in bin_df.columns:
         raise PreventUpdate
     mag_df = bin_df.loc[bin_df[cluster_col].eq(selected_mag)]
@@ -431,13 +435,14 @@ def mag_taxonomy_sankey_callback(
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
+    selected_tables_data: SampleTables, cluster_col: str, selected_mag: str
 ) -> go.Figure:
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    bin_df = bin_df.join(refinement_df, how='right')
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    bin_df = bin_df.join(refinement_df, how="right")
     if cluster_col not in bin_df.columns:
         raise PreventUpdate
     bin_df = bin_df.dropna(subset=[cluster_col])
@@ -457,21 +462,24 @@ def mag_summary_gc_content_boxplot_callback(
     ],
 )
 def mag_metrics_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
+    selected_tables_data: SampleTables, cluster_col: str, selected_mag: str
 ) -> go.Figure:
     if not selected_mag:
         raise PreventUpdate
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    mag_summary_df = bin_df.join(refinement_df, how='right')
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    mag_summary_df = bin_df.join(refinement_df, how="right")
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
     mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
     mag_df = mag_df.round(2)
-    fig = metric_barplot(df=mag_df, metrics=["completeness", "purity"], name=selected_mag)
+    fig = metric_barplot(
+        df=mag_df, metrics=["completeness", "purity"], name=selected_mag
+    )
     return fig
 
 
@@ -484,15 +492,16 @@ def mag_metrics_callback(
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
+    selected_tables_data: SampleTables, cluster_col: str, selected_mag: str
 ) -> go.Figure:
     if not selected_mag:
-            raise PreventUpdate
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    mag_summary_df = bin_df.join(refinement_df, how='right')
+        raise PreventUpdate
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    mag_summary_df = bin_df.join(refinement_df, how="right")
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -511,15 +520,16 @@ def mag_summary_gc_content_boxplot_callback(
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str, selected_mag: str
+    selected_tables_data: SampleTables, cluster_col: str, selected_mag: str
 ) -> go.Figure:
     if not selected_mag:
-            raise PreventUpdate
-    binning_table_name = selected_tables_data["binning"]
-    bin_df = get_table(binning_table_name, index_col='contig')
-    refinement_table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    refinement_df = get_table(refinement_table_name, index_col='contig').drop(columns="cluster")
-    mag_summary_df = bin_df.join(refinement_df, how='right')
+        raise PreventUpdate
+    tables = SampleTables.parse_raw(selected_tables_data)
+    bin_df = get_table(tables.binning, index_col="contig")
+    refinement_df = get_table(tables.refinements, index_col="contig").drop(
+        columns="cluster"
+    )
+    mag_summary_df = bin_df.join(refinement_df, how="right")
     if cluster_col not in mag_summary_df.columns:
         raise PreventUpdate
     mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
@@ -537,10 +547,10 @@ def mag_summary_gc_content_boxplot_callback(
     ],
 )
 def mag_selection_dropdown_options_callback(
-    selected_tables_data: Dict[str,str], cluster_col: str
+    selected_tables_data: SampleTables, cluster_col: str
 ) -> List[Dict[str, str]]:
-    table_name = selected_tables_data["binning"].replace("-binning", "-refinement")
-    df = get_table(table_name, index_col="contig")
+    tables = SampleTables.parse_raw(selected_tables_data)
+    df = get_table(tables.refinements, index_col="contig")
     if cluster_col not in df.columns:
         options = []
     else:

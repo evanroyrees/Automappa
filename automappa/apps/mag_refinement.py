@@ -2,9 +2,13 @@
 
 import logging
 
-numba_logger = logging.getLogger('numba')
+from pydantic import Json
+
+from automappa.utils.models import SampleTables
+
+numba_logger = logging.getLogger("numba")
 numba_logger.setLevel(logging.WARNING)
-h5py_logger = logging.getLogger('h5py')
+h5py_logger = logging.getLogger("h5py")
 h5py_logger.setLevel(logging.WARNING)
 
 from typing import Dict, List
@@ -25,9 +29,8 @@ import plotly.io as pio
 
 from automappa.app import app
 
-from automappa.tasks import get_marker_symbols
 from automappa.utils.serializers import get_table, table_to_db
-# from automappa.utils.markers import get_marker_symbols
+
 from automappa.utils.figures import (
     format_axis_title,
     get_scatterplot_2d,
@@ -75,13 +78,8 @@ scatterplot_2d_xaxis_dropdown = [
     html.Label("X-axis:"),
     dcc.Dropdown(
         id="x-axis-2d",
-        options=[
-            {"label": "X_1", "value": "x_1"},
-            {"label": "Coverage", "value": "coverage"},
-            {"label": "GC%", "value": "gc_content"},
-            {"label": "Length", "value": "length"},
-        ],
-        value="x_1",
+        options=[],
+        value="coverage",
         clearable=False,
     ),
 ]
@@ -90,13 +88,8 @@ scatterplot_2d_yaxis_dropdown = [
     html.Label("Y-axis:"),
     dcc.Dropdown(
         id="y-axis-2d",
-        options=[
-            {"label": "X_2", "value": "x_2"},
-            {"label": "Coverage", "value": "coverage"},
-            {"label": "GC%", "value": "gc_content"},
-            {"label": "Length", "value": "length"},
-        ],
-        value="x_2",
+        options=[],
+        value="gc_content",
         clearable=False,
     ),
 ]
@@ -459,15 +452,62 @@ def toggle_offcanvas(n1: int, is_open: bool) -> bool:
 
 
 @app.callback(
-    Output("color-by-column", "options"), [Input("metagenome-annotations", "data")]
+    Output("color-by-column", "options"),
+    Input("selected-tables-store", "data")
 )
-def color_by_column_options_callback(annotations_json: "str | None"):
-    df = pd.read_json(annotations_json, orient="split")
+def color_by_column_options_callback(selected_tables_data: SampleTables):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     return [
         {"label": col.title().replace("_", " "), "value": col}
-        for col in df.columns
-        if df[col].dtype.name not in {"float64", "int64"} and col != "contig"
+        for col in df.select_dtypes('object').columns
     ]
+
+
+@app.callback(
+    Output("x-axis-2d", "options"),
+    Input("selected-tables-store", "data")
+)
+def x_axis_2d_options_callback(selected_tables_data: SampleTables):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    binning_df = sample.binning.table
+    binning_cols = [
+        {"label": col.title().replace("_", " "), "value": col, 'disabled': False}
+        for col in binning_df.select_dtypes({"float64", "int64"}).columns
+        if col not in {"completeness", "purity", "taxid"}
+    ]
+    kmer_cols = [
+        {
+             "label": f"{kmer.embedding.name.replace('-',' ')}_x_1",
+             "value": f"{kmer.embedding.name}_x_1",
+             'disabled': not kmer.embedding.exists,
+        }
+        for kmer in sample.kmers
+    ]
+    return binning_cols + kmer_cols
+
+@app.callback(
+    Output("y-axis-2d", "options"),
+    Input("selected-tables-store", "data")
+)
+def y_axis_2d_options_callback(selected_tables_data: Json[SampleTables]):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    binning_df = sample.binning.table
+    binning_cols = [
+        {"label": col.title().replace("_", " "), "value": col, 'disabled': False}
+        for col in binning_df.select_dtypes({"float64", "int64"}).columns
+        if col not in {"completeness", "purity", "taxid"}
+    ]
+    kmer_cols = [
+        {
+             "label": f"{kmer.embedding.name.replace('-',' ')}_x_2",
+             "value": f"{kmer.embedding.name}_x_2",
+             'disabled': not kmer.embedding.exists,
+        }
+        for kmer in sample.kmers
+    ]
+    return binning_cols + kmer_cols
+
 
 
 @app.callback(
@@ -478,11 +518,11 @@ def color_by_column_options_callback(annotations_json: "str | None"):
     ],
 )
 def update_mag_metrics_datatable_callback(
-    selected_tables_data: Dict[str, str],
+    selected_tables_data: Json[SampleTables],
     selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> DataTable:
-    table_name = selected_tables_data["markers"]
-    markers_df = get_table(table_name, index_col="contig")
+    sample = SampleTables.parse_raw(selected_tables_data)
+    markers_df = sample.markers.table
     if selected_contigs:
         contigs = {point["text"] for point in selected_contigs["points"]}
         selected_contigs_count = len(contigs)
@@ -556,7 +596,6 @@ def update_mag_metrics_datatable_callback(
     Output("scatterplot-2d", "figure"),
     [
         Input("selected-tables-store", "data"),
-        # Input("contig-marker-symbols-store", "data"),
         Input("x-axis-2d", "value"),
         Input("y-axis-2d", "value"),
         Input("scatterplot-2d-legend-toggle", "value"),
@@ -566,9 +605,8 @@ def update_mag_metrics_datatable_callback(
     ],
 )
 def scatterplot_2d_figure_callback(
-    selected_tables_data: Dict[str, str],
-    # refinement: "str | None",
-    # contig_marker_symbols_json: "str | None",
+    # selected_tables_data: MetagenomeAnnotationsTables,
+    selected_tables_data: Json[SampleTables],
     xaxis_column: str,
     yaxis_column: str,
     show_legend: bool,
@@ -578,11 +616,13 @@ def scatterplot_2d_figure_callback(
 ) -> go.Figure:
     # NOTE: btn_clicks is an input so this figure is updated when new refinements are saved
     # TODO: #23 refactor scatterplot callbacks
-    bin_table_name = selected_tables_data["binning"]
-    bin_df = get_table(bin_table_name, index_col="contig")
-    markers_table_name = selected_tables_data["markers"]
-    markers_df = get_table(markers_table_name, index_col="contig")
-    markers = get_marker_symbols(bin_df, markers_df)
+    # TODO: Refactor data retrieval/validation
+    sample = SampleTables.parse_raw(selected_tables_data)
+    bin_df = sample.binning.table
+    # TODO: Replace binning table w/coords-data
+    # Replace binning table w/metagenome-annotations-data[TODO]
+    # mag_cols=["length", "gc_content", "coverage"]
+    markers = sample.marker_symbols.table
     if color_by_col not in bin_df.columns:
         for col in ["phylum", "class", "order", "family"]:
             if col in bin_df.columns:
@@ -594,8 +634,7 @@ def scatterplot_2d_figure_callback(
         )
     # Subset metagenome-annotations by selections iff selections have been made
     if hide_selection_toggle:
-        refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
-        refine_df = get_table(refine_table_name, index_col="contig")
+        refine_df = sample.refinements.table
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
         if refine_cols:
             latest_refine_col = refine_cols.pop()
@@ -610,14 +649,38 @@ def scatterplot_2d_figure_callback(
     # batches for respective styling,layout,traces, etc.
     # TODO: Put figure or traces in store, get/update/select
     # based on current contig selections
+    # TODO: Should check norm_method, kmer_size prior to retrieving embeddings table...
+    # Add norm method and kmer_size dropdowns...
+    if "_x_1" in xaxis_column or "_x_2" in yaxis_column:
+        if sample.embeddings.exists:
+            embedding_df = sample.embeddings.table
+            bin_df = bin_df.join(embedding_df, how='left')
+        else:
+            for kmer_table in sample.kmers:
+                if kmer_table.embedding.name == xaxis_column and kmer_table.embedding.name == yaxis_column:
+                    bin_df = bin_df.join(kmer_table.embedding.table, how='left')
+                    break
+
+    fillnas = {
+        "cluster":"unclustered",
+        "superkingdom":"unclassified",
+        "phylum":"unclassified",
+        "class":"unclassified",
+        "order":"unclassified",
+        "family":"unclassified",
+        "genus":"unclassified",
+        "species":"unclassified",
+    }
+    fillna = fillnas.get(color_by_col, "unclustered")
     fig = get_scatterplot_2d(
         bin_df,
         x_axis=xaxis_column,
         y_axis=yaxis_column,
         color_by_col=color_by_col,
-        fillna="unclustered",
+        fillna=fillna,
     )
 
+    # TODO: If possible, as a separate callback do Output("scatterplot-2d", "layout")
     with fig.batch_update():
         fig.layout.xaxis.title = format_axis_title(xaxis_column)
         fig.layout.yaxis.title = format_axis_title(yaxis_column)
@@ -625,6 +688,7 @@ def scatterplot_2d_figure_callback(
         fig.layout.showlegend = show_legend
 
     # Update markers with symbol and size corresponding to marker count
+    # TODO: If possible, as a separate callback do Output("scatterplot-2d", "traces")
     fig.for_each_trace(
         lambda trace: trace.update(
             marker_symbol=markers.symbol.loc[trace.text],
@@ -643,15 +707,15 @@ def scatterplot_2d_figure_callback(
     ],
 )
 def taxonomy_distribution_figure_callback(
-    selected_tables_data: Dict[str, str],
+    selected_tables_data: SampleTables,
     selected_contigs: Dict[str, List[Dict[str, str]]],
     selected_rank: str,
 ) -> go.Figure:
-    table_name = selected_tables_data["binning"]
-    df = get_table(table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     if selected_contigs and selected_contigs["points"]:
         contigs = {point["text"] for point in selected_contigs["points"]}
-        df = df.loc[df.contig.isin(contigs)]
+        df = df.loc[df.index.isin(contigs)]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
     return fig
 
@@ -667,21 +731,21 @@ def taxonomy_distribution_figure_callback(
     ],
 )
 def scatterplot_3d_figure_callback(
-    selected_tables_data: Dict[str, str],
+    selected_tables_data: SampleTables,
     z_axis: str,
     show_legend: bool,
     color_by_col: str,
     selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> go.Figure:
-    table_name = selected_tables_data["binning"]
-    df = get_table(table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     if not selected_contigs:
-        contigs = set(df.contig.tolist())
+        contigs = set(df.index.tolist())
     else:
         contigs = {point["text"] for point in selected_contigs["points"]}
     # Subset DataFrame by selected contigs
-    df = df[df.contig.isin(contigs)]
+    df = df[df.index.isin(contigs)]
     if color_by_col == "cluster":
         # Categoricals for binning
         df[color_by_col] = df[color_by_col].fillna("unclustered")
@@ -708,14 +772,14 @@ def scatterplot_3d_figure_callback(
     ],
 )
 def mag_summary_coverage_boxplot_callback(
-    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
     if not selected_data:
         raise PreventUpdate
-    table_name = selected_tables_data["binning"]
-    df = get_table(table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
     return fig
 
@@ -728,14 +792,14 @@ def mag_summary_coverage_boxplot_callback(
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
     if not selected_data:
         raise PreventUpdate
-    table_name = selected_tables_data["binning"]
-    df = get_table(table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
     fig.update_traces(name="GC Content")
     return fig
@@ -749,14 +813,14 @@ def mag_summary_gc_content_boxplot_callback(
     ],
 )
 def mag_summary_length_boxplot_callback(
-    selected_tables_data: Dict[str, str], selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
     if not selected_data:
         raise PreventUpdate
-    table_name = selected_tables_data["binning"]
-    df = get_table(table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["length"])
     return fig
 
@@ -769,14 +833,13 @@ def mag_summary_length_boxplot_callback(
     ],
 )
 def refinements_table_callback(
-    selected_tables_data: Dict[str, str],
+    selected_tables_data: SampleTables,
     btn_clicks: int,
 ) -> DataTable:
-    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
-    df = get_table(refine_table_name)
+    sample = SampleTables.parse_raw(selected_tables_data)
     return DataTable(
-        data=df.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in df.columns],
+        data=sample.refinements.table.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in sample.refinements.table.columns],
         style_cell={"textAlign": "center"},
         style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
         virtualization=True,
@@ -791,13 +854,13 @@ def refinements_table_callback(
     ],
 )
 def download_refinements(
-    n_clicks: int, selected_tables_data: Dict[str, str],
+    n_clicks: int,
+    selected_tables_data: SampleTables,
 ) -> Dict[str, "str | bool"]:
     if not n_clicks:
         raise PreventUpdate
-    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
-    df = get_table(refine_table_name)
-    return send_data_frame(df.to_csv, "refinements.csv", index=False)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    return send_data_frame(sample.refinements.table.to_csv, "refinements.csv", index=False)
 
 
 @app.callback(
@@ -820,14 +883,14 @@ def mag_refinement_save_button_disabled_callback(
 )
 def store_binning_refinement_selections(
     selected_data: Dict[str, List[Dict[str, str]]],
-    selected_tables_data: Dict[str, str],
+    selected_tables_data: SampleTables,
     n_clicks: int,
 ) -> int:
     # Initial load...
     if not n_clicks or (n_clicks and not selected_data) or not selected_data:
         raise PreventUpdate
-    refine_table_name = selected_tables_data["binning"].replace("-binning","-refinement")
-    bin_df = get_table(refine_table_name, index_col="contig")
+    sample = SampleTables.parse_raw(selected_tables_data)
+    bin_df = sample.refinements.table
     refinement_cols = [col for col in bin_df.columns if "refinement" in col]
     refinement_num = len(refinement_cols) + 1
     refinement_name = f"refinement_{refinement_num}"
@@ -835,5 +898,5 @@ def store_binning_refinement_selections(
     bin_df.loc[contigs, refinement_name] = refinement_name
     bin_df = bin_df.fillna(axis="columns", method="ffill")
     bin_df.reset_index(inplace=True)
-    table_to_db(df=bin_df, name=refine_table_name)
+    table_to_db(df=bin_df, name=sample.refinements.id)
     return 0

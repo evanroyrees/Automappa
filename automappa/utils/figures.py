@@ -113,7 +113,7 @@ def metric_barplot(
         raise PreventUpdate
     x = [metric.replace("_", " ").title() for metric in metrics]
     y = [df[metric].iat[0] for metric in metrics]
-    orientation = 'h' if horizontal else "v"
+    orientation = "h" if horizontal else "v"
     return go.Figure([go.Bar(x=x, y=y, orientation=orientation, name=name)])
 
 
@@ -221,7 +221,8 @@ def get_scattergl_traces(
     )
     traces = []
     metadata_cols = [col for col in metadata_cols if col in df.columns]
-    for color_col_name in df[color_by_col].fillna(fillna).unique():
+    df = df.fillna(value={color_by_col:fillna})
+    for color_col_name in df[color_by_col].unique():
         dff = df.loc[df[color_by_col].eq(color_col_name)]
         customdata = dff[metadata_cols] if metadata_cols else []
         trace = go.Scattergl(
@@ -238,31 +239,7 @@ def get_scattergl_traces(
     return pd.DataFrame(traces).set_index(color_by_col)
 
 
-def get_embedding_traces_df(df: pd.DataFrame) -> pd.DataFrame:
-    # 1. Compute all embeddings for assembly...
-    # 2. groupby cluster
-    # 3. Extract k-mer size, norm method, embed method
-    embedding_fpaths = glob.glob("data/nubbins/kmers/*5mers*am_clr.*2.tsv.gz")
-    embeddings = []
-    for fp in embedding_fpaths:
-        df = pd.read_csv(fp, sep="\t", index_col="contig")
-        basename = os.path.basename(fp)
-        mers, norm_method, embed_method_dim, *__ = basename.split(".")
-        match = re.match("(\w+)(\d+)", embed_method_dim)
-        if match:
-            embed_method, embed_dim = match.groups()
-        df.rename(
-            columns={
-                "x_1": f"{embed_method}_x_1",
-                "x_2": f"{embed_method}_x_2",
-            },
-            inplace=True,
-        )
-        embeddings.append(df)
-    embeddings_df = pd.concat(embeddings, axis=1)
-
-    df = pd.read_csv("data/nubbins/nubbins.tsv", sep="\t")
-    main_df = df.drop(columns=["x_1", "x_2"]).set_index("contig").join(embeddings_df)
+def get_embedding_traces_df(df:pd.DataFrame) -> pd.DataFrame:
     embed_traces = []
     for embed_method in ["trimap", "densmap", "bhsne", "umap", "sksne"]:
         traces_df = get_scattergl_traces(
@@ -324,12 +301,32 @@ def get_scatterplot_2d(
 
 
 def get_scatterplot_3d(
-    df,
+    df: pd.DataFrame,
     x_axis: str = "x_1",
     y_axis: str = "x_2",
     z_axis: str = "coverage",
     color_by_col: str = "cluster",
 ) -> go.Figure:
+    """Create go.Figure from `df`
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        index_col=[contig], cols=[`x_axis`, `y_axis`, `z_axis`]
+    x_axis : str, optional
+        _description_, by default "x_1"
+    y_axis : str, optional
+        _description_, by default "x_2"
+    z_axis : str, optional
+        _description_, by default "coverage"
+    color_by_col : str, optional
+        _description_, by default "cluster"
+
+    Returns
+    -------
+    go.Figure
+        _description_
+    """
     fig = go.Figure(
         layout=go.Layout(
             scene=dict(
@@ -355,7 +352,7 @@ def get_scatterplot_3d(
             x=dff[x_axis],
             y=dff[y_axis],
             z=dff[z_axis],
-            text=dff.contig,
+            text=dff.index,
             mode="markers",
             marker={
                 "size": df.assign(normLen=marker_size_scaler)["normLen"],

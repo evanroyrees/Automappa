@@ -7,12 +7,15 @@ from typing import List, Optional
 import uuid
 import pandas as pd
 
-from automappa.db import engine, metadata
-from automappa.settings import server
+from Bio.SeqIO import SeqRecord
+from Bio.Seq import Seq
 
 from autometa.common.markers import load as load_markers
 from autometa.common.utilities import calc_checksum
 from autometa.common.metagenome import Metagenome
+
+from automappa.db import engine, metadata
+from automappa.settings import server
 
 logging.basicConfig(
     format="[%(levelname)s] %(name)s: %(message)s",
@@ -115,14 +118,16 @@ def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
     else:
         df["cluster"].fillna("unclustered", inplace=True)
 
-    df_cols = [
+    refine_cols = [
         col
         for col in df.columns
         if "refinement_" in col or "cluster" in col or "contig" in col
     ]
     refinement_table_name = table_name.replace("-binning", "-refinement")
-    df[df_cols].to_sql(refinement_table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {df[df_cols].info()} refinements to postgres table: {refinement_table_name}")
+    df[refine_cols].to_sql(refinement_table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(
+        f"Saved refinements (shape={df[refine_cols].shape}) to postgres table: {refinement_table_name}"
+    )
     return table_name
 
 
@@ -206,17 +211,27 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
     return table_name
 
 
-def table_to_db(df:pd.DataFrame, name:str, if_exists: str = "replace", index:bool = False)->None:
+def get_metagenome_seqrecords(table_name) -> List[SeqRecord]:
+    df = get_table(table_name)
+    return [
+        SeqRecord(seq=Seq(record[1]), id=record[0], name=record[0])
+        for record in df.to_records(index=False)
+    ]
+
+
+def table_to_db(
+    df: pd.DataFrame, name: str, if_exists: str = "replace", index: bool = False
+) -> None:
     """Write `df` to `table_name` in database.
 
     Parameters
     ----------
     df : pd.DataFrame
         Dataframe of data to write
-    table_name : str
+    name : str
         Name of data table to store in database
     if_exists : str, optional
-        What to do if `table_name` exists.
+        What to do if `name` exists.
         Choices include: 'fail', 'replace', 'append', by default "replace"
     index : bool, optional
         Whether to write the index to the database, by default False

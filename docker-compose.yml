@@ -82,7 +82,7 @@ services:
     restart: always
     mem_limit: 4GB
     # Not sure which is more appropriate for production :shrug:
-    # This command allows live-reloading for dev
+    # The current command allows live-reloading for dev
     # command: automappa
     command: python -m automappa.index
     volumes:
@@ -92,9 +92,7 @@ services:
       - 8050:8050
     depends_on:
       - postgres
-      - rabbitmq
       - celery
-      - redis
 
 volumes:
   postgres-data:

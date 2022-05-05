@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
 import logging
 from dash import html, dcc
 from dash.dash_table import DataTable
@@ -13,6 +12,8 @@ import plotly.io as pio
 import dash_uploader as du
 
 from automappa.app import app
+from automappa.tasks import preprocess_clusters_geom_medians, preprocess_embeddings, preprocess_marker_symbols
+from automappa.utils.models import SampleTables
 from automappa.utils.serializers import (
     get_uploaded_files_table,
     file_to_db,
@@ -183,10 +184,7 @@ row_example_cards = dbc.Row(
 samples_datatable = (
     dcc.Loading(
         id="loading-samples-datatable",
-        children=[
-            html.Label("Uploaded Datasets"),
-            html.Div(id="samples-datatable")
-        ],
+        children=[html.Label("Uploaded Datasets"), html.Div(id="samples-datatable")],
         type="dot",
         color="#646569",
     ),
@@ -197,7 +195,7 @@ selected_tables_datatable = (
         id="loading-selected-tables-datatable",
         children=[
             html.Label("Selected Datasets for Refinement & Summary:"),
-            html.Div(id="selected-tables-datatable")
+            html.Div(id="selected-tables-datatable"),
         ],
         type="dot",
         color="#646569",
@@ -241,6 +239,13 @@ refine_mags_button = dbc.Button(
     children="Refine MAGs",
 )
 
+kmer_embed_tasks_button = dbc.Button(
+    id="kmer-embed-tasks-button",
+    children="Submit k-mer embedding tasks",
+)
+
+tasks_table = html.Div(id="embedding-tasks")
+
 layout = dbc.Container(
     children=[
         dbc.Row(upload_modal),
@@ -253,6 +258,9 @@ layout = dbc.Container(
         dbc.Row(refine_mags_button),
         html.Br(),
         dbc.Row(selected_tables_datatable),
+        html.Br(),
+        kmer_embed_tasks_button,
+        dbc.Row(tasks_table),
     ],
     fluid=True,
 )
@@ -508,12 +516,14 @@ def toggle_modal(n_open, n_close, is_open):
 
 @app.callback(
     Output("refine-mags-button", "disabled"),
-    [Input("binning-select", "value"),
-    Input("markers-select", "value"),
-    Input("metagenome-select", "value"),],
+    [
+        Input("binning-select", "value"),
+        Input("markers-select", "value"),
+        Input("metagenome-select", "value")
+    ],
 )
 def refine_mags_button_active_callback(binning_value, markers_value, metagenome_value):
-    if binning_value is None or markers_value is None:
+    if binning_value is None or markers_value is None or metagenome_value is None:
         return True
     else:
         return False
@@ -532,11 +542,34 @@ def on_refine_mags_button_click(
 ):
     if n is None:
         raise PreventUpdate
-    return {
-        "binning": binning_select_value,
-        "markers": markers_select_value,
-        "metagenome": metagenome_select_value,
-    }
+    tables_dict = {}
+    if binning_select_value is not None and markers_select_value is not None:
+        marker_symbols_task = preprocess_marker_symbols.delay(binning_select_value, markers_select_value)
+        # logger.debug(f"{type(marker_symbols_task)} {marker_symbols_task}")
+        # tables_dict["marker_symbols"] = markers_select_value.replace("-markers","-marker-symbols")
+    if metagenome_select_value is not None:
+        tables_dict["metagenome"] = {"id":metagenome_select_value}
+        embeddings_task = preprocess_embeddings(
+            metagenome_table=metagenome_select_value,
+            norm_method="am_clr",
+            embed_methods=["densmap", "umap", "bhsne"],
+        )
+        # logger.debug(f"{type(embeddings_task)} {embeddings_task}")
+        # tables_dict["embeddings"] = metagenome_select_value.replace("-metagenome","-embeddings")
+    if binning_select_value is not None:
+        tables_dict.update({
+            "binning": {"id":binning_select_value},
+            "refinements": {"id": binning_select_value.replace("-binning","-refinement")}
+        })
+        cluster_col = "cluster"
+        clusters_geom_medians_task = preprocess_clusters_geom_medians.delay(binning_select_value, cluster_col)
+        # logger.debug(f"{type(clusters_geom_medians_task)} {clusters_geom_medians_task}")
+        # tables_dict["geom_medians"] = binning_select_value.replace("-binning",f"{cluster_col}-gmedians")
+    if markers_select_value is not None:
+        tables_dict["markers"] = {"id":markers_select_value}
+    logger.debug(tables_dict)
+    return SampleTables(**tables_dict).json()
+
 
 @app.callback(
     Output("selected-tables-datatable", "children"),
@@ -546,20 +579,87 @@ def on_refine_mags_button_click(
     ],
     State("selected-tables-store", "data"),
 )
-def selected_tables_datatable_children(selected_tables_store_data, active_tab, new_selected_tables_store_data):
-    # Why Input("tabs", "active_tab"): Navigating to back to home tab triggers rendering of table from store
+def selected_tables_datatable_children(
+    selected_tables_store_data: SampleTables, active_tab: str, new_selected_tables_store_data: SampleTables
+):
+    # Why Input("tabs", "active_tab"): Navigating back to home tab triggers rendering of table from store
     if selected_tables_store_data is None:
         raise PreventUpdate
+    samples = SampleTables.parse_raw(selected_tables_store_data)
     if new_selected_tables_store_data is not None:
-        selected_tables_store_data.update(new_selected_tables_store_data)
+        new_tables = SampleTables.parse_raw(new_selected_tables_store_data)
+        if new_tables != samples:    
+            tables_dict = samples.dict()
+            tables_dict.update(new_tables.dict())
+            samples = SampleTables.parse_obj(tables_dict)
 
-    if not selected_tables_store_data:
+    has_table = False
+    for __,table_id in samples:
+        if table_id:
+            has_table = True
+            break
+    
+    if not has_table:
         raise PreventUpdate
 
     return DataTable(
-        data=[{"filetype":filetype, "table_id": table_id} for filetype,table_id in selected_tables_store_data.items() if table_id is not None],
+        data=[
+            {"filetype": sample, "table_id": table.id}
+            for sample,table in samples
+            if sample not in {"kmers"}
+        ],
         columns=[
             {"id": "filetype", "name": "filetype", "editable": False},
             {"id": "table_id", "name": "table_id", "editable": False},
         ],
+    )
+
+
+@app.callback(
+    Output("kmer-embed-tasks-button", "disabled"),
+    Input("metagenome-select", "value"),
+)
+def refine_mags_button_active_callback(metagenome_value):
+    if metagenome_value is None:
+        return True
+    else:
+        return False
+
+
+# TODO: Store final embeddings-table and retrieve for 2d scatterplot axes dropdowns/views
+# from automappa.utils.serializers import get_table
+# embed_df = get_table(embed_table_name, index_col='contig')
+
+@app.callback(
+    Output("embedding-tasks", "children"),
+    Input("kmer-embed-tasks-button", "n_clicks"),
+    Input("metagenome-select", "value"),
+)
+def on_compute_metagenome_kmer_embedding(btn_clicks: int, metagenome_select_value: str):
+    if btn_clicks is None or metagenome_select_value is None:
+        raise PreventUpdate
+    embed_methods = ["densmap", "umap", "bhsne"]
+    norm_method = "am_clr"
+    task = preprocess_embeddings(
+        metagenome_table=metagenome_select_value,
+        norm_method=norm_method,
+        embed_methods=embed_methods,
+    )
+    embed_table_name = metagenome_select_value.replace("-metagenome", "-embeddings")
+    # TODO: Should create a polling or dcc.Interval(...) to construct this table for monitoring tasks status
+    df = pd.DataFrame([{
+        "task_name": task.name,
+        # "started": task.track_started,
+        "state": task.state,
+        "task_id": task.id,
+        "norm_method": norm_method,
+        "embed_methods": ','.join(embed_methods),
+        "embed-table-name": embed_table_name,
+    }])
+    # logger.debug(df)
+    return DataTable(
+        data=df.to_dict("records"),
+        columns=[{"id": col, "name": col, "editable": False} for col in df.columns],
+        persistence=True,
+        persistence_type='session',
     )

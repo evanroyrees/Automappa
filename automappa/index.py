@@ -12,6 +12,7 @@ import dash_bootstrap_components as dbc
 from automappa import settings
 from automappa.apps import home, mag_refinement, mag_summary
 from automappa.app import app
+from automappa.utils.models import SampleTables
 
 logging.basicConfig(
     format="[%(levelname)s] %(name)s: %(message)s",
@@ -23,17 +24,20 @@ logger = logging.getLogger(__name__)
 
 @app.callback(
     Output("tab-content", "children"),
-    [Input("tabs", "active_tab"),
-    Input("selected-tables-store", "data")]
+    [
+        Input("tabs", "active_tab"),
+        Input("selected-tables-store", "data")
+    ],
 )
-def render_content(active_tab: str, selected_tables_data: Dict[str,str]) -> dbc.Container:
+def render_content(
+    active_tab: str, selected_tables_data: SampleTables,
+) -> dbc.Container:
     # Only alow user to navigate to mag refinement or summary if data is already uploaded
     if selected_tables_data is None:
         return home.layout
-    for data_table in ['markers', 'binning']:
-        if selected_tables_data[data_table] is None:
-            return home.layout
-        
+    tables = SampleTables.parse_raw(selected_tables_data)
+    if not tables.binning or not tables.markers:
+        return home.layout
     layouts = {
         "home": home.layout,
         "mag_refinement": mag_refinement.layout,
@@ -133,7 +137,11 @@ def main():
     # TODO: Replace cli inputs (as well as updating title once file is uploaded...)
     # app.title = f"Automappa: {sample_name}"
     app.title = "Automappa"
-    app.run_server(host=settings.server.host, port=settings.server.port, debug=settings.server.debug)
+    app.run_server(
+        host=settings.server.host,
+        port=settings.server.port,
+        debug=settings.server.debug,
+    )
 
 
 if __name__ == "__main__":
