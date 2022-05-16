@@ -143,10 +143,29 @@ def format_axis_title(axis_title: str) -> str:
         formatted axis title
     """
     if "_x_" in axis_title:
+        method_titles = {
+            "bhsne": "BH-tSNE",
+            "sksne": "(sklearn) BH-tSNE",
+            "umap": "UMAP",
+            "trimap": "TriMap",
+            "densmap": "DensMap",
+        }
+        # {kmer_size}mers-{norm_method}-{embed_method}_x_{1,2}
+        mers, norm_method, embed_method_embed_dim = axis_title.split("-")
+        norm_method_titles = {"am_clr": "CLR", "ilr": "ILR"}
+        norm_method = norm_method_titles.get(norm_method, norm_method.upper())
+        embed_method, embed_dim = embed_method_embed_dim.split("_", 1)
+        embed_method = method_titles.get(embed_method, embed_method.upper())
+        kmer_size = mers.replace("mers", "")
+        # formatted_axis_title = f"(k={kmer_size}, norm={norm_method}) {embed_method} {embed_dim}"
+        formatted_axis_title = embed_dim
+    elif "_" in axis_title:
+        metagenome_metadata_titles = {"gc_content": "GC Content"}
         col_list = axis_title.split("_")
-        embed_method = col_list[0]
-        embed_dim = "_".join(col_list[1:])
-        formatted_axis_title = f"{embed_method.upper()} {embed_dim}"
+        metadata_title = " ".join(col.upper() for col in col_list)
+        formatted_axis_title = metagenome_metadata_titles.get(
+            axis_title, metadata_title
+        )
     else:
         formatted_axis_title = axis_title.title()
     return formatted_axis_title

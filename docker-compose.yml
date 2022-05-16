@@ -14,10 +14,13 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:3.10.1-management-alpine
     restart: always
     ports:
+      # AMQP protocol port
       - 5672:5672
+      # HTTP management UI
+      - 15672:15672
     env_file:
       - .env
     
@@ -46,30 +49,31 @@ services:
       - .env
     depends_on:
       - celery
+      - rabbitmq
 
-  prometheus:
-    image: prom/prometheus:latest
-    ports:
-      - 9090:9090
-    volumes:
-      - prometheus-data:/prometheus
-      # - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    depends_on:
-      - flower
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - 9090:9090
+  #   volumes:
+  #     - prometheus-data:/prometheus
+  #     # - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   depends_on:
+  #     - flower
   
-  grafana:
-    image: grafana/grafana:latest
-    ports:
-      - 3000:3000
-    env_file:
-      - .env
-    volumes:
-      - grafana-storage:/var/lib/grafana
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning
-      - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini
-      - ./docker/grafana/dashboards:/etc/grafana/dashboards
-    depends_on:
-      - prometheus
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - 3000:3000
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
+  #     - ./docker/grafana/provisioning:/etc/grafana/provisioning
+  #     - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini
+  #     - ./docker/grafana/dashboards:/etc/grafana/dashboards
+  #   depends_on:
+  #     - prometheus
 
   redis:
     image: "redis:latest"
@@ -96,8 +100,8 @@ services:
 
 volumes:
   postgres-data:
-  grafana-storage:
-    driver: local
-  prometheus-data:
-    driver: local
+  # grafana-storage:
+  #   driver: local
+  # prometheus-data:
+  #   driver: local
   

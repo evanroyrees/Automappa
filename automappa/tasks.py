@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 
-import tempfile
 import random
+import tempfile
 
 # import time
 from typing import List
+import numpy as np
 import pandas as pd
 
 from geom_median.numpy import compute_geometric_median
@@ -13,12 +14,15 @@ from geom_median.numpy import compute_geometric_median
 from celery import Celery, group
 from celery.utils.log import get_task_logger
 from celery.result import AsyncResult
+from dash.long_callback import CeleryLongCallbackManager
 
 from Bio import SeqIO
 
 from autometa.common import kmers
+from autometa.binning.summary import fragmentation_metric, get_metabin_stats
 
 from automappa import settings
+from automappa.utils.figures import get_scattergl_traces
 
 from automappa.utils.markers import get_marker_symbols
 from automappa.utils.serializers import (
@@ -32,7 +36,7 @@ queue = Celery(
     __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
 )
 queue.config_from_object("automappa.conf.celeryconfig")
-
+long_callback_manager = CeleryLongCallbackManager(queue)
 logger = get_task_logger(__name__)
 
 if settings.server.debug:
@@ -75,7 +79,7 @@ def count_kmer(self, metagenome_table: str, size: int = 5, cpus: int = None) -> 
     records = get_metagenome_seqrecords(metagenome_table)
     # Uncomment next line to speed-up debugging...
     # FIXME: Comment out below:
-    # records = random.sample(records, k=1_000)
+    records = random.sample(records, k=1_000)
     with tempfile.NamedTemporaryFile(mode="w") as tmp:
         SeqIO.write(records, tmp.name, "fasta")
         tmp.seek(0)
@@ -104,15 +108,28 @@ def normalize_kmer(self, counts_table: str, norm_method: str) -> str:
 
 
 @queue.task(bind=True)
-def embed_kmer(self, norm_table: str, embed_method: str, n_jobs: int = 1) -> str:
+def embed_kmer(
+    self, norm_table: str, embed_method: str, embed_dims: int = 2, n_jobs: int = 1
+) -> str:
     norm_df = get_table(norm_table, index_col="contig")
     # FIXME: Refactor renaming of embed_df.columns
     prev_kmer_params = norm_table.split("-", 1)[-1]
+    method_kwargs = {"output_dens": True} if embed_method in {"umap", "densmap"} else {}
+    # output_dens: float (optional, default False)
+    # Determines whether the local radii of the final embedding (an inverse
+    # measure of local density) are computed and returned in addition to
+    # the embedding. If set to True, local radii of the original data
+    # are also included in the output for comparison; the output is a tuple
+    # (embedding, original local radii, embedding local radii). This option
+    # can also be used when densmap=False to calculate the densities for
+    # UMAP embeddings.
     embed_df = kmers.embed(
-        # TODO: (on autometa[2.0.4] release): norm_df, method=embed_method, embed_dimensions=2, n_jobs=n_jobs
         norm_df,
         method=embed_method,
-        embed_dimensions=2,
+        embed_dimensions=embed_dims,
+        # FIXME: add in below lines when autometa 2.1 available...
+        # n_jobs=n_jobs,
+        # **method_kwargs,
     ).rename(
         columns={
             "x_1": f"{prev_kmer_params}-{embed_method}_x_1",
@@ -139,13 +156,19 @@ def preprocess_embeddings(
     cpus: int = 1,
     kmer_size: int = 5,
     norm_method: str = "am_clr",
+    embed_dims: int = 2,
     embed_methods: List[str] = ["bhsne", "densmap", "trimap", "umap"],
 ):
-    embeddings_table = metagenome_table.replace("-metagenome", "-embeddings")
+    embeddings_table = metagenome_table.replace(
+        "-metagenome", f"-{kmer_size}mers-{norm_method}-embeddings"
+    )
     kmer_pipeline = (
         count_kmer.s(metagenome_table, kmer_size, cpus)
         | normalize_kmer.s(norm_method)
-        | group(embed_kmer.s(embed_method, cpus) for embed_method in embed_methods)
+        | group(
+            embed_kmer.s(embed_method, embed_dims, cpus)
+            for embed_method in embed_methods
+        )
         | aggregate_embeddings.s(embeddings_table)
     )
     result = kmer_pipeline()
@@ -209,7 +232,7 @@ def get_embedding_traces_df(embeddings_table: str) -> pd.DataFrame:
     # 1. Compute all embeddings for assembly...
     # 2. groupby cluster
     # 3. Extract k-mer size, norm method, embed method
-
+    df = get_table(embeddings_table, index_col="contig")
     embed_traces = []
     for embed_method in ["trimap", "densmap", "bhsne", "umap", "sksne"]:
         traces_df = get_scattergl_traces(
@@ -220,6 +243,62 @@ def get_embedding_traces_df(embeddings_table: str) -> pd.DataFrame:
     embed_traces_df = pd.concat(embed_traces, axis=1)
     return embed_traces_df
 
+# @queue.task(bind=True)
+# def get_metabin_stats_summary(self, binning_table:str, refinements_table:str, markers_table:str, cluster_col:str = "cluster"):
+def get_metabin_stats_summary(binning_table:str, refinements_table:str, markers_table:str, cluster_col:str = "cluster") -> pd.DataFrame:
+    bin_df = get_table(binning_table, index_col="contig")
+    refinements_df = get_table(refinements_table, index_col='contig').drop(
+        columns="cluster"
+    )
+    bin_df = bin_df.join(refinements_df, how="right")
+    markers = get_table(markers_table, index_col='contig')
+    if cluster_col not in bin_df.columns:
+        num_expected_markers = markers.shape[1]
+        length_weighted_coverage = np.average(
+            a=bin_df.coverage, weights=bin_df.length / bin_df.length.sum()
+        )
+        length_weighted_gc = np.average(
+            a=bin_df.gc_content, weights=bin_df.length / bin_df.length.sum()
+        )
+        cluster_pfams = markers[markers.index.isin(bin_df.index)]
+        pfam_counts = cluster_pfams.sum()
+        total_markers = pfam_counts.sum()
+        num_single_copy_markers = pfam_counts[pfam_counts == 1].count()
+        num_markers_present = pfam_counts[pfam_counts >= 1].count()
+        stats_df = pd.DataFrame(
+            [
+                {
+                    cluster_col: "metagenome",
+                    "nseqs": bin_df.shape[0],
+                    "size (bp)": bin_df.length.sum(),
+                    "N90": fragmentation_metric(bin_df, quality_measure=0.9),
+                    "N50": fragmentation_metric(bin_df, quality_measure=0.5),
+                    "N10": fragmentation_metric(bin_df, quality_measure=0.1),
+                    "length_weighted_gc_content": length_weighted_gc,
+                    "min_gc_content": bin_df.gc_content.min(),
+                    "max_gc_content": bin_df.gc_content.max(),
+                    "std_gc_content": bin_df.gc_content.std(),
+                    "length_weighted_coverage": length_weighted_coverage,
+                    "min_coverage": bin_df.coverage.min(),
+                    "max_coverage": bin_df.coverage.max(),
+                    "std_coverage": bin_df.coverage.std(),
+                    "num_total_markers": total_markers,
+                    f"num_unique_markers (expected {num_expected_markers})": num_markers_present,
+                    "num_single_copy_markers": num_single_copy_markers,
+                }
+            ]
+        ).convert_dtypes()
+    else:
+        stats_df = (
+            get_metabin_stats(
+                bin_df=bin_df,
+                markers=markers,
+                cluster_col=cluster_col,
+            )
+            .reset_index()
+            .fillna(0)
+        )
+    return stats_df
 
 if __name__ == "__main__":
     pass

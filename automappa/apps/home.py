@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import itertools
 import logging
 from dash import html, dcc
 from dash.dash_table import DataTable
@@ -65,6 +66,7 @@ binning_main_upload = du.Upload(
     },
     max_files=1,
     # 10240 MB = 10GB
+    # TODO: Add text to modal with max_file_size info...
     max_file_size=10240,
 )
 
@@ -83,6 +85,7 @@ markers_upload = du.Upload(
     },
     max_files=1,
     # 10240 MB = 10GB
+    # TODO: Add text to modal with max_file_size info...
     max_file_size=10240,
 )
 
@@ -101,6 +104,7 @@ metagenome_upload = du.Upload(
     },
     max_files=1,
     # 10240 MB = 10GB
+    # TODO: Add text to modal with max_file_size info...
     max_file_size=10240,
 )
 
@@ -548,21 +552,8 @@ def on_refine_mags_button_click(
     if n is None:
         raise PreventUpdate
     tables_dict = {}
-    if binning_select_value is not None and markers_select_value is not None:
-        marker_symbols_task = preprocess_marker_symbols.delay(
-            binning_select_value, markers_select_value
-        )
-        # logger.debug(f"{type(marker_symbols_task)} {marker_symbols_task}")
-        # tables_dict["marker_symbols"] = markers_select_value.replace("-markers","-marker-symbols")
     if metagenome_select_value is not None:
         tables_dict["metagenome"] = {"id": metagenome_select_value}
-        embeddings_task = preprocess_embeddings(
-            metagenome_table=metagenome_select_value,
-            norm_method="am_clr",
-            embed_methods=["densmap", "umap", "bhsne"],
-        )
-        # logger.debug(f"{type(embeddings_task)} {embeddings_task}")
-        # tables_dict["embeddings"] = metagenome_select_value.replace("-metagenome","-embeddings")
     if binning_select_value is not None:
         tables_dict.update(
             {
@@ -572,16 +563,35 @@ def on_refine_mags_button_click(
                 },
             }
         )
-        cluster_col = "cluster"
-        clusters_geom_medians_task = preprocess_clusters_geom_medians.delay(
-            binning_select_value, cluster_col
-        )
-        # logger.debug(f"{type(clusters_geom_medians_task)} {clusters_geom_medians_task}")
-        # tables_dict["geom_medians"] = binning_select_value.replace("-binning",f"{cluster_col}-gmedians")
     if markers_select_value is not None:
         tables_dict["markers"] = {"id": markers_select_value}
-    logger.debug(tables_dict)
-    return SampleTables(**tables_dict).json()
+    sample = SampleTables(**tables_dict)
+    # BEGIN Queueing tasks from annotations...
+    # TODO: Refactor to separate bg-task submission?
+    # Show table of running tasks for user to monitor...
+    if sample.binning and sample.markers:
+        marker_symbols_task = preprocess_marker_symbols.delay(
+            sample.binning.id, sample.markers.id
+        )
+    if sample.metagenome:
+        embedding_tasks = []
+        kmer_sizes = set([kmer_table.size for kmer_table in sample.kmers])
+        norm_methods = set([kmer_table.norm_method for kmer_table in sample.kmers])
+        embed_methods = set([kmer_table.embed_method for kmer_table in sample.kmers])
+        embed_methods = ["umap", "densmap", "bhsne"]
+        for kmer_size, norm_method in itertools.product(kmer_sizes, norm_methods):
+            embeddings_task = preprocess_embeddings(
+                metagenome_table=sample.metagenome.id,
+                kmer_size=kmer_size,
+                norm_method=norm_method,
+                embed_methods=embed_methods,
+            )
+            embedding_tasks.append(embeddings_task)
+    if sample.binning:
+        clusters_geom_medians_task = preprocess_clusters_geom_medians.delay(
+            sample.binning.id, "cluster"
+        )
+    return sample.json()
 
 
 @app.callback(

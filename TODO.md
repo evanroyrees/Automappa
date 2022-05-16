@@ -21,6 +21,11 @@
 16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
 17. [ ] :art::carrot: Add selections/dropdowns/progress updates for metagenome embeddings
 18. [x] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
+19. [ ] :art: Show some type of progress for metagenome ingestion to postgres DB
+20. [ ] :art: Dynamically Format scatterplot 2-d axes (i.e. Gc_Content to GC Content, etc.)
+21. [ ] :racehorse: Reduce queries to postgres DB
+22. [ ] :bug::wrench: Fix scatterplot-2d.figure callback (LINENO#685) `ValueError: columns overlap but no suffix specified: Index(['5mers-ilr-umap_x_1', '5mers-ilr-umap_x_2'], dtype='object')`
+23. [ ] :bug::wrench: Add `dcc.Interval`? or `interval` argument? to Scatterplot 2D Axes dropdown s.t. disabled is updated appropriately (poll availability of embeddings in pg DB)
 
 --------------------------------------------------------------------------------------------------
 

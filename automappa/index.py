@@ -3,7 +3,6 @@
 
 import argparse
 import logging
-from typing import Dict
 
 from dash.dependencies import Input, Output
 from dash import dcc, html
@@ -24,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 @app.callback(
     Output("tab-content", "children"),
-    [Input("tabs", "active_tab"), Input("selected-tables-store", "data")],
+    Input("tabs", "active_tab"),
+    Input("selected-tables-store", "data"),
 )
 def render_content(
     active_tab: str,
@@ -33,8 +33,8 @@ def render_content(
     # Only alow user to navigate to mag refinement or summary if data is already uploaded
     if selected_tables_data is None:
         return home.layout
-    tables = SampleTables.parse_raw(selected_tables_data)
-    if not tables.binning or not tables.markers:
+    sample = SampleTables.parse_raw(selected_tables_data)
+    if not sample.binning or not sample.markers:
         return home.layout
     layouts = {
         "home": home.layout,

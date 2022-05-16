@@ -1,3 +1,4 @@
+import itertools
 from pydantic import BaseModel, Field, PydanticValueError, create_model
 from pydantic.fields import ModelField
 from typing import List, Literal, Optional
@@ -68,7 +69,7 @@ class AnnotationTable(BaseModel):
     #     keep_untouched=(cached_property,)
 
     @property
-    def sample(self):
+    def sample_checksum(self):
         return self.id.split("-")[0]
 
     @property
@@ -144,25 +145,38 @@ class SampleTables(BaseModel):
     @property
     def kmers(self) -> List[KmerTable]:
         settings = []
-        for size in [3, 4, 5]:
-            for norm_method in ["am_clr"]:
-                for embed_method in ["bhsne", "densmap", "umap", "sksne", "trimap"]:
-                    settings.append(
-                        KmerTable(
-                            assembly=self.metagenome,
-                            size=size,
-                            norm_method=norm_method,
-                            embed_dims=2,
-                            embed_method=embed_method,
-                        )
-                    )
+        sizes = [3, 4, 5]
+        norm_methods = ["am_clr", "ilr"]
+        embed_methods = ["bhsne", "densmap", "umap", "sksne", "trimap"]
+        for size, norm_method, embed_method in itertools.product(
+            sizes, norm_methods, embed_methods
+        ):
+            settings.append(
+                KmerTable(
+                    assembly=self.metagenome,
+                    size=size,
+                    norm_method=norm_method,
+                    embed_dims=2,
+                    embed_method=embed_method,
+                )
+            )
         return settings
 
     @property
-    def embeddings(self) -> AnnotationTable:
-        return AnnotationTable(
-            id=self.metagenome.id.replace("-metagenome", "-embeddings")
-        )
+    def embeddings(self) -> List[AnnotationTable]:
+        kmer_sizes = set([kmer_table.size for kmer_table in self.kmers])
+        norm_methods = set([kmer_table.norm_method for kmer_table in self.kmers])
+        # NOTE: The corresponding table-name suffix format (AnnotationTable(id=...))
+        # is at https://github.com/WiscEvan/Automappa/blob/977dbbf6dca8cc62f974eb1c6a2f48fc25f2ddb2/automappa/tasks.py#L149
+        return [
+            AnnotationTable(
+                id=self.metagenome.id.replace(
+                    "-metagenome", f"-{kmer_size}mers-{norm_method}-embeddings"
+                ),
+                index_col="contig",
+            )
+            for kmer_size, norm_method in itertools.product(kmer_sizes, norm_methods)
+        ]
 
     @property
     def marker_symbols(self) -> AnnotationTable:

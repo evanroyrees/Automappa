@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import itertools
 import logging
 
 from pydantic import Json
@@ -74,22 +75,38 @@ scatterplot_2d_legend_toggle = daq.ToggleSwitch(
     value=True,
 )
 
-scatterplot_2d_xaxis_dropdown = [
-    html.Label("X-axis:"),
+# TODO: Link x-axis-2d w/ y-axis-2d
+# Combinations of kmer embeddings
+# kmer-size [dropdown]
+# kmer-norm-method [dropdown]
+# kmer-embed-method [dropdown]
+# All are filters to main dropdown combinations of kmer axes
+
+kmer_size_dropdown = [
+    html.Label("K-mer size:"),
     dcc.Dropdown(
-        id="x-axis-2d",
-        options=[],
-        value="coverage",
+        id="kmer-size-dropdown",
+        options=[3, 4, 5],
+        value=5,
         clearable=False,
     ),
 ]
 
-scatterplot_2d_yaxis_dropdown = [
-    html.Label("Y-axis:"),
+norm_method_dropdown = [
+    html.Label("K-mer norm. method:"),
     dcc.Dropdown(
-        id="y-axis-2d",
-        options=[],
-        value="gc_content",
+        id="norm-method-dropdown",
+        options=["am_clr", "ilr"],
+        value="am_clr",
+        clearable=False,
+    ),
+]
+
+scatterplot_2d_axes_dropdown = [
+    html.Label("Axes:"),
+    dcc.Dropdown(
+        id="axes-2d",
+        value="coverage|gc_content",
         clearable=False,
     ),
 ]
@@ -169,12 +186,9 @@ refinement_settings_offcanvas = dbc.Offcanvas(
                                 dbc.Col(scatterplot_2d_legend_toggle),
                             ]
                         ),
-                        dbc.Row(
-                            [
-                                dbc.Col(scatterplot_2d_xaxis_dropdown),
-                                dbc.Col(scatterplot_2d_yaxis_dropdown),
-                            ]
-                        ),
+                        dbc.Row(dbc.Col(kmer_size_dropdown)),
+                        dbc.Row(dbc.Col(norm_method_dropdown)),
+                        dbc.Row(dbc.Col(scatterplot_2d_axes_dropdown)),
                     ],
                     title="Figure 1: 2D Metagenome Overview",
                 ),
@@ -463,44 +477,44 @@ def color_by_column_options_callback(selected_tables_data: SampleTables):
     ]
 
 
-@app.callback(Output("x-axis-2d", "options"), Input("selected-tables-store", "data"))
-def x_axis_2d_options_callback(selected_tables_data: SampleTables):
+@app.callback(
+    Output("axes-2d", "options"),
+    Input("selected-tables-store", "data"),
+    Input("kmer-size-dropdown", "value"),
+    Input("norm-method-dropdown", "value"),
+)
+def axes_2d_options_callback(
+    selected_tables_data: Json[SampleTables],
+    kmer_size_dropdown_value: int,
+    norm_method_dropdown_value: str,
+) -> List[Dict[str, str]]:
     sample = SampleTables.parse_raw(selected_tables_data)
     binning_df = sample.binning.table
-    binning_cols = [
-        {"label": col.title().replace("_", " "), "value": col, "disabled": False}
-        for col in binning_df.select_dtypes({"float64", "int64"}).columns
-        if col not in {"completeness", "purity", "taxid"}
-    ]
-    kmer_cols = [
+    binning_combinations = [
         {
-            "label": f"{kmer.embedding.name.replace('-',' ')}_x_1",
-            "value": f"{kmer.embedding.name}_x_1",
+            "label": " vs. ".join(
+                [x_axis.title().replace("_", " "), y_axis.title().replace("_", " ")]
+            ),
+            "value": "|".join([x_axis, y_axis]),
+            "disabled": False,
+        }
+        for x_axis, y_axis in itertools.combinations(
+            binning_df.select_dtypes({"float64", "int64"}).columns, 2
+        )
+        if x_axis not in {"completeness", "purity", "taxid"}
+        and y_axis not in {"completeness", "purity", "taxid"}
+    ]
+    embeddings = [
+        {
+            "label": kmer.embedding.name,
+            "value": f"{kmer.embedding.name}_x_1|{kmer.embedding.name}_x_2",
             "disabled": not kmer.embedding.exists,
         }
         for kmer in sample.kmers
+        if kmer.size == kmer_size_dropdown_value
+        and kmer.norm_method == norm_method_dropdown_value
     ]
-    return binning_cols + kmer_cols
-
-
-@app.callback(Output("y-axis-2d", "options"), Input("selected-tables-store", "data"))
-def y_axis_2d_options_callback(selected_tables_data: Json[SampleTables]):
-    sample = SampleTables.parse_raw(selected_tables_data)
-    binning_df = sample.binning.table
-    binning_cols = [
-        {"label": col.title().replace("_", " "), "value": col, "disabled": False}
-        for col in binning_df.select_dtypes({"float64", "int64"}).columns
-        if col not in {"completeness", "purity", "taxid"}
-    ]
-    kmer_cols = [
-        {
-            "label": f"{kmer.embedding.name.replace('-',' ')}_x_2",
-            "value": f"{kmer.embedding.name}_x_2",
-            "disabled": not kmer.embedding.exists,
-        }
-        for kmer in sample.kmers
-    ]
-    return binning_cols + kmer_cols
+    return binning_combinations + embeddings
 
 
 @app.callback(
@@ -589,8 +603,9 @@ def update_mag_metrics_datatable_callback(
     Output("scatterplot-2d", "figure"),
     [
         Input("selected-tables-store", "data"),
-        Input("x-axis-2d", "value"),
-        Input("y-axis-2d", "value"),
+        Input("kmer-size-dropdown", "value"),
+        Input("norm-method-dropdown", "value"),
+        Input("axes-2d", "value"),
         Input("scatterplot-2d-legend-toggle", "value"),
         Input("color-by-column", "value"),
         Input("hide-selections-toggle", "value"),
@@ -600,8 +615,9 @@ def update_mag_metrics_datatable_callback(
 def scatterplot_2d_figure_callback(
     # selected_tables_data: MetagenomeAnnotationsTables,
     selected_tables_data: Json[SampleTables],
-    xaxis_column: str,
-    yaxis_column: str,
+    kmer_size_dropdown_value: int,
+    norm_method_dropdown_value: str,
+    axes_columns: str,
     show_legend: bool,
     color_by_col: str,
     hide_selection_toggle: bool,
@@ -609,6 +625,7 @@ def scatterplot_2d_figure_callback(
 ) -> go.Figure:
     # NOTE: btn_clicks is an input so this figure is updated when new refinements are saved
     # TODO: #23 refactor scatterplot callbacks
+    # - Add Input("scatterplot-2d", "layout") ?
     # TODO: Refactor data retrieval/validation
     sample = SampleTables.parse_raw(selected_tables_data)
     bin_df = sample.binning.table
@@ -644,18 +661,29 @@ def scatterplot_2d_figure_callback(
     # based on current contig selections
     # TODO: Should check norm_method, kmer_size prior to retrieving embeddings table...
     # Add norm method and kmer_size dropdowns...
+    xaxis_column, yaxis_column = axes_columns.split("|")
     if "_x_1" in xaxis_column or "_x_2" in yaxis_column:
-        if sample.embeddings.exists:
-            embedding_df = sample.embeddings.table
-            bin_df = bin_df.join(embedding_df, how="left")
-        else:
-            for kmer_table in sample.kmers:
-                if (
-                    kmer_table.embedding.name == xaxis_column
-                    and kmer_table.embedding.name == yaxis_column
-                ):
-                    bin_df = bin_df.join(kmer_table.embedding.table, how="left")
-                    break
+        # TODO: Fix retrieval of axes with embeddings...
+        for embeddings in sample.embeddings:
+            sizemers, norm_method, __ = embeddings.name.split("-")
+            kmer_size = int(sizemers.replace("mers", ""))
+            if (
+                norm_method == norm_method_dropdown_value
+                and kmer_size == kmer_size_dropdown_value
+                and embeddings.exists
+            ):
+                embedding_df = embeddings.table
+                bin_df = bin_df.join(embedding_df, how="left")
+    else:
+        for kmer in sample.kmers:
+            if (
+                f"{kmer.embedding.name}_x_1" == xaxis_column
+                and f"{kmer.embedding.name}_x_2" == yaxis_column
+                and kmer.size == kmer_size_dropdown_value
+                and kmer.norm_method == norm_method_dropdown_value
+            ):
+                bin_df = bin_df.join(kmer.embedding.table, how="left")
+                break
 
     fillnas = {
         "cluster": "unclustered",

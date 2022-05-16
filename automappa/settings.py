@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 from pydantic import (
     BaseSettings,
+    HttpUrl,
     RedisDsn,
     PostgresDsn,
     AmqpDsn,
@@ -39,6 +40,15 @@ class CelerySettings(BaseSettings):
 
     class Config:
         env_prefix: str = "CELERY_"
+        env_file: str = ".env"
+        env_file_encoding: str = "utf-8"
+
+
+class FlowerSettings(BaseSettings):
+    broker_api_url: HttpUrl
+
+    class Config:
+        env_prefix: str = "FLOWER_"
         env_file: str = ".env"
         env_file_encoding: str = "utf-8"
 
