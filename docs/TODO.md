@@ -22,52 +22,16 @@
 17. [ ] :art::carrot: Add selections/dropdowns/progress updates for metagenome embeddings
 18. [x] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
 19. [ ] :art: Show some type of progress for metagenome ingestion to postgres DB
-20. [ ] :art: Dynamically Format scatterplot 2-d axes (i.e. Gc_Content to GC Content, etc.)
+20. [x] :art: Dynamically Format scatterplot 2-d axes (i.e. Gc_Content to GC Content, etc.)
 21. [ ] :racehorse: Reduce queries to postgres DB
-22. [ ] :bug::wrench: Fix scatterplot-2d.figure callback (LINENO#685) `ValueError: columns overlap but no suffix specified: Index(['5mers-ilr-umap_x_1', '5mers-ilr-umap_x_2'], dtype='object')`
+22. [x] :bug::wrench: Fix scatterplot-2d.figure callback (LINENO#685) `ValueError: columns overlap but no suffix specified: Index(['5mers-ilr-umap_x_1', '5mers-ilr-umap_x_2'], dtype='object')`
 23. [ ] :bug::wrench: Add `dcc.Interval`? or `interval` argument? to Scatterplot 2D Axes dropdown s.t. disabled is updated appropriately (poll availability of embeddings in pg DB)
 
 --------------------------------------------------------------------------------------------------
 
-## Troubleshooting Celery, RabbitMQ task-queue
-
-### Resources
-
-- [celery rabbitmq tutorial](https://suzannewang.com/celery-rabbitmq-tutorial/)
-
-## docker-compose services configuration
-
-***NOTE: All of this assumes you have all docker services running via `make up` or `docker-compose up`***
-
-> ~Provision grafana from `docker-compose.yml`. See: [Grafana provisioning example data source config file](https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file)~
-> Found a nice blog post and accompanying GitHub repo to follow:
->
-> - [Medium blog post](https://medium.com/swlh/easy-grafana-and-docker-compose-setup-d0f6f9fcec13)
-> - [github.com/annea-ai/grafana-infrastructure](<https://github.com/annea-ai/grafana-infrastructure>)
-> - [Grafana docs on Provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
-
-## Monitoring Services
-
-- flower link - [http://localhost:5555](http://localhost:5555)
-- prometheus link - [http://localhost:9090](http://localhost:9090)
-- grafana link - [http://localhost:3000](http://localhost:3000)
-
-### Grafana configuration
-
-- flower+prometheus+grafana [add prometheus as a data source in grafana](<https://flower.readthedocs.io/en/latest/prometheus-integration.html#add-prometheus-as-a-data-source-in-grafana> "flower+prometheus+grafana add prometheus as a data source in grafana")
-- grafana link - [http://localhost:3000](http://localhost:3000)
-
-Add the prometheus url as:
-
-```bash
-http://prometheus:9090
-```
-
-Notice the tutorial mentions `http://localhost:9090`, but since this is running as a service using `docker-compose` the hostname changes to the
-`prometheus` alias (this is the name of the service in the `docker-compose.yml` file)
-
 ## Misc. Resources
 
+- [Dash Extensions Enrich Module](https://www.dash-extensions.com/getting-started/enrich)
 - [docker-compose networking docs](<https://docs.docker.com/compose/networking/#links>)
 - [live mongoDB dash example](<https://github.com/Coding-with-Adam/Dash-by-Plotly/blob/master/Dash_and_Databases/MongoDB/live-mongodb-dash.py>)
 - [plotly dash `dcc.Store` docs](<https://dash.plotly.com/dash-core-components/store#store-clicks-example>)
