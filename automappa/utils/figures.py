@@ -346,12 +346,15 @@ def get_scatterplot_3d(
     go.Figure
         _description_
     """
+    x_axis_title = format_axis_title(x_axis)
+    y_axis_title = format_axis_title(y_axis)
+    z_axis_title = format_axis_title(z_axis)
     fig = go.Figure(
         layout=go.Layout(
             scene=dict(
-                xaxis=dict(title=x_axis.title()),
-                yaxis=dict(title=y_axis.title()),
-                zaxis=dict(title=z_axis.replace("_", " ").title()),
+                xaxis=dict(title=x_axis_title),
+                yaxis=dict(title=y_axis_title),
+                zaxis=dict(title=z_axis_title),
             ),
             legend={"x": 1, "y": 1},
             autosize=True,
@@ -359,9 +362,9 @@ def get_scatterplot_3d(
             hovermode="closest",
         )
     )
-    x_hover_label = f"{x_axis.title()}: " + "%{x:.2f}"
-    y_hover_label = f"{y_axis.title()}: " + "%{y:.2f}"
-    z_hover_label = f"{z_axis.title()}: " + "%{z:.2f}"
+    x_hover_label = f"{x_axis_title}: " + "%{x:.2f}"
+    y_hover_label = f"{y_axis_title}: " + "%{y:.2f}"
+    z_hover_label = f"{z_axis_title}: " + "%{z:.2f}"
     text_hover_label = "Contig: %{text}"
     hovertemplate = "<br>".join(
         [text_hover_label, z_hover_label, x_hover_label, y_hover_label]

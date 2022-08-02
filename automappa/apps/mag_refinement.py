@@ -5,8 +5,6 @@ import logging
 
 from pydantic import Json
 
-from automappa.utils.models import SampleTables
-
 numba_logger = logging.getLogger("numba")
 numba_logger.setLevel(logging.WARNING)
 h5py_logger = logging.getLogger("h5py")
@@ -19,18 +17,18 @@ import dash_daq as daq
 
 from dash import dcc, html
 from dash.dash_table import DataTable
-from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash_extensions import Download
-from dash_extensions.snippets import send_data_frame
+from dash_extensions.enrich import ServersideOutput,RedisStore,Input, Output, State
 from plotly import graph_objects as go
 
 import dash_bootstrap_components as dbc
 import plotly.io as pio
 
-from automappa.app import app
+from automappa.app import app,cache
+from automappa.utils.models import SampleTables
+from automappa import settings
 
-from automappa.utils.serializers import get_table, table_to_db
+from automappa.utils.serializers import table_to_db
 
 from automappa.utils.figures import (
     format_axis_title,
@@ -45,6 +43,7 @@ logging.basicConfig(
     level=logging.DEBUG,
 )
 logger = logging.getLogger(__name__)
+backend = RedisStore(settings.celery.backend_url)
 
 pio.templates.default = "plotly_white"
 
@@ -131,7 +130,7 @@ scatterplot_3d_zaxis_dropdown = [
             {"label": "GC%", "value": "gc_content"},
             {"label": "Length", "value": "length"},
         ],
-        value="coverage",
+        value="length",
         clearable=False,
     ),
 ]
@@ -160,7 +159,7 @@ binning_refinements_download_button = [
         n_clicks=0,
         color="primary",
     ),
-    Download(id="refinements-download"),
+    dcc.Download(id="refinements-download"),
 ]
 
 # Summarize Refinements Button
@@ -427,9 +426,11 @@ refinements_table = dcc.Loading(
 # 1. Only use Row and Col inside a Container.
 # 2. The immediate children of any Row component should always be Col components.
 # 3. Your content should go inside the Col components.
+binning_store = dcc.Loading(dcc.Store("binning-store"),  type='dot')
 
 layout = dbc.Container(
     children=[
+        binning_store,
         dbc.Row([dbc.Col(mag_refinement_buttons)]),
         dbc.Row(
             [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
@@ -452,6 +453,12 @@ layout = dbc.Container(
 ########################################################################
 # CALLBACKS
 # ######################################################################
+
+# @cache.memoize(timeout=3600)
+@app.callback(ServersideOutput("binning-store", "data", backend=backend), Input("selected-tables-store", "data"), memoize=True)
+def query_binning_in_db(selected_tables_data: SampleTables):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    return sample.binning.table.reset_index().to_json('records')
 
 
 @app.callback(
@@ -748,6 +755,7 @@ def taxonomy_distribution_figure_callback(
     Output("scatterplot-3d", "figure"),
     [
         Input("selected-tables-store", "data"),
+        Input("axes-2d", "value"),
         Input("scatterplot-3d-zaxis-dropdown", "value"),
         Input("scatterplot-3d-legend-toggle", "value"),
         Input("color-by-column", "value"),
@@ -756,6 +764,7 @@ def taxonomy_distribution_figure_callback(
 )
 def scatterplot_3d_figure_callback(
     selected_tables_data: SampleTables,
+    axes_columns: str,
     z_axis: str,
     show_legend: bool,
     color_by_col: str,
@@ -777,10 +786,11 @@ def scatterplot_3d_figure_callback(
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
 
+    x_axis, y_axis = axes_columns.split("|")
     fig = get_scatterplot_3d(
         df=df,
-        x_axis="x_1",
-        y_axis="x_2",
+        x_axis=x_axis,
+        y_axis=y_axis,
         z_axis=z_axis,
         color_by_col=color_by_col,
     )
@@ -884,7 +894,7 @@ def download_refinements(
     if not n_clicks:
         raise PreventUpdate
     sample = SampleTables.parse_raw(selected_tables_data)
-    return send_data_frame(
+    return dcc.send_data_frame(
         sample.refinements.table.to_csv, "refinements.csv", index=False
     )
 

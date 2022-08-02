@@ -9,7 +9,6 @@ dependencies:
   - dash
   - dash-bootstrap-components
   - dash-daq
-  - dash-extensions
   - flask
   - flower
   - msgpack-python
@@ -23,6 +22,7 @@ dependencies:
   - sqlalchemy
   - pip
   - pip:
+    - dash-extensions
     - celery[redis]
     - geom-median
     - dash-uploader

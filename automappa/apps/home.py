@@ -5,7 +5,7 @@ import logging
 from dash import html, dcc
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
+from dash_extensions.enrich import Input, Output, State
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.io as pio
@@ -14,6 +14,7 @@ import dash_uploader as du
 
 from automappa.app import app
 from automappa.tasks import (
+    # get_task,
     preprocess_clusters_geom_medians,
     preprocess_embeddings,
     preprocess_marker_symbols,
@@ -247,11 +248,6 @@ refine_mags_button = dbc.Button(
     children="Refine MAGs",
 )
 
-kmer_embed_tasks_button = dbc.Button(
-    id="kmer-embed-tasks-button",
-    children="Submit k-mer embedding tasks",
-)
-
 tasks_table = html.Div(id="embedding-tasks")
 
 layout = dbc.Container(
@@ -267,7 +263,6 @@ layout = dbc.Container(
         html.Br(),
         dbc.Row(selected_tables_datatable),
         html.Br(),
-        kmer_embed_tasks_button,
         dbc.Row(tasks_table),
     ],
     fluid=True,
@@ -575,8 +570,10 @@ def on_refine_mags_button_click(
         )
     if sample.metagenome:
         embedding_tasks = []
-        kmer_sizes = set([kmer_table.size for kmer_table in sample.kmers])
-        norm_methods = set([kmer_table.norm_method for kmer_table in sample.kmers])
+        # kmer_sizes = set([kmer_table.size for kmer_table in sample.kmers])
+        kmer_sizes = set([5])
+        # norm_methods = set([kmer_table.norm_method for kmer_table in sample.kmers])
+        norm_methods = set(["am_clr"])
         embed_methods = set([kmer_table.embed_method for kmer_table in sample.kmers])
         embed_methods = ["umap", "densmap", "bhsne"]
         for kmer_size, norm_method in itertools.product(kmer_sizes, norm_methods):
@@ -591,6 +588,9 @@ def on_refine_mags_button_click(
         clusters_geom_medians_task = preprocess_clusters_geom_medians.delay(
             sample.binning.id, "cluster"
         )
+    # df = pd.DataFrame([get_task(t.id) for t in [marker_symbols_task, clusters_geom_medians_task, *embedding_tasks]])
+    # TODO: Monitor tasks progress with dcc.Interval in another callback...
+    # logger.debug(df)
     return sample.json()
 
 
@@ -637,59 +637,4 @@ def selected_tables_datatable_children(
             {"id": "filetype", "name": "filetype", "editable": False},
             {"id": "table_id", "name": "table_id", "editable": False},
         ],
-    )
-
-
-@app.callback(
-    Output("kmer-embed-tasks-button", "disabled"),
-    Input("metagenome-select", "value"),
-)
-def refine_mags_button_active_callback(metagenome_value):
-    if metagenome_value is None:
-        return True
-    else:
-        return False
-
-
-# TODO: Store final embeddings-table and retrieve for 2d scatterplot axes dropdowns/views
-# from automappa.utils.serializers import get_table
-# embed_df = get_table(embed_table_name, index_col='contig')
-
-
-@app.callback(
-    Output("embedding-tasks", "children"),
-    Input("kmer-embed-tasks-button", "n_clicks"),
-    Input("metagenome-select", "value"),
-)
-def on_compute_metagenome_kmer_embedding(btn_clicks: int, metagenome_select_value: str):
-    if btn_clicks is None or metagenome_select_value is None:
-        raise PreventUpdate
-    embed_methods = ["densmap", "umap", "bhsne"]
-    norm_method = "am_clr"
-    task = preprocess_embeddings(
-        metagenome_table=metagenome_select_value,
-        norm_method=norm_method,
-        embed_methods=embed_methods,
-    )
-    embed_table_name = metagenome_select_value.replace("-metagenome", "-embeddings")
-    # TODO: Should create a polling or dcc.Interval(...) to construct this table for monitoring tasks status
-    df = pd.DataFrame(
-        [
-            {
-                "task_name": task.name,
-                # "started": task.track_started,
-                "state": task.state,
-                "task_id": task.id,
-                "norm_method": norm_method,
-                "embed_methods": ",".join(embed_methods),
-                "embed-table-name": embed_table_name,
-            }
-        ]
-    )
-    # logger.debug(df)
-    return DataTable(
-        data=df.to_dict("records"),
-        columns=[{"id": col, "name": col, "editable": False} for col in df.columns],
-        persistence=True,
-        persistence_type="session",
     )

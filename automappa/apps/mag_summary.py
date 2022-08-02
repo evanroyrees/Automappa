@@ -4,7 +4,7 @@ from dash.exceptions import PreventUpdate
 
 from dash import dcc, html
 from dash.dash_table import DataTable
-from dash.dependencies import Input, Output
+from dash_extensions.enrich import Input, Output
 import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 import plotly.io as pio
@@ -303,6 +303,8 @@ def mag_summary_cluster_col_dropdown_options_callback(
 def mag_summary_stats_datatable_callback(
     selected_tables_data: SampleTables, cluster_col: str
 ) -> DataTable:
+    if cluster_col is None:
+        raise PreventUpdate
     sample = SampleTables.parse_raw(selected_tables_data)
     stats_df = get_metabin_stats_summary(
         binning_table=sample.binning.id,

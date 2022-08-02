@@ -4,7 +4,7 @@
 import argparse
 import logging
 
-from dash.dependencies import Input, Output
+from dash_extensions.enrich import Input, Output
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 

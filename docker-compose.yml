@@ -23,6 +23,8 @@ services:
       - 15672:15672
     env_file:
       - .env
+    volumes:
+      - ./automappa/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
     
   celery:
     build:

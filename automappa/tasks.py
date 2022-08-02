@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import random
+# import random
 import tempfile
 
 # import time
@@ -14,7 +14,7 @@ from geom_median.numpy import compute_geometric_median
 from celery import Celery, group
 from celery.utils.log import get_task_logger
 from celery.result import AsyncResult
-from dash.long_callback import CeleryLongCallbackManager
+# from dash.long_callback import CeleryLongCallbackManager
 
 from Bio import SeqIO
 
@@ -35,8 +35,9 @@ from automappa.utils.serializers import (
 queue = Celery(
     __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
 )
+
 queue.config_from_object("automappa.conf.celeryconfig")
-long_callback_manager = CeleryLongCallbackManager(queue)
+# long_callback_manager = CeleryLongCallbackManager(queue)
 logger = get_task_logger(__name__)
 
 if settings.server.debug:
@@ -51,6 +52,21 @@ def get_job(job_id):
     The job ID is passed and the celery job is returned.
     """
     return AsyncResult(job_id, app=queue)
+
+def get_task(job_id) -> dict[str,str]:
+    """
+    To be called from automappa web app.
+    The job ID is passed and the celery job is returned.
+    """
+    task = AsyncResult(job_id, app=queue)
+    task_attrs = {
+        "task_name": task.name,
+        "state": task.state,
+        "task_id": task.id,
+    }
+    if hasattr(task, "track_started"):
+        task_attrs.update({"started": task.track_started})
+    return task_attrs
 
 
 @queue.task(bind=True)
@@ -79,7 +95,7 @@ def count_kmer(self, metagenome_table: str, size: int = 5, cpus: int = None) -> 
     records = get_metagenome_seqrecords(metagenome_table)
     # Uncomment next line to speed-up debugging...
     # FIXME: Comment out below:
-    records = random.sample(records, k=1_000)
+    # records = random.sample(records, k=1_000)
     with tempfile.NamedTemporaryFile(mode="w") as tmp:
         SeqIO.write(records, tmp.name, "fasta")
         tmp.seek(0)
@@ -127,9 +143,8 @@ def embed_kmer(
         norm_df,
         method=embed_method,
         embed_dimensions=embed_dims,
-        # FIXME: add in below lines when autometa 2.1 available...
-        # n_jobs=n_jobs,
-        # **method_kwargs,
+        n_jobs=n_jobs,
+        **method_kwargs,
     ).rename(
         columns={
             "x_1": f"{prev_kmer_params}-{embed_method}_x_1",
@@ -176,7 +191,7 @@ def preprocess_embeddings(
     #     time.sleep(1)
     # with open('graph.dot', 'w') as fh:
     #     result.parent.parent.parent.graph.to_dot(fh)
-    logger.debug(result)
+    logger.debug(f"k-mer pipeline result: {result}")
     return result
 
 
