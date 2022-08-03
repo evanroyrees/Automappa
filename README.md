@@ -25,7 +25,7 @@
 ### clone the Automappa Repository
 
 ```bash
-git clone -b home-tab https://github.com/WiscEvan/Automappa
+git clone -b develop https://github.com/WiscEvan/Automappa
 ```
 
 ### build images for automappa services
