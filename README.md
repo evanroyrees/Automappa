@@ -16,6 +16,14 @@
 
 ***Follow this link to get started using the fully-featured Automappa application:*** https://github.com/WiscEvan/Automappa/tree/develop#getting-started
 
+## Test Data
+
+Test data to try out Automappa may be downloaded from here: https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing
+
+This data is not yet binned, so you can easily try out different settings and perform your own refinements on some example data.
+
+Happy binning!
+
 -----
 
 ## Automappa-lite :seedling:
