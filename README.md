@@ -12,7 +12,16 @@
 
 ![automappa_demo_920](https://user-images.githubusercontent.com/25933122/158899748-bf21c1fc-6f67-4fd8-af89-4e732fa2edcd.gif)
 
-## Getting Started
+## Automappa :deciduous_tree:
+
+***Follow this link to get started using the fully-featured Automappa application:*** https://github.com/WiscEvan/Automappa/tree/develop#getting-started
+
+-----
+
+## Automappa-lite :seedling:
+
+> NOTE: The following section is a lightweight version of Automappa that may be slow and is not constructed for larger datasets.
+> If you would like to use all of Automappa's features see the [Automappa section](#automappa) above or navigate to the [getting started page](https://github.com/WiscEvan/Automappa/tree/develop#getting-started) for the full-featured app.
 
 - [Install with conda](#install-with-conda)
 - [Run `automappa` using docker](#quickstart-using-docker-no-installation-required)
@@ -22,7 +31,7 @@
   - [Using a remote Automappa server](#using-a-remote-automappa-server)
   - [Using a remote docker container Automappa server](#using-a-remote-docker-container-automappa-server)
 
-## Install with conda
+## Install Automappa-lite with conda
 
 If you are using `conda` (or `mamba`) as a package manager, you can simply install `automappa` using one of the following one-liners.
 
@@ -50,7 +59,7 @@ not sure where to start, I would recommend checking out [Autometa's documentatio
 automappa --binning-main </path/to/bacteria.binning.main.tsv> --markers </path/to/bacteria.markers.tsv>
 ```
 
-## Quickstart using Docker (No installation required)
+## Automappa-lite Quickstart using Docker (No installation required)
 
  To quickly start exploring your data, run the app using a wrapper script that will run the docker image, `evanrees/automappa:latest`, ([available from Dockerhub](https://cloud.docker.com/repository/docker/evanrees/automappa/tags "Automappa Dockerhub Tags")). Now you can skip installation and start binning, examining and describing! Let the microbial exegesis begin!
 
@@ -78,7 +87,7 @@ Now run automappa on autometa binning results using the downloaded script: `run_
 
 ----------------------------------------------------------------------------------------------------
 
-## Install from source
+## Install Automappa-lite from source
 
 ### Installation from source (using `make`)
 
@@ -110,7 +119,7 @@ source activate automappa
 make install
 ```
 
-Now that all of the dependencies are installed, you may run the app on your local machine or on a server.
+Now that all of the dependencies are installed, you may run the Automappa-lite app on your local machine or on a server.
 
 
 ### Listing available `make` commands
