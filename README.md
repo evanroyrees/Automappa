@@ -12,24 +12,13 @@
 
 ![automappa_demo_920](https://user-images.githubusercontent.com/25933122/158899748-bf21c1fc-6f67-4fd8-af89-4e732fa2edcd.gif)
 
-## Automappa :deciduous_tree:
-
-## Test Data
-
-Test data to try out Automappa may be downloaded from here: https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing
-
-This data is not yet binned, so you can easily try out different settings and perform your own refinements on some example data.
-
-Happy binning!
-
+## :deciduous_tree: Automappa testing setup/run commands
 
 - [Clone the Automappa Repo](#clone-the-repository)
 - [Run `make build` using Makefile](#build-images-for-automappa-services)
 - [Run `make up` using Makefile](#build-and-run-automappa-services)
 - [Open the Automappa url](#navigate-to-automappa-page)
-## Clone the repository
-
-## Automappa testing setup/run commands
+- [Download test data](#download-test-data)
 
 ### clone the Automappa Repository
 
@@ -57,6 +46,8 @@ some applications so docker may construct all of the necessary Automappa service
 ### Navigate to Automappa page
 
 Once you see `automappa_web_1` running from the terminal logs, you should be able to navigate to <localhost:8050> 🥳
+
+### Download Test Data
 
 Test data to try out Automappa may be downloaded from here: <https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing>
 
