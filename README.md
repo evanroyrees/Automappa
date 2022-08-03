@@ -12,7 +12,24 @@
 
 ![automappa_demo_920](https://user-images.githubusercontent.com/25933122/158899748-bf21c1fc-6f67-4fd8-af89-4e732fa2edcd.gif)
 
-## Getting Started
+## Automappa :deciduous_tree:
+
+***Follow this link to get started using the fully-featured Automappa application:*** https://github.com/WiscEvan/Automappa/tree/develop#getting-started
+
+## Test Data
+
+Test data to try out Automappa may be downloaded from here: https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing
+
+This data is not yet binned, so you can easily try out different settings and perform your own refinements on some example data.
+
+Happy binning!
+
+-----
+
+## Automappa-lite :seedling:
+
+> NOTE: The following section is a lightweight version of Automappa that may be slow and is not constructed for larger datasets.
+> If you would like to use all of Automappa's features see the [Automappa section](#automappa) above or navigate to the [getting started page](https://github.com/WiscEvan/Automappa/tree/develop#getting-started) for the full-featured app.
 
 - [Clone the Automappa Repo](#clone-the-repository)
 - [Run `make build` using Makefile](#build-images-for-automappa-services)
