@@ -1,18 +1,28 @@
 name: automappa
 channels:
-  - plotly
   - conda-forge
   - bioconda
+  - plotly
   - defaults
 dependencies:
   - autometa
-  - flask
-  - celery[redis]
   - dash
   - dash-bootstrap-components
   - dash-daq
-  - dash-extensions
+  - flask
+  - flower
   - msgpack-python
   - numpy
   - pandas
   - plotly
+  - psycopg2
+  - python-dotenv
+  - pydantic
+  - scipy==1.8.*
+  - sqlalchemy
+  - pip
+  - pip:
+    - dash-extensions
+    - celery[redis]
+    - geom-median
+    - dash-uploader

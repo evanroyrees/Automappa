@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import itertools
+import logging
+
+from pydantic import Json
+
+numba_logger = logging.getLogger("numba")
+numba_logger.setLevel(logging.WARNING)
+h5py_logger = logging.getLogger("h5py")
+h5py_logger.setLevel(logging.WARNING)
+
 from typing import Dict, List
 
 import pandas as pd
@@ -7,23 +17,33 @@ import dash_daq as daq
 
 from dash import dcc, html
 from dash.dash_table import DataTable
-from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash_extensions import Download
-from dash_extensions.snippets import send_data_frame
+from dash_extensions.enrich import ServersideOutput,RedisStore,Input, Output, State
 from plotly import graph_objects as go
 
 import dash_bootstrap_components as dbc
 import plotly.io as pio
 
-from automappa.app import app
+from automappa.app import app,cache
+from automappa.utils.models import SampleTables
+from automappa import settings
+
+from automappa.utils.serializers import table_to_db
 
 from automappa.utils.figures import (
+    format_axis_title,
     get_scatterplot_2d,
     taxonomy_sankey,
     get_scatterplot_3d,
     metric_boxplot,
 )
+
+logging.basicConfig(
+    format="[%(levelname)s] %(name)s: %(message)s",
+    level=logging.DEBUG,
+)
+logger = logging.getLogger(__name__)
+backend = RedisStore(settings.celery.backend_url)
 
 pio.templates.default = "plotly_white"
 
@@ -43,35 +63,63 @@ color_by_col_dropdown = [
     ),
 ]
 
-scatterplot_2d_xaxis_dropdown = [
-    html.Label("X-axis:"),
+# Scatterplot 2D Legend Toggle
+scatterplot_2d_legend_toggle = daq.ToggleSwitch(
+    id="scatterplot-2d-legend-toggle",
+    size=40,
+    color="#c5040d",
+    label="Legend",
+    labelPosition="top",
+    vertical=False,
+    value=True,
+)
+
+# TODO: Link x-axis-2d w/ y-axis-2d
+# Combinations of kmer embeddings
+# kmer-size [dropdown]
+# kmer-norm-method [dropdown]
+# kmer-embed-method [dropdown]
+# All are filters to main dropdown combinations of kmer axes
+
+kmer_size_dropdown = [
+    html.Label("K-mer size:"),
     dcc.Dropdown(
-        id="x-axis-2d",
-        options=[
-            {"label": "X_1", "value": "x_1"},
-            {"label": "Coverage", "value": "coverage"},
-            {"label": "GC%", "value": "gc_content"},
-            {"label": "Length", "value": "length"},
-        ],
-        value="x_1",
+        id="kmer-size-dropdown",
+        options=[3, 4, 5],
+        value=5,
         clearable=False,
     ),
 ]
 
-scatterplot_2d_yaxis_dropdown = [
-    html.Label("Y-axis:"),
+norm_method_dropdown = [
+    html.Label("K-mer norm. method:"),
     dcc.Dropdown(
-        id="y-axis-2d",
-        options=[
-            {"label": "X_2", "value": "x_2"},
-            {"label": "Coverage", "value": "coverage"},
-            {"label": "GC%", "value": "gc_content"},
-            {"label": "Length", "value": "length"},
-        ],
-        value="x_2",
+        id="norm-method-dropdown",
+        options=["am_clr", "ilr"],
+        value="am_clr",
         clearable=False,
     ),
 ]
+
+scatterplot_2d_axes_dropdown = [
+    html.Label("Axes:"),
+    dcc.Dropdown(
+        id="axes-2d",
+        value="coverage|gc_content",
+        clearable=False,
+    ),
+]
+
+# Scatterplot 3D Legend Toggle
+scatterplot_3d_legend_toggle = daq.ToggleSwitch(
+    id="scatterplot-3d-legend-toggle",
+    size=40,
+    color="#c5040d",
+    label="Legend",
+    labelPosition="top",
+    vertical=False,
+    value=True,
+)
 
 scatterplot_3d_zaxis_dropdown = [
     html.Label("Z-axis:"),
@@ -82,7 +130,7 @@ scatterplot_3d_zaxis_dropdown = [
             {"label": "GC%", "value": "gc_content"},
             {"label": "Length", "value": "length"},
         ],
-        value="coverage",
+        value="length",
         clearable=False,
     ),
 ]
@@ -103,28 +151,6 @@ taxa_rank_dropdown = [
     ),
 ]
 
-# Scatterplot 2D Legend Toggle
-scatterplot_2d_legend_toggle = daq.ToggleSwitch(
-    id="show-legend-toggle",
-    size=40,
-    color="#c5040d",
-    label="Legend",
-    labelPosition="top",
-    vertical=False,
-    value=True,
-)
-
-# Scatterplot 3D Legend Toggle
-scatterplot_3d_legend_toggle = daq.ToggleSwitch(
-    id="scatterplot-3d-legend-toggle",
-    size=40,
-    color="#c5040d",
-    label="Legend",
-    labelPosition="top",
-    vertical=False,
-    value=True,
-)
-
 # Download Refinements Button
 binning_refinements_download_button = [
     dbc.Button(
@@ -133,7 +159,7 @@ binning_refinements_download_button = [
         n_clicks=0,
         color="primary",
     ),
-    Download(id="refinements-download"),
+    dcc.Download(id="refinements-download"),
 ]
 
 # Summarize Refinements Button
@@ -159,12 +185,9 @@ refinement_settings_offcanvas = dbc.Offcanvas(
                                 dbc.Col(scatterplot_2d_legend_toggle),
                             ]
                         ),
-                        dbc.Row(
-                            [
-                                dbc.Col(scatterplot_2d_xaxis_dropdown),
-                                dbc.Col(scatterplot_2d_yaxis_dropdown),
-                            ]
-                        ),
+                        dbc.Row(dbc.Col(kmer_size_dropdown)),
+                        dbc.Row(dbc.Col(norm_method_dropdown)),
+                        dbc.Row(dbc.Col(scatterplot_2d_axes_dropdown)),
                     ],
                     title="Figure 1: 2D Metagenome Overview",
                 ),
@@ -403,9 +426,11 @@ refinements_table = dcc.Loading(
 # 1. Only use Row and Col inside a Container.
 # 2. The immediate children of any Row component should always be Col components.
 # 3. Your content should go inside the Col components.
+binning_store = dcc.Loading(dcc.Store("binning-store"),  type='dot')
 
 layout = dbc.Container(
     children=[
+        binning_store,
         dbc.Row([dbc.Col(mag_refinement_buttons)]),
         dbc.Row(
             [dbc.Col(scatterplot_2d, width=9), dbc.Col(mag_metrics_table, width=3)]
@@ -429,6 +454,12 @@ layout = dbc.Container(
 # CALLBACKS
 # ######################################################################
 
+# @cache.memoize(timeout=3600)
+@app.callback(ServersideOutput("binning-store", "data", backend=backend), Input("selected-tables-store", "data"), memoize=True)
+def query_binning_in_db(selected_tables_data: SampleTables):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    return sample.binning.table.reset_index().to_json('records')
+
 
 @app.callback(
     Output("settings-offcanvas", "is_open"),
@@ -442,28 +473,70 @@ def toggle_offcanvas(n1: int, is_open: bool) -> bool:
 
 
 @app.callback(
-    Output("color-by-column", "options"), [Input("metagenome-annotations", "data")]
+    Output("color-by-column", "options"), Input("selected-tables-store", "data")
 )
-def color_by_column_options_callback(annotations_json: "str | None"):
-    df = pd.read_json(annotations_json, orient="split")
+def color_by_column_options_callback(selected_tables_data: SampleTables):
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     return [
         {"label": col.title().replace("_", " "), "value": col}
-        for col in df.columns
-        if df[col].dtype.name not in {"float64", "int64"} and col != "contig"
+        for col in df.select_dtypes("object").columns
     ]
+
+
+@app.callback(
+    Output("axes-2d", "options"),
+    Input("selected-tables-store", "data"),
+    Input("kmer-size-dropdown", "value"),
+    Input("norm-method-dropdown", "value"),
+)
+def axes_2d_options_callback(
+    selected_tables_data: Json[SampleTables],
+    kmer_size_dropdown_value: int,
+    norm_method_dropdown_value: str,
+) -> List[Dict[str, str]]:
+    sample = SampleTables.parse_raw(selected_tables_data)
+    binning_df = sample.binning.table
+    binning_combinations = [
+        {
+            "label": " vs. ".join(
+                [x_axis.title().replace("_", " "), y_axis.title().replace("_", " ")]
+            ),
+            "value": "|".join([x_axis, y_axis]),
+            "disabled": False,
+        }
+        for x_axis, y_axis in itertools.combinations(
+            binning_df.select_dtypes({"float64", "int64"}).columns, 2
+        )
+        if x_axis not in {"completeness", "purity", "taxid"}
+        and y_axis not in {"completeness", "purity", "taxid"}
+    ]
+    embeddings = [
+        {
+            "label": kmer.embedding.name,
+            "value": f"{kmer.embedding.name}_x_1|{kmer.embedding.name}_x_2",
+            "disabled": not kmer.embedding.exists,
+        }
+        for kmer in sample.kmers
+        if kmer.size == kmer_size_dropdown_value
+        and kmer.norm_method == norm_method_dropdown_value
+    ]
+    return binning_combinations + embeddings
 
 
 @app.callback(
     Output("mag-metrics-datatable", "children"),
     [
-        Input("markers-store", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def update_mag_metrics_datatable_callback(
-    markers_json: "str | None", selected_contigs: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: Json[SampleTables],
+    selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> DataTable:
-    markers_df = pd.read_json(markers_json, orient="split").set_index("contig")
+    sample = SampleTables.parse_raw(selected_tables_data)
+    markers_df = sample.markers.table
     if selected_contigs:
         contigs = {point["text"] for point in selected_contigs["points"]}
         selected_contigs_count = len(contigs)
@@ -536,36 +609,49 @@ def update_mag_metrics_datatable_callback(
 @app.callback(
     Output("scatterplot-2d", "figure"),
     [
-        Input("metagenome-annotations", "data"),
-        Input("refinement-data", "data"),
-        Input("contig-marker-symbols-store", "data"),
-        Input("x-axis-2d", "value"),
-        Input("y-axis-2d", "value"),
-        Input("show-legend-toggle", "value"),
+        Input("selected-tables-store", "data"),
+        Input("kmer-size-dropdown", "value"),
+        Input("norm-method-dropdown", "value"),
+        Input("axes-2d", "value"),
+        Input("scatterplot-2d-legend-toggle", "value"),
         Input("color-by-column", "value"),
         Input("hide-selections-toggle", "value"),
+        Input("mag-refinement-save-button", "n_clicks"),
     ],
 )
 def scatterplot_2d_figure_callback(
-    annotations: "str | None",
-    refinement: "str | None",
-    contig_marker_symbols_json: "str | None",
-    xaxis_column: str,
-    yaxis_column: str,
+    # selected_tables_data: MetagenomeAnnotationsTables,
+    selected_tables_data: Json[SampleTables],
+    kmer_size_dropdown_value: int,
+    norm_method_dropdown_value: str,
+    axes_columns: str,
     show_legend: bool,
     color_by_col: str,
     hide_selection_toggle: bool,
+    btn_clicks: int,
 ) -> go.Figure:
+    # NOTE: btn_clicks is an input so this figure is updated when new refinements are saved
     # TODO: #23 refactor scatterplot callbacks
-    bin_df = pd.read_json(annotations, orient="split").set_index("contig")
-    markers = pd.read_json(contig_marker_symbols_json, orient="split").set_index(
-        "contig"
-    )
-    color_by_col = "phylum" if color_by_col not in bin_df.columns else color_by_col
+    # - Add Input("scatterplot-2d", "layout") ?
+    # TODO: Refactor data retrieval/validation
+    sample = SampleTables.parse_raw(selected_tables_data)
+    bin_df = sample.binning.table
+    # TODO: Replace binning table w/coords-data
+    # Replace binning table w/metagenome-annotations-data[TODO]
+    # mag_cols=["length", "gc_content", "coverage"]
+    markers = sample.marker_symbols.table
+    if color_by_col not in bin_df.columns:
+        for col in ["phylum", "class", "order", "family"]:
+            if col in bin_df.columns:
+                color_by_col = col
+                break
+    if color_by_col not in bin_df.columns:
+        raise ValueError(
+            f"No columns were found in binning-main that could be used to group traces. {color_by_col} not found in table..."
+        )
     # Subset metagenome-annotations by selections iff selections have been made
-    bin_df[color_by_col] = bin_df[color_by_col].fillna("unclustered")
     if hide_selection_toggle:
-        refine_df = pd.read_json(refinement, orient="split").set_index("contig")
+        refine_df = sample.refinements.table
         refine_cols = [col for col in refine_df.columns if "refinement" in col]
         if refine_cols:
             latest_refine_col = refine_cols.pop()
@@ -576,42 +662,91 @@ def scatterplot_2d_figure_callback(
             bin_df.drop(
                 refined_contigs_index, axis="index", inplace=True, errors="ignore"
             )
+    # TODO: Refactor figure s.t. updates are applied in
+    # batches for respective styling,layout,traces, etc.
+    # TODO: Put figure or traces in store, get/update/select
+    # based on current contig selections
+    # TODO: Should check norm_method, kmer_size prior to retrieving embeddings table...
+    # Add norm method and kmer_size dropdowns...
+    xaxis_column, yaxis_column = axes_columns.split("|")
+    if "_x_1" in xaxis_column or "_x_2" in yaxis_column:
+        # TODO: Fix retrieval of axes with embeddings...
+        for embeddings in sample.embeddings:
+            sizemers, norm_method, __ = embeddings.name.split("-")
+            kmer_size = int(sizemers.replace("mers", ""))
+            if (
+                norm_method == norm_method_dropdown_value
+                and kmer_size == kmer_size_dropdown_value
+                and embeddings.exists
+            ):
+                embedding_df = embeddings.table
+                bin_df = bin_df.join(embedding_df, how="left")
+    else:
+        for kmer in sample.kmers:
+            if (
+                f"{kmer.embedding.name}_x_1" == xaxis_column
+                and f"{kmer.embedding.name}_x_2" == yaxis_column
+                and kmer.size == kmer_size_dropdown_value
+                and kmer.norm_method == norm_method_dropdown_value
+            ):
+                bin_df = bin_df.join(kmer.embedding.table, how="left")
+                break
 
+    fillnas = {
+        "cluster": "unclustered",
+        "superkingdom": "unclassified",
+        "phylum": "unclassified",
+        "class": "unclassified",
+        "order": "unclassified",
+        "family": "unclassified",
+        "genus": "unclassified",
+        "species": "unclassified",
+    }
+    fillna = fillnas.get(color_by_col, "unclustered")
     fig = get_scatterplot_2d(
         bin_df,
         x_axis=xaxis_column,
         y_axis=yaxis_column,
         color_by_col=color_by_col,
+        fillna=fillna,
     )
 
+    # TODO: If possible, as a separate callback do Output("scatterplot-2d", "layout")
+    with fig.batch_update():
+        fig.layout.xaxis.title = format_axis_title(xaxis_column)
+        fig.layout.yaxis.title = format_axis_title(yaxis_column)
+        fig.layout.legend.title = color_by_col.title()
+        fig.layout.showlegend = show_legend
+
     # Update markers with symbol and size corresponding to marker count
+    # TODO: If possible, as a separate callback do Output("scatterplot-2d", "traces")
     fig.for_each_trace(
         lambda trace: trace.update(
             marker_symbol=markers.symbol.loc[trace.text],
             marker_size=markers.marker_size.loc[trace.text],
         )
     )
-    fig.update_layout(showlegend=show_legend)
     return fig
 
 
 @app.callback(
     Output("taxonomy-distribution", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
         Input("taxonomy-distribution-dropdown", "value"),
     ],
 )
 def taxonomy_distribution_figure_callback(
-    annotations: "str | None",
+    selected_tables_data: SampleTables,
     selected_contigs: Dict[str, List[Dict[str, str]]],
     selected_rank: str,
 ) -> go.Figure:
-    df = pd.read_json(annotations, orient="split")
-    if selected_contigs:
-        ctg_list = {point["text"] for point in selected_contigs["points"]}
-        df = df[df.contig.isin(ctg_list)]
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
+    if selected_contigs and selected_contigs["points"]:
+        contigs = {point["text"] for point in selected_contigs["points"]}
+        df = df.loc[df.index.isin(contigs)]
     fig = taxonomy_sankey(df, selected_rank=selected_rank)
     return fig
 
@@ -619,7 +754,8 @@ def taxonomy_distribution_figure_callback(
 @app.callback(
     Output("scatterplot-3d", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
+        Input("axes-2d", "value"),
         Input("scatterplot-3d-zaxis-dropdown", "value"),
         Input("scatterplot-3d-legend-toggle", "value"),
         Input("color-by-column", "value"),
@@ -627,30 +763,34 @@ def taxonomy_distribution_figure_callback(
     ],
 )
 def scatterplot_3d_figure_callback(
-    annotations: "str | None",
+    selected_tables_data: SampleTables,
+    axes_columns: str,
     z_axis: str,
     show_legend: bool,
     color_by_col: str,
     selected_contigs: Dict[str, List[Dict[str, str]]],
 ) -> go.Figure:
-    df = pd.read_json(annotations, orient="split")
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     color_by_col = "phylum" if color_by_col not in df.columns else color_by_col
     if not selected_contigs:
-        contigs = df.contig.tolist()
+        contigs = set(df.index.tolist())
     else:
         contigs = {point["text"] for point in selected_contigs["points"]}
     # Subset DataFrame by selected contigs
-    df = df[df.contig.isin(contigs)]
+    df = df[df.index.isin(contigs)]
     if color_by_col == "cluster":
         # Categoricals for binning
         df[color_by_col] = df[color_by_col].fillna("unclustered")
     else:
         # Other possible categorical columns all relate to taxonomy
         df[color_by_col] = df[color_by_col].fillna("unclassified")
+
+    x_axis, y_axis = axes_columns.split("|")
     fig = get_scatterplot_3d(
         df=df,
-        x_axis="x_1",
-        y_axis="x_2",
+        x_axis=x_axis,
+        y_axis=y_axis,
         z_axis=z_axis,
         color_by_col=color_by_col,
     )
@@ -661,18 +801,19 @@ def scatterplot_3d_figure_callback(
 @app.callback(
     Output("mag-refinement-coverage-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_coverage_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["coverage"], boxmean="sd")
     return fig
 
@@ -680,18 +821,19 @@ def mag_summary_coverage_boxplot_callback(
 @app.callback(
     Output("mag-refinement-gc-content-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_gc_content_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["gc_content"], boxmean="sd")
     fig.update_traces(name="GC Content")
     return fig
@@ -700,31 +842,38 @@ def mag_summary_gc_content_boxplot_callback(
 @app.callback(
     Output("mag-refinement-length-boxplot", "figure"),
     [
-        Input("metagenome-annotations", "data"),
+        Input("selected-tables-store", "data"),
         Input("scatterplot-2d", "selectedData"),
     ],
 )
 def mag_summary_length_boxplot_callback(
-    df_json: "str | None", selected_data: Dict[str, List[Dict[str, str]]]
+    selected_tables_data: SampleTables, selected_data: Dict[str, List[Dict[str, str]]]
 ) -> go.Figure:
-    df = pd.read_json(df_json, orient="split")
     if not selected_data:
         raise PreventUpdate
+    sample = SampleTables.parse_raw(selected_tables_data)
+    df = sample.binning.table
     contigs = {point["text"] for point in selected_data["points"]}
-    df = df.loc[df.contig.isin(contigs)]
+    df = df.loc[df.index.isin(contigs)]
     fig = metric_boxplot(df, metrics=["length"])
     return fig
 
 
 @app.callback(
     Output("refinements-table", "children"),
-    [Input("refinement-data", "data")],
+    [
+        Input("selected-tables-store", "data"),
+        Input("mag-refinement-save-button", "n_clicks"),
+    ],
 )
-def refinements_table_callback(df: "str | None") -> DataTable:
-    df = pd.read_json(df, orient="split")
+def refinements_table_callback(
+    selected_tables_data: SampleTables,
+    btn_clicks: int,
+) -> DataTable:
+    sample = SampleTables.parse_raw(selected_tables_data)
     return DataTable(
-        data=df.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in df.columns],
+        data=sample.refinements.table.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in sample.refinements.table.columns],
         style_cell={"textAlign": "center"},
         style_cell_conditional=[{"if": {"column_id": "contig"}, "textAlign": "right"}],
         virtualization=True,
@@ -735,16 +884,19 @@ def refinements_table_callback(df: "str | None") -> DataTable:
     Output("refinements-download", "data"),
     [
         Input("refinements-download-button", "n_clicks"),
-        Input("refinement-data", "data"),
+        Input("selected-tables-store", "data"),
     ],
 )
 def download_refinements(
-    n_clicks: int, curated_mags: "str | None"
+    n_clicks: int,
+    selected_tables_data: SampleTables,
 ) -> Dict[str, "str | bool"]:
     if not n_clicks:
         raise PreventUpdate
-    df = pd.read_json(curated_mags, orient="split")
-    return send_data_frame(df.to_csv, "refinements.csv", index=False)
+    sample = SampleTables.parse_raw(selected_tables_data)
+    return dcc.send_data_frame(
+        sample.refinements.table.to_csv, "refinements.csv", index=False
+    )
 
 
 @app.callback(
@@ -758,37 +910,29 @@ def mag_refinement_save_button_disabled_callback(
 
 
 @app.callback(
-    [
-        Output("refinement-data", "data"),
-        Output("mag-refinement-save-button", "n_clicks"),
-    ],
+    Output("mag-refinement-save-button", "n_clicks"),
     [
         Input("scatterplot-2d", "selectedData"),
-        Input("refinement-data", "data"),
+        Input("selected-tables-store", "data"),
         Input("mag-refinement-save-button", "n_clicks"),
-    ],
-    [
-        State("refinement-data", "data"),
     ],
 )
 def store_binning_refinement_selections(
     selected_data: Dict[str, List[Dict[str, str]]],
-    refinement_data: "str | None",
+    selected_tables_data: SampleTables,
     n_clicks: int,
-    intermediate_selections: "str | None",
-) -> "str | None":
+) -> int:
     # Initial load...
-    if not selected_data:
-        bin_df = pd.read_json(refinement_data, orient="split")
-        return bin_df.to_json(orient="split"), 0
-    if not n_clicks or (n_clicks and not selected_data):
+    if not n_clicks or (n_clicks and not selected_data) or not selected_data:
         raise PreventUpdate
-    pdf = pd.read_json(intermediate_selections, orient="split").set_index("contig")
-    refinement_cols = [col for col in pdf.columns if "refinement" in col]
+    sample = SampleTables.parse_raw(selected_tables_data)
+    bin_df = sample.refinements.table
+    refinement_cols = [col for col in bin_df.columns if "refinement" in col]
     refinement_num = len(refinement_cols) + 1
-    group_name = f"refinement_{refinement_num}"
+    refinement_name = f"refinement_{refinement_num}"
     contigs = list({point["text"] for point in selected_data["points"]})
-    pdf.loc[contigs, group_name] = group_name
-    pdf = pdf.fillna(axis="columns", method="ffill")
-    pdf.reset_index(inplace=True)
-    return pdf.to_json(orient="split"), 0
+    bin_df.loc[contigs, refinement_name] = refinement_name
+    bin_df = bin_df.fillna(axis="columns", method="ffill")
+    bin_df.reset_index(inplace=True)
+    table_to_db(df=bin_df, name=sample.refinements.id)
+    return 0

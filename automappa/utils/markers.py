@@ -12,17 +12,33 @@ def get_cluster_marker_counts(
 
 
 def get_contig_marker_counts(
-    bin_df: pd.DataFrame, markers_df: pd.DataFrame, marker_count_range_end: int = 7
+    df: pd.DataFrame, marker_count_range_end: int = 7
 ) -> pd.DataFrame:
-    df = bin_df.join(markers_df).fillna(0).copy()
-    df = df[markers_df.columns.tolist()]
+    """Retrieves marker counts pd.DataFrame
+
+    Parameters
+    ----------
+    bin_df : pd.DataFrame
+        _description_
+    markers_df : pd.DataFrame
+        _description_
+    marker_count_range_end : int, optional
+        _description_, by default 7
+
+    Returns
+    -------
+    pd.DataFrame
+        _description_
+    """
     ## Get copy number marker counts
     dfs = []
     marker_counts_range = list(
         range(marker_count_range_end + 1)
     )  # range(start=inclusive, end=exclusive)
     for marker_count in marker_counts_range:
-        # Check if last in the list of marker_counts_range to apply df.ge(...) instead of df.eq(...)
+        # Last count is regex str: '\d+'
+        # To apply df.ge(...) instead of df.eq(...)
+        # Check if last in the list of marker_counts_range
         if marker_count + 1 == len(marker_counts_range):
             marker_count_contig_idx = df.loc[
                 df.sum(axis=1).ge(marker_count)
@@ -36,7 +52,7 @@ def get_contig_marker_counts(
         count_df = pd.DataFrame(marker_count_contig_idx)
         count_df["marker_count"] = marker_count
         dfs.append(count_df)
-    return pd.concat(dfs).set_index("contig")
+    return pd.concat(dfs)
 
 
 def convert_marker_counts_to_marker_symbols(df: pd.DataFrame) -> pd.DataFrame:
@@ -62,3 +78,11 @@ def convert_marker_counts_to_marker_symbols(df: pd.DataFrame) -> pd.DataFrame:
     df["symbol"] = df.marker_count.map(lambda count: symbols.get(count, "circle"))
     df["marker_size"] = df.marker_count.fillna(0).map(lambda count: count + 7)
     return df
+
+
+def get_marker_symbols(bin_df: pd.DataFrame, markers_df: pd.DataFrame) -> pd.DataFrame:
+    df = bin_df.join(markers_df).fillna(0).copy()
+    df = df[markers_df.columns.tolist()]
+    marker_counts = get_contig_marker_counts(df)
+    marker_symbols = convert_marker_counts_to_marker_symbols(marker_counts)
+    return marker_symbols

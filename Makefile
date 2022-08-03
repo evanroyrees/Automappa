@@ -49,6 +49,22 @@ image: Dockerfile
 install: 
 	$(PYTHON_INTERPRETER) -m pip install . --ignore-installed --no-deps -vvv
 
+## docker compose build from docker-compose.yml
+build: docker-compose.yml
+	docker-compose build
+
+## alias for docker-compose up --always-recreate-deps --remove-orphans --force-recreate
+up: docker-compose.yml
+	docker-compose up --always-recreate-deps --remove-orphans --force-recreate
+
+## alias for docker-compose down --remove-orphans
+down: docker-compose.yml
+	docker-compose down --remove-orphans
+
+## alias for docker-compose down --remove-orphans --volumes
+down-v: docker-compose.yml
+	docker-compose down --remove-orphans -v
+
 # Run Automappa on test data
 # test: test_data
 # 	$(PYTHON_INTERPRETER) index.py -i test/bins.tsv
@@ -64,13 +80,13 @@ test_environment: scripts/test_environment.py
 	$(PYTHON_INTERPRETER) $<
 
 ## Set up python interpreter environment
-create_environment: requirements.txt
+create_environment: environment.yml
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
+	mamba env create --name $(PROJECT_NAME) --file=$<
 else
-	conda create -c conda-forge --name $(PROJECT_NAME) python=3.7 --file=$<
+	mamba env create --name $(PROJECT_NAME) --file=$<
 endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
