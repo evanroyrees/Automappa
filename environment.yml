@@ -11,7 +11,7 @@ dependencies:
   - dash
   - dash-bootstrap-components
   - dash-daq
-  - dash-extensions
+  - dash-extensions==0.0.71
   - msgpack-python
   - numpy
   - pandas
