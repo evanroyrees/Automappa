@@ -18,13 +18,13 @@ import dash_daq as daq
 from dash import dcc, html
 from dash.dash_table import DataTable
 from dash.exceptions import PreventUpdate
-from dash_extensions.enrich import ServersideOutput,RedisStore,Input, Output, State
+from dash_extensions.enrich import ServersideOutput, RedisStore, Input, Output, State
 from plotly import graph_objects as go
 
 import dash_bootstrap_components as dbc
 import plotly.io as pio
 
-from automappa.app import app,cache
+from automappa.app import app, cache
 from automappa.utils.models import SampleTables
 from automappa import settings
 
@@ -426,7 +426,7 @@ refinements_table = dcc.Loading(
 # 1. Only use Row and Col inside a Container.
 # 2. The immediate children of any Row component should always be Col components.
 # 3. Your content should go inside the Col components.
-binning_store = dcc.Loading(dcc.Store("binning-store"),  type='dot')
+binning_store = dcc.Loading(dcc.Store("binning-store"), type="dot")
 
 layout = dbc.Container(
     children=[
@@ -454,11 +454,16 @@ layout = dbc.Container(
 # CALLBACKS
 # ######################################################################
 
+
 # @cache.memoize(timeout=3600)
-@app.callback(ServersideOutput("binning-store", "data", backend=backend), Input("selected-tables-store", "data"), memoize=True)
+@app.callback(
+    ServersideOutput("binning-store", "data", backend=backend),
+    Input("selected-tables-store", "data"),
+    memoize=True,
+)
 def query_binning_in_db(selected_tables_data: SampleTables):
     sample = SampleTables.parse_raw(selected_tables_data)
-    return sample.binning.table.reset_index().to_json('records')
+    return sample.binning.table.reset_index().to_json("records")
 
 
 @app.callback(

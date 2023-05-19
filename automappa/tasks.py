@@ -14,6 +14,7 @@ from geom_median.numpy import compute_geometric_median
 from celery import Celery, group
 from celery.utils.log import get_task_logger
 from celery.result import AsyncResult
+
 # from dash.long_callback import CeleryLongCallbackManager
 
 from Bio import SeqIO
@@ -53,7 +54,8 @@ def get_job(job_id):
     """
     return AsyncResult(job_id, app=queue)
 
-def get_task(job_id) -> dict[str,str]:
+
+def get_task(job_id) -> dict[str, str]:
     """
     To be called from automappa web app.
     The job ID is passed and the celery job is returned.
@@ -258,15 +260,21 @@ def get_embedding_traces_df(embeddings_table: str) -> pd.DataFrame:
     embed_traces_df = pd.concat(embed_traces, axis=1)
     return embed_traces_df
 
+
 # @queue.task(bind=True)
 # def get_metabin_stats_summary(self, binning_table:str, refinements_table:str, markers_table:str, cluster_col:str = "cluster"):
-def get_metabin_stats_summary(binning_table:str, refinements_table:str, markers_table:str, cluster_col:str = "cluster") -> pd.DataFrame:
+def get_metabin_stats_summary(
+    binning_table: str,
+    refinements_table: str,
+    markers_table: str,
+    cluster_col: str = "cluster",
+) -> pd.DataFrame:
     bin_df = get_table(binning_table, index_col="contig")
-    refinements_df = get_table(refinements_table, index_col='contig').drop(
+    refinements_df = get_table(refinements_table, index_col="contig").drop(
         columns="cluster"
     )
     bin_df = bin_df.join(refinements_df, how="right")
-    markers = get_table(markers_table, index_col='contig')
+    markers = get_table(markers_table, index_col="contig")
     if cluster_col not in bin_df.columns:
         num_expected_markers = markers.shape[1]
         length_weighted_coverage = np.average(
@@ -314,6 +322,7 @@ def get_metabin_stats_summary(binning_table:str, refinements_table:str, markers_
             .fillna(0)
         )
     return stats_df
+
 
 if __name__ == "__main__":
     pass
