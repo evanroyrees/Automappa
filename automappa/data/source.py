@@ -1,32 +1,15 @@
 import itertools
 from pydantic import BaseModel, Field, PydanticValueError, create_model
 from pydantic.fields import ModelField
-from typing import List, Literal, Optional
+from typing import List, Optional
+from typing_extensions import Literal
 
 # from cached_property import cached_property_with_ttl
 from celery.result import AsyncResult
 
-from automappa.db import engine, metadata
-from automappa.utils.serializers import get_table
+from automappa.data.db import engine, metadata
 
-
-class RestrictedAlphabetStr(str):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value, field: ModelField):
-        alphabet = field.field_info.extra["alphabet"]
-        if any(c not in alphabet for c in value):
-            raise ValueError(f"{value!r} is not restricted to {alphabet!r}")
-        return cls(value)
-
-    @classmethod
-    def __modify_schema__(cls, field_schema, field: Optional[ModelField]):
-        if field:
-            alphabet = field.field_info.extra["alphabet"]
-            field_schema["examples"] = [c * 4 for c in alphabet]
+from automappa.data.loader import get_table
 
 
 class MetagenomeAnnotations(BaseModel):
@@ -38,35 +21,9 @@ class MetagenomeAnnotations(BaseModel):
     metagenome: Optional[str]
 
 
-class NotInDatabaseError(PydanticValueError):
-    code = "table_name_not_in_db"
-    tables = metadata.tables.keys()
-    msg_template = f'value "TEMPLATE" is not in {tables}'
-    msg_template = msg_template.replace("TEMPLATE", "{table_name}")
-
-
 class AnnotationTable(BaseModel):
     id: str
     index_col: Optional[str] = "contig"
-
-    # @validator('id', pre=True)
-    # @validator('id')
-    # def table_must_exist_in_database(cls, v):
-    #     if v not in metadata.tables.keys():
-    #         # if not engine.has_table(v):
-    #         raise NotInDatabaseError(table_name=v)
-    #     return v
-
-    # @validator('index_col')
-    # def index_col_in_table(cls, v, values):
-    #     table_id = values.get('id')
-    #     table_cols = get_table(table_id).columns
-    #     if v not in table_cols:
-    #         raise ValueError(f'{v} not in {table_id} columns {table_cols}')
-    #     return v
-
-    # class Config:
-    #     keep_untouched=(cached_property,)
 
     @property
     def sample_checksum(self):
@@ -87,16 +44,6 @@ class AnnotationTable(BaseModel):
     @property
     def columns(self):
         return self.table.columns
-
-
-# class ResultTable(AnnotationTable):
-#     task: Optional[AsyncResult]
-#     def table(self):
-#         return get_table(self.id, index_col=self.index_col)
-
-#     class Config:
-#         arbitrary_types_allowed = True
-#         smart_union = True
 
 
 class KmerTable(BaseModel):
@@ -184,82 +131,6 @@ class SampleTables(BaseModel):
             id=self.markers.id.replace("-markers", "-marker-symbols")
         )
 
-    # embeddings: Union[AsyncResult,str]
-
-    # validators
-    # @validator('*')
-    # def table_must_exist_in_database(cls, v):
-    #     if not engine.has_table(v):
-    #         raise NotInDatabaseError(table_name=v)
-    #     return v
-
-    # Generic Class Methods
-    # e.g. tables.binning.get_table()
-    # or tables.binning.exists()
-    # or tables.binning.tasks()
-    # etc.
-    # Need generic methods (listed above) to apply from namespace
-
     class Config:
         arbitrary_types_allowed = True
         smart_union = True
-
-
-MarkerAnnotations = create_model(
-    "MarkerAnnotations",
-    apple="russet",
-    banana="yellow",
-    __base__=MetagenomeAnnotations,
-)
-
-
-class TaxonomyAnnotations(MetagenomeAnnotations):
-    taxid: int
-    superkingdom: Optional[str]
-    phylum: Optional[str]
-    klass: Optional[str]
-    order: Optional[str]
-    family: Optional[str]
-    genus: Optional[str]
-    species: Optional[str]
-
-
-class CoverageAnnotations(MetagenomeAnnotations):
-    coverage: float
-
-
-class KmerAnnotations(MetagenomeAnnotations):
-    x_1: float
-    x_2: float
-    kmer_size: Optional[int]
-    norm_method: Optional[str]
-    embed_method: Optional[str]
-
-
-class Kmer(BaseModel):
-    value: RestrictedAlphabetStr = Field(alphabet="ATCG")
-
-
-class KmerCounts(MetagenomeAnnotations):
-    # kmers: Field(..., regex = 'ATCG')
-    kmers: List[Kmer]
-
-
-class BinningAnnotations(MetagenomeAnnotations):
-    cluster: str
-    completeness: Optional[float]
-    purity: Optional[float]
-    gc_stddev: Optional[float]
-    coverage_stddev: Optional[float]
-
-
-class MetagenomeModel(BaseModel):
-    # Json
-    contig: str
-    gc_content: Optional[float]
-    length: Optional[int]
-    markers: Optional[MarkerAnnotations]
-    kmers: Optional[KmerAnnotations]
-    binning: Optional[BinningAnnotations]
-    coverage: Optional[CoverageAnnotations]
-    taxonomy: Optional[TaxonomyAnnotations]

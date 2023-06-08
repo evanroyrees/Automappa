@@ -26,7 +26,7 @@ from automappa import settings
 from automappa.utils.figures import get_scattergl_traces
 
 from automappa.utils.markers import get_marker_symbols
-from automappa.utils.serializers import (
+from automappa.data.loader import (
     get_metagenome_seqrecords,
     get_table,
     table_to_db,

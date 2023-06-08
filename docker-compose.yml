@@ -2,7 +2,6 @@ version: '3.8'
 
 services:  
 
-  
   postgres:
     image: postgres
     restart: always
@@ -78,7 +77,7 @@ services:
   #     - prometheus
 
   redis:
-    image: "redis:latest"
+    image: redis:latest
     ports:
       - 6379:6379
   web:
@@ -90,7 +89,7 @@ services:
     # Not sure which is more appropriate for production :shrug:
     # The current command allows live-reloading for dev
     # command: automappa
-    command: python -m automappa.index
+    command: python -m automappa.__main__
     volumes:
       # /usr/src/app is location of install in Dockerfile
       - .:/usr/src/app

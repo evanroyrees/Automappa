@@ -1,6 +1,6 @@
 import pytest
 
-from automappa.utils.models import SampleTables, AnnotationTable
+from automappa.data.source import SampleTables
 
 # @pytest.fixture()
 # def sampletables_fixture():
