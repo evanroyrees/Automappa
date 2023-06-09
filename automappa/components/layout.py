@@ -9,6 +9,7 @@ from automappa.components import (
     binning_main_upload_store,
     markers_upload_store,
     metagenome_upload_store,
+    pages_navbar,
     selected_tables_store,
     samples_store,
     binning_store,
@@ -80,19 +81,6 @@ def render(
         app=app,
         module=not_found_404_page.name,
     )
-    # for page in pages:
-    #     top_nav = page.name == "home"
-    #     page.register(
-    #         app=app,
-    #         module=page.name,
-    #         # prefix=page.name,
-    #         **{
-    #             "name":page.name,
-    #             "description":page.description,
-    #             "title":page.title,
-    #             "top_nav":top_nav,
-    #         }
-    #     )
 
     # Setup main app layout.
     stores = [
@@ -111,21 +99,10 @@ def render(
         ),
         binning_store.render(app),
     ]
-    navbar = dbc.Nav(
-        [
-            dbc.NavItem(dbc.NavLink(page["name"], href=page["path"]))
-            for page in dash.page_registry.values()
-            if page["module"] != "not_found_404"
-        ],
-        pills=True,
-        fill=True,
-        horizontal=True,
-        justified=True,
-    )
     return html.Div(
         children=[
             *stores,
-            navbar,
+            pages_navbar.render(),
             dash.page_container,
         ],
         style=dict(display="block"),
