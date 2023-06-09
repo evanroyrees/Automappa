@@ -2,14 +2,14 @@
 
 ## Getting started with development
 
-1. Retrieve repository
+### 1. Retrieve repository
 
 ```bash
 git clone https://github.com/WiscEvan/Automappa.git
 cd Automappa
 ```
 
-2. Create services using `docker-compose`
+### 2. Create services using `docker-compose`
 
 For convenience, the command may be found in the `Makefile` and the services setup with:
 
@@ -21,7 +21,7 @@ make up
 
 This may take a few minutes if all of the images need to be pulled and constructed.
 
-3. Navigate to the Automappa page in your browser
+### 3. Navigate to the Automappa page in your browser
 
 After all of the images have been created the services will be started in their
 respective containers and you should eventually see this in the terminal:
@@ -50,13 +50,17 @@ are described in the [dash-extensions docs](https://www.dash-extensions.com/gett
 
 ## Adding a new component
 
-0. Checkout a new branch
+### 0. Before your begin
+
+Checkout a new branch
 
 ```bash
 git checkout -b <feature> develop
 ```
 
-1. Create a unique id for the component in `automappa/components/ids.py`
+Change `SERVER_DEBUG = False` in `.env` to `SERVER_DEBUG = True`
+
+### 1. Create a unique id for the component in `automappa/components/ids.py`
 
 A unique id is required to specify what data should be set or retrieved based on the component being implemented.
 
@@ -73,7 +77,7 @@ from automappa.components import ids
 ids.COMPONENT_ID
 ```
 
-2. Create your component file in the components sub-directory.
+### 2. Create your component file in the components sub-directory
 
 The component should be placed respective to the page where it will be added.
 
@@ -81,7 +85,7 @@ i.e. `automappa/pages/<page>/components/your_component.py`
 
 >NOTE: Try to be clear and concise when naming the component file
 
-3. Create the standard `render` function in `your_component.py`
+### 3. Create the standard `render` function in `your_component.py`
 
 All components follow a standard syntax of a `render` function that takes at minimum the page's app (or `DashProxy`) as input.
 
@@ -117,31 +121,33 @@ def render(app: DashProxy) -> html.Div:
 of `DashProxy` used similarly to flask blueprint templates. For more details on this see the
 respective `automappa/pages/<page>/layout.py` file.
 
-4. Import and render your component into the page layout
+### 4. Import and render your component into the page layout
 
 At this point, the majority of the work has been done, now all of you have to do is simply place your component
 into the layout of the page. This should correspond to the same page you've implemented your component for:
 `automappa/pages/<page>/layout.py`.
 
+For more information on how to use `dbc.Row` and `dbc.Col` see the
+[dash-bootstrap-components layout docs](https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/)
+
 ```python
 # contents of automappa/pages/<page>/layout.py
 from automappa.pages.mag_refinement.components import your_component
 
-def render(app: DashProxy) -> html.Div:
+def render() -> html.Div:
     ...
     # Include your component
-    your_component.render(app)
+    dbc.Row(dbc.Col(your_component.render(app)))
     ...
 ```
 
-5. Update existing components to use `your_component` as an input.
+### 5. Update existing components to use `your_component` as an input
 
 To retrieve information from components while interacting with the application
 `dash` uses the `@app.callback(Output, Input)` syntax as we have seen.
 
 >NOTE: There are other keywords that may be supplied to `@app.callback` and you can
 find more information on this in the [Dash basic callbacks docs](<<https://dash.plotly.com/basic-callbacks> "Dash callbacks documentation") and [Dash advanced callbacks docs](https://dash.plotly.com/advanced-callbacks "Dash advanced callbacks documentation").
-
 
 ## Component implementation example
 
@@ -152,15 +158,16 @@ that we would like to put on the MAG refinement page to enable users to filter t
 
 To begin, we would create a new component id
 
-1. Create component id
+### 1. Create component id
 
 ```python
 # contents of automappa/components/ids.py
 COVERAGE_RANGE_SLIDER_ID = "coverage-range-slider-id"
 ```
 
-2. Create `coverage_range_slider.py` in `automappa/pages/mag_refinement/components`
-3. Write component's `render` function
+### 2. Create `coverage_range_slider.py` in `automappa/pages/mag_refinement/components`
+
+### 3. Write component's `render` function
 
 >NOTICE: any of the imports that would typically be `from dash import Input,Output,html`
 are now `from dash_extensions.enrich import Input,Output,html`.
@@ -190,7 +197,7 @@ def render(app: DashProxy) -> html.Div:
     )
 ```
 
-4. include component in ``automappa/pages/mag_refinement/layout.py`
+### 4. include component in `automappa/pages/mag_refinement/layout.py`
 
 ```python
 # Import the components
@@ -212,7 +219,7 @@ def render() -> DashBlueprint:
     return app
 ```
 
-5. Creating reactivity from the `RangeSlider` component (using this as an `Input`)
+### 5. Creating reactivity from the `RangeSlider` component (using this as an `Input`)
 
 One example would be to include the range slider as an additional `Input` to
 the scatterplot 2d component.
@@ -306,4 +313,6 @@ automappa-celery-1    |   . automappa.tasks.preprocess_marker_symbols
 automappa-celery-1    | 
 ```
 
->NOTE: If you are implementing a new task, you will need to restart this service as tasks are registered with celery at instantiation and will not be 'hot-reloaded' like other parts of the app.
+>NOTE: If you are implementing a new task, you will need to restart this service
+as tasks are registered with celery at instantiation and will not be
+'hot-reloaded' like other parts of the app.

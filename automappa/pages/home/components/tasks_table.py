@@ -7,4 +7,4 @@ from automappa.components import ids
 
 
 def render(app: DashProxy) -> html.Div:
-    return html.Div(id="embedding-tasks")
+    return html.Div(id=ids.EMBEDDING_TASKS)

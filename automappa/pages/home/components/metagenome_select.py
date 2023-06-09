@@ -4,7 +4,7 @@ from typing import Dict, List
 import pandas as pd
 
 from dash.exceptions import PreventUpdate
-from dash_extensions.enrich import Input, Output, State, DashProxy
+from dash_extensions.enrich import Input, Output, State, DashProxy, html
 import dash_bootstrap_components as dbc
 
 from automappa.components import ids
@@ -13,7 +13,7 @@ from automappa.components import ids
 logger = logging.getLogger(__name__)
 
 
-def render(app: DashProxy) -> dbc.Select:
+def render(app: DashProxy) -> html.Div:
     @app.callback(
         Output(ids.METAGENOME_SELECT, "options"),
         [Input(ids.SAMPLES_STORE, "data")],
@@ -42,9 +42,11 @@ def render(app: DashProxy) -> dbc.Select:
             for filename, table_id in zip(df.filename.tolist(), df.table_id.tolist())
         ]
 
-    return dbc.Select(
-        id=ids.METAGENOME_SELECT,
-        placeholder="Select metagenome annotations",
-        persistence=True,
-        persistence_type="session",
+    return html.Div(
+        dbc.Select(
+            id=ids.METAGENOME_SELECT,
+            placeholder="Select metagenome annotations",
+            persistence=True,
+            persistence_type="session",
+        )
     )

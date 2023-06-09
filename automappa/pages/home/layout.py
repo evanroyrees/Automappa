@@ -20,15 +20,18 @@ def render() -> DashBlueprint:
         children=[
             dbc.Row(
                 [
-                    dbc.Col(upload_modal.render(app), width=1, align="center"),
-                    dbc.Col(refine_mags_button.render(app), width=1, align="center"),
+                    dbc.Col(upload_modal.render(app), width=2, align="center"),
+                    dbc.Col(refine_mags_button.render(app), width=2, align="center"),
                 ],
-                justify="start",
+                justify="center",
             ),
-            dbc.Row(samples_datatable.render(app), justify="center"),
-            dbc.Row(refine_mags_input_groups.render(app), justify="center"),
-            dbc.Row(selected_tables_datatable.render(app), justify="center"),
-            dbc.Row(tasks_table.render(app), justify="center"),
+            dbc.Row(dbc.Col(samples_datatable.render(app)), justify="center"),
+            dbc.Row(
+                dbc.Col(refine_mags_input_groups.render(app), width=12, align="center"),
+                justify="center",
+            ),
+            dbc.Row(dbc.Col(selected_tables_datatable.render(app)), justify="center"),
+            dbc.Row(dbc.Col(tasks_table.render(app)), justify="center"),
         ],
         fluid=True,
     )

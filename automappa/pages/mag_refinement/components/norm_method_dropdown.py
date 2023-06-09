@@ -8,7 +8,6 @@ norm_method_dropdown = [
     html.Label("K-mer norm. method:"),
     dcc.Dropdown(
         id=ids.NORM_METHOD_DROPDOWN,
-        id="norm-method-dropdown",
         options=["am_clr", "ilr"],
         value=ids.NORM_METHOD_DROPDOWN_VALUE_DEFAULT,
         clearable=False,
