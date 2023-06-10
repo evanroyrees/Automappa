@@ -281,7 +281,7 @@ Customization of the urls to these services may be
 performed by editing the `.env` files as many of
 these settings are configured from here.
 
-## Celery task-queue
+### Celery task-queue
 
 Celery is currently being used as a task-queue and when instantiated you should see something like this:
 
@@ -316,3 +316,14 @@ automappa-celery-1    |
 >NOTE: If you are implementing a new task, you will need to restart this service
 as tasks are registered with celery at instantiation and will not be
 'hot-reloaded' like other parts of the app.
+
+## Development resources
+
+### Libraries
+
+- [dash-extensions docs](https://www.dash-extensions.com/ "dash-extensions documentation")
+- [dash-extensions GitHub](https://github.com/thedirtyfew/dash-extensions "dash-extensions GitHub repository")
+- [plotly Dash docs](https://dash.plotly.com/ "plotly Dash documentation")
+- [dash-bootstrap-components docs](http://dash-bootstrap-components.opensource.faculty.ai/ "dash-bootstrap-components documentation")
+- [dash-mantine-components docs](https://www.dash-mantine-components.com/ "dash-mantine-components documentation")
+- [dash-iconify icons browser](<https://icon-sets.iconify.design/> "Iconify icon sets")

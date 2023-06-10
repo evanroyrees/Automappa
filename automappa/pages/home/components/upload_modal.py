@@ -78,35 +78,33 @@ def render(app: DashProxy) -> html.Div:
         return is_open
 
     return html.Div(
-        children=[
-            dbc.Modal(
-                [
-                    dbc.ModalHeader(
-                        dbc.ModalTitle("Upload Metagenome annotations"),
-                        close_button=False,
-                    ),
-                    dbc.ModalBody(
-                        [
-                            binning_main_upload,
-                            markers_upload,
-                            metagenome_upload,
-                        ]
-                    ),
-                    dbc.ModalFooter(
-                        dbc.Button(
-                            "Close",
-                            id=ids.CLOSE_DISMISS,
-                            style={"textAlign": "center"},
-                            color="dark",
-                            className="ms-auto",
-                        )
-                    ),
-                ],
-                id=ids.MODAL_DISMISS,
-                keyboard=False,
-                backdrop="static",
-                fullscreen=False,
-                centered=True,
-            ),
-        ],
+        dbc.Modal(
+            [
+                dbc.ModalHeader(
+                    dbc.ModalTitle("Upload Metagenome annotations"),
+                    close_button=False,
+                ),
+                dbc.ModalBody(
+                    [
+                        binning_main_upload,
+                        markers_upload,
+                        metagenome_upload,
+                    ]
+                ),
+                dbc.ModalFooter(
+                    dbc.Button(
+                        "Close",
+                        id=ids.CLOSE_DISMISS,
+                        style={"textAlign": "center"},
+                        color="dark",
+                        className="ms-auto",
+                    )
+                ),
+            ],
+            id=ids.MODAL_DISMISS,
+            keyboard=False,
+            backdrop="static",
+            fullscreen=False,
+            centered=True,
+        ),
     )
