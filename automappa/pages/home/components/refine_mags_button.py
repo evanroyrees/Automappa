@@ -2,7 +2,8 @@
 
 import logging
 from dash_extensions.enrich import DashProxy, Input, Output, html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 
 from automappa.components import ids
 
@@ -26,10 +27,11 @@ def render(app: DashProxy) -> html.Div:
             return False
 
     return html.Div(
-        children=[
-            dbc.Button(
-                id=ids.REFINE_MAGS_BUTTON,
-                children="Refine MAGs",
-            )
-        ]
+        dmc.Button(
+            "Refine MAGs",
+            id=ids.REFINE_MAGS_BUTTON,
+            leftIcon=[DashIconify(icon="ant-design:dot-chart-outlined")],
+            variant="gradient",
+            gradient={"from": "#642E8D", "to": "#1f58a6", "deg": 150},
+        )
     )

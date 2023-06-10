@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from dash_extensions.enrich import DashProxy, Input, Output, State, html
 
 import dash_bootstrap_components as dbc
@@ -80,7 +79,6 @@ def render(app: DashProxy) -> html.Div:
 
     return html.Div(
         children=[
-            dbc.Button("Upload data", id=ids.OPEN_DISMISS),
             dbc.Modal(
                 [
                     dbc.ModalHeader(
@@ -96,14 +94,19 @@ def render(app: DashProxy) -> html.Div:
                     ),
                     dbc.ModalFooter(
                         dbc.Button(
-                            "Close", id=ids.CLOSE_DISMISS, style={"textAlign": "center"}
+                            "Close",
+                            id=ids.CLOSE_DISMISS,
+                            style={"textAlign": "center"},
+                            color="dark",
+                            className="ms-auto",
                         )
                     ),
                 ],
                 id=ids.MODAL_DISMISS,
                 keyboard=False,
                 backdrop="static",
-                fullscreen=True,
+                fullscreen=False,
+                centered=True,
             ),
         ],
     )

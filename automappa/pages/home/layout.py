@@ -5,7 +5,7 @@ from automappa.pages.home.components import (
     refine_mags_input_groups,
     selected_tables_datatable,
     tasks_table,
-    upload_modal,
+    upload_modal_button,
     samples_datatable,
     refine_mags_button,
 )
@@ -20,7 +20,7 @@ def render() -> DashBlueprint:
         children=[
             dbc.Row(
                 [
-                    dbc.Col(upload_modal.render(app), width=2, align="center"),
+                    dbc.Col(upload_modal_button.render(app), width=2, align="center"),
                     dbc.Col(refine_mags_button.render(app), width=2, align="center"),
                 ],
                 justify="center",

@@ -31,13 +31,6 @@ def render(
     storage_type: Literal["memory", "session", "local"] = "session",
     clear_data: bool = False,
 ) -> html.Div:
-    # Register blueprints as pages
-    # : i.e. home, mag_refinement, mag_summary
-    # pages = [
-    #     render_home_layout(),
-    #     render_mag_refinement_layout(),
-    #     render_mag_summary_layout(),
-    # ]
     home_page = render_home_layout()
     home_page.register(
         app=app,
@@ -48,7 +41,7 @@ def render(
             "title": home_page.title,
             "top_nav": True,
             "order": 0,
-            "redirects": ["/home"],
+            "redirect_from": ["/home"],
             "path": "/",
         }
     )
