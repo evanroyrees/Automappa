@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import dash_bootstrap_components as dbc
+from dash_extensions.enrich import html
+import dash_mantine_components as dmc
 from automappa.components import ids
 
 
 # Summarize Refinements Button
-binning_refinements_summary_button = [
-    dbc.Button(
-        "Summarize Refinements",
-        id=ids.REFINEMENTS_SUMMARY_BUTTON,
-        n_clicks=0,
-        color="primary",
-    ),
-]
+def render() -> html.Div:
+    return html.Div(
+        dmc.Button(
+            "Summarize Refinements",
+            id=ids.REFINEMENTS_SUMMARY_BUTTON,
+            n_clicks=0,
+            color="dark",
+            fullWidth=True,
+        ),
+        # TODO: Create background task to compute binning summary metrics
+        # TODO: Create downloader task to download file of computed summary metrics
+    )

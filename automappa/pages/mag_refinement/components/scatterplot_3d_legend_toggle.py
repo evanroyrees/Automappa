@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dash_daq import daq
-
+import dash_mantine_components as dmc
+from dash_extensions.enrich import html
 from automappa.components import ids
 
 
 # Scatterplot 3D Legend Toggle
-scatterplot_3d_legend_toggle = daq.ToggleSwitch(
-    id=ids.SCATTERPLOT_3D_LEGEND_TOGGLE,
-    value=ids.SCATTERPLOT_2D_LEGEND_TOGGLE_VALUE_DEFAULT,
-    size=40,
-    color="#c5040d",
-    label="Legend",
-    labelPosition="top",
-    vertical=False,
-)
+def render() -> html.Div:
+    return html.Div(
+        dmc.Switch(
+            id=ids.SCATTERPLOT_3D_LEGEND_TOGGLE,
+            checked=ids.SCATTERPLOT_2D_LEGEND_TOGGLE_VALUE_DEFAULT,
+            size="md",
+            color="dark",
+            label="Legend",
+        )
+    )

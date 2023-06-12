@@ -5,18 +5,21 @@ from dash_extensions.enrich import html, dcc
 from automappa.components import ids
 
 
-taxa_rank_dropdown = [
-    html.Label("Distribute taxa by rank:"),
-    dcc.Dropdown(
-        id=ids.TAXONOMY_DISTRIBUTION_DROPDOWN,
-        options=[
-            {"label": "Class", "value": "class"},
-            {"label": "Order", "value": "order"},
-            {"label": "Family", "value": "family"},
-            {"label": "Genus", "value": "genus"},
-            {"label": "Species", "value": "species"},
-        ],
-        value=ids.TAXONOMY_DISTRIBUTION_DROPDOWN_VALUE_DEFAULT,
-        clearable=False,
-    ),
-]
+def render() -> html.Div:
+    return html.Div(
+        [
+            html.Label("Distribute taxa by rank:"),
+            dcc.Dropdown(
+                id=ids.TAXONOMY_DISTRIBUTION_DROPDOWN,
+                options=[
+                    {"label": "Class", "value": "class"},
+                    {"label": "Order", "value": "order"},
+                    {"label": "Family", "value": "family"},
+                    {"label": "Genus", "value": "genus"},
+                    {"label": "Species", "value": "species"},
+                ],
+                value=ids.TAXONOMY_DISTRIBUTION_DROPDOWN_VALUE_DEFAULT,
+                clearable=False,
+            ),
+        ]
+    )

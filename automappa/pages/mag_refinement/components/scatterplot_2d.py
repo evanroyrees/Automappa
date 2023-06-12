@@ -22,7 +22,7 @@ def render(app: DashProxy) -> html.Div:
             Input(ids.KMER_SIZE_DROPDOWN, "value"),
             Input(ids.NORM_METHOD_DROPDOWN, "value"),
             Input(ids.AXES_2D_DROPDOWN, "value"),
-            Input(ids.SCATTERPLOT_2D_LEGEND_TOGGLE, "value"),
+            Input(ids.SCATTERPLOT_2D_LEGEND_TOGGLE, "checked"),
             Input(ids.COLOR_BY_COLUMN_DROPDOWN, "value"),
             Input(ids.HIDE_SELECTIONS_TOGGLE, "checked"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),

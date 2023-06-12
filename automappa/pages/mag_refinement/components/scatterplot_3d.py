@@ -20,7 +20,7 @@ def render(app: DashProxy) -> html.Div:
             Input(ids.SELECTED_TABLES_STORE, "data"),
             Input(ids.AXES_2D_DROPDOWN, "value"),
             Input(ids.SCATTERPLOT_3D_ZAXIS_DROPDOWN, "value"),
-            Input(ids.SCATTERPLOT_3D_LEGEND_TOGGLE, "value"),
+            Input(ids.SCATTERPLOT_3D_LEGEND_TOGGLE, "checked"),
             Input(ids.COLOR_BY_COLUMN_DROPDOWN, "value"),
             Input(ids.SCATTERPLOT_2D, "selectedData"),
         ],

@@ -6,7 +6,8 @@ from typing import Dict
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 
 from automappa.data.source import SampleTables
 from automappa.components import ids
@@ -33,11 +34,14 @@ def render(app: DashProxy) -> html.Div:
     # Download Refinements Button
     return html.Div(
         [
-            dbc.Button(
+            dmc.Button(
                 "Download Refinements",
                 id=ids.REFINEMENTS_DOWNLOAD_BUTTON,
+                leftIcon=[DashIconify(icon="line-md:download-loop", height=30)],
                 n_clicks=0,
-                color="primary",
+                color="dark",
+                variant="outline",
+                fullWidth=True,
             ),
             dcc.Download(id=ids.REFINEMENTS_DOWNLOAD),
         ]
