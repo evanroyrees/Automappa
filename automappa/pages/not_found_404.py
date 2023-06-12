@@ -1,5 +1,6 @@
 import dash_bootstrap_components as dbc
 from dash_extensions.enrich import DashBlueprint, html
+from dash_iconify import DashIconify
 
 
 alert = dbc.Alert(
@@ -19,16 +20,11 @@ alert = dbc.Alert(
 
 def render() -> DashBlueprint:
     app = DashBlueprint()
-    # app.name = ids.NOT_FOUND_404_TAB_ID
     app.name = "not_found_404"
     app.description = "Automappa app link not found 404 page"
-    app.title = "<(^^<) Automappa ^(^^)^ 404 (>^^)>"
+    app.title = "Automappa 404"
     app.layout = dbc.Container(
         [
-            dbc.Row(
-                dbc.Col(html.H1("Automappa 404"), align="center"),
-                justify="center",
-            ),
             dbc.Row(
                 dbc.Col(
                     alert,
@@ -38,11 +34,74 @@ def render() -> DashBlueprint:
             ),
             dbc.Row(
                 [
-                    dbc.Col(html.H1("<(^^<) ^(^^)^ (>^^)>"), align="center"),
-                    dbc.Col(html.H1("<(^^<) ^(^^)^ (>^^)>"), align="center"),
-                    dbc.Col(html.H1("<(^^<) ^(^^)^ (>^^)>"), align="center"),
+                    dbc.Col(
+                        [DashIconify(icon="file-icons:influxdata", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [
+                            DashIconify(
+                                icon="healthicons:animal-spider-outline", height=30
+                            )
+                        ],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [DashIconify(icon="ph:plant", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [
+                            DashIconify(
+                                icon="healthicons:animal-chicken-outline", height=30
+                            )
+                        ],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [DashIconify(icon="healthicons:bacteria-outline", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [DashIconify(icon="game-icons:mushrooms-cluster", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [
+                            DashIconify(
+                                icon="healthicons:malaria-mixed-microscope-outline",
+                                height=30,
+                            )
+                        ],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [DashIconify(icon="game-icons:scarab-beetle", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [DashIconify(icon="healthicons:animal-cow-outline", height=30)],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [
+                            DashIconify(
+                                icon="fluent-emoji-high-contrast:fish", height=30
+                            )
+                        ],
+                        align="center",
+                    ),
+                    dbc.Col(
+                        [
+                            DashIconify(
+                                icon="streamline:nature-ecology-potted-cactus-tree-plant-succulent-pot",
+                                height=30,
+                            )
+                        ],
+                        align="center",
+                    ),
                 ],
-                justify="center",
+                justify="evenly",
             ),
         ],
         fluid=True,

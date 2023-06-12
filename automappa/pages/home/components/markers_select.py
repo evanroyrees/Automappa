@@ -5,7 +5,8 @@ import pandas as pd
 
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import Input, Output, State, DashProxy, html
-import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 
 from automappa.components import ids
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def render(app: DashProxy) -> html.Div:
     @app.callback(
-        Output(ids.MARKERS_SELECT, "options"),
+        Output(ids.MARKERS_SELECT, "data"),
         [Input(ids.SAMPLES_STORE, "data")],
         State(ids.SAMPLES_STORE, "data"),
     )
@@ -47,9 +48,12 @@ def render(app: DashProxy) -> html.Div:
         ]
 
     return html.Div(
-        dbc.Select(
+        dmc.Select(
             id=ids.MARKERS_SELECT,
+            label="Markers",
             placeholder="Select marker annotations",
+            icon=[DashIconify(icon="line-md:document-report")],
+            rightSection=[DashIconify(icon="radix-icons:chevron-down")],
             persistence=True,
             persistence_type="session",
         )

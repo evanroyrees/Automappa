@@ -3,6 +3,8 @@
 from dash_extensions.enrich import DashProxy, Input, Output, State, html
 
 import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
+from dash_iconify import DashIconify
 import dash_uploader as du
 
 from automappa.components import ids
@@ -13,12 +15,9 @@ binning_main_upload = du.Upload(
     text="Drag and Drop or Select binning-main file",
     default_style={
         "width": "100%",
-        "height": "60px",
-        "lineHeight": "60px",
         "borderWidth": "1px",
         "borderStyle": "dashed",
         "borderRadius": "5px",
-        "textAlign": "center",
         "margin": "10px",
     },
     max_files=1,
@@ -32,12 +31,9 @@ markers_upload = du.Upload(
     text="Drag and Drop or Select marker annotations file",
     default_style={
         "width": "100%",
-        "height": "60px",
-        "lineHeight": "60px",
         "borderWidth": "1px",
         "borderStyle": "dashed",
         "borderRadius": "5px",
-        "textAlign": "center",
         "margin": "10px",
     },
     max_files=1,
@@ -51,12 +47,9 @@ metagenome_upload = du.Upload(
     text="Drag and Drop or Select metagenome assembly",
     default_style={
         "width": "100%",
-        "height": "60px",
-        "lineHeight": "60px",
         "borderWidth": "1px",
         "borderStyle": "dashed",
         "borderRadius": "5px",
-        "textAlign": "center",
         "margin": "10px",
     },
     max_files=1,
@@ -68,9 +61,12 @@ metagenome_upload = du.Upload(
 
 def render(app: DashProxy) -> html.Div:
     @app.callback(
-        Output(ids.MODAL_DISMISS, "is_open"),
-        [Input(ids.OPEN_DISMISS, "n_clicks"), Input(ids.CLOSE_DISMISS, "n_clicks")],
-        [State(ids.MODAL_DISMISS, "is_open")],
+        Output(ids.UPLOAD_MODAL, "is_open"),
+        [
+            Input(ids.OPEN_MODAL_BUTTON, "n_clicks"),
+            Input(ids.CLOSE_MODAL_BUTTON, "n_clicks"),
+        ],
+        [State(ids.UPLOAD_MODAL, "is_open")],
     )
     def toggle_modal(n_open, n_close, is_open):
         if n_open or n_close:
@@ -92,18 +88,20 @@ def render(app: DashProxy) -> html.Div:
                     ]
                 ),
                 dbc.ModalFooter(
-                    dbc.Button(
+                    dmc.Button(
                         "Close",
-                        id=ids.CLOSE_DISMISS,
+                        id=ids.CLOSE_MODAL_BUTTON,
+                        leftIcon=[DashIconify(icon="line-md:close-small")],
                         style={"textAlign": "center"},
                         color="dark",
-                        className="ms-auto",
+                        fullWidth=True,
                     )
                 ),
             ],
-            id=ids.MODAL_DISMISS,
+            id=ids.UPLOAD_MODAL,
             keyboard=False,
             backdrop="static",
+            size="lg",
             fullscreen=False,
             centered=True,
         ),

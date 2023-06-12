@@ -14,7 +14,7 @@ def render(app: DashProxy) -> html.Div:
         [
             dmc.Button(
                 "Upload data",
-                id=ids.OPEN_DISMISS,
+                id=ids.OPEN_MODAL_BUTTON,
                 leftIcon=[DashIconify(icon="line-md:upload-outline")],
                 variant="gradient",
                 gradient={"from": "#CA2270", "to": "#F36E2D"},
