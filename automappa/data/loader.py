@@ -6,7 +6,7 @@ from pathlib import Path
 import uuid
 import pandas as pd
 
-from functools import partial, reduce
+from functools import partial
 from typing import List, Optional
 
 from Bio.Seq import Seq
@@ -18,28 +18,12 @@ from autometa.common.markers import load as load_markers
 
 from automappa.settings import server
 from automappa.data.db import (
-    Base,
     check_table_exists,
-    session_scope,
     engine,
     metadata,
-    MetagenomeTable,
 )
 
 logger = logging.getLogger(__name__)
-
-
-# Preprocessor = Callable[[pd.DataFrame], pd.DataFrame]
-# def compose(*functions: Preprocessor) -> Preprocessor:
-#     return reduce(lambda f, g: lambda x: g(f(x)), functions)
-# def preprocess_data(data: pd.DataFrame) -> pd.DataFrame:
-#     preprocessor = compose(
-#         create_year_column,
-#         create_month_column,
-#         partial(convert_date_locale, locale=locale),
-#         translate_category_language,
-#     )
-#     return preprocessor(data)
 
 
 def convert_bytes(size: int, unit: str = "MB", ndigits: int = 2) -> float:

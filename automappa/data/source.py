@@ -1,13 +1,9 @@
 import itertools
-from pydantic import BaseModel, Field, PydanticValueError, create_model
-from pydantic.fields import ModelField
+from pydantic import BaseModel
 from typing import List, Optional
 from typing_extensions import Literal
 
-# from cached_property import cached_property_with_ttl
-from celery.result import AsyncResult
-
-from automappa.data.db import engine, metadata
+from automappa.data.db import check_table_exists
 
 from automappa.data.loader import get_table
 
@@ -39,7 +35,7 @@ class AnnotationTable(BaseModel):
 
     @property
     def exists(self):
-        return engine.has_table(self.id)
+        return check_table_exists(self.id)
 
     @property
     def columns(self):
