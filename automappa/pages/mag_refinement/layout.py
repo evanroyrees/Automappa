@@ -4,8 +4,11 @@ from dash_extensions.enrich import DashBlueprint
 import dash_bootstrap_components as dbc
 from automappa.components import ids
 from automappa.pages.mag_refinement.components import (
-    settings_banner,
+    marker_symbols_legend,
     scatterplot_2d,
+    settings_button,
+    save_selection_button,
+    hide_selections_switch,
     mag_metrics_table,
     taxonomy_distribution,
     scatterplot_3d,
@@ -25,7 +28,20 @@ def render() -> DashBlueprint:
     app.title = "Automappa MAG refinement"
     app.layout = dbc.Container(
         children=[
-            dbc.Row([dbc.Col(settings_banner.render(app))]),
+            dbc.Row(
+                [
+                    dbc.Col(save_selection_button.render(app), width=6, align="center"),
+                    dbc.Col(hide_selections_switch.render(), width=3, align="center"),
+                    dbc.Col(settings_button.render(app), width=3, align="center"),
+                ]
+            ),
+            dbc.Row(
+                [
+                    dbc.Col(marker_symbols_legend.render(), width=9, align="center"),
+                    dbc.Col(width=3),
+                ],
+                justify="center",
+            ),
             dbc.Row(
                 [
                     dbc.Col(scatterplot_2d.render(app), width=9),

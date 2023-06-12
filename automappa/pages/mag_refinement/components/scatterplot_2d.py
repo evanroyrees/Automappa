@@ -24,10 +24,9 @@ def render(app: DashProxy) -> html.Div:
             Input(ids.AXES_2D_DROPDOWN, "value"),
             Input(ids.SCATTERPLOT_2D_LEGEND_TOGGLE, "value"),
             Input(ids.COLOR_BY_COLUMN_DROPDOWN, "value"),
-            Input(ids.HIDE_SELECTIONS_TOGGLE, "value"),
+            Input(ids.HIDE_SELECTIONS_TOGGLE, "checked"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
         ],
-        log=True,
     )
     def scatterplot_2d_figure_callback(
         sample: SampleTables,

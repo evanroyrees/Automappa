@@ -20,11 +20,12 @@ def render(app: DashProxy) -> html.Div:
             Input(ids.METAGENOME_SELECT, "value"),
         ],
     )
-    def disable_button_callback(binning_value, markers_value, metagenome_value):
-        if binning_value is None or markers_value is None or metagenome_value is None:
-            return True
-        else:
-            return False
+    def disable_button_callback(
+        binning_value: str, markers_value: str, metagenome_value: str
+    ) -> bool:
+        return (
+            binning_value is None or markers_value is None or metagenome_value is None
+        )
 
     return html.Div(
         dmc.Button(
