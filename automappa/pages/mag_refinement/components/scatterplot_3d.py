@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict, List
-
+from dash import Patch
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
 
@@ -9,11 +9,51 @@ from automappa.data.source import SampleTables
 from automappa.components import ids
 
 from automappa.utils.figures import (
+    format_axis_title,
     get_scatterplot_3d,
 )
 
 
 def render(app: DashProxy) -> html.Div:
+    @app.callback(
+        Output(ids.SCATTERPLOT_3D, "figure", allow_duplicate=True),
+        Input(ids.SCATTERPLOT_3D_LEGEND_TOGGLE, "checked"),
+        prevent_initial_call=True,
+    )
+    def toggle_legend(legend_switch_checked: bool) -> go.Figure:
+        fig = Patch()
+        fig.layout.showlegend = legend_switch_checked
+        # fig["data"][0]["showlegend"] = legend_switch_checked
+        return fig
+
+    @app.callback(
+        Output(ids.SCATTERPLOT_3D, "figure", allow_duplicate=True),
+        [
+            Input(ids.AXES_2D_DROPDOWN, "value"),
+            Input(ids.SCATTERPLOT_3D_ZAXIS_DROPDOWN, "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def update_axes(axes_columns: str, z_axis: str) -> go.Figure:
+        x_axis, y_axis = axes_columns.split("|")
+        x_axis_title = format_axis_title(x_axis)
+        y_axis_title = format_axis_title(y_axis)
+        z_axis_title = format_axis_title(z_axis)
+        layout = go.Layout(
+            scene=dict(
+                xaxis=dict(title=x_axis_title),
+                yaxis=dict(title=y_axis_title),
+                zaxis=dict(title=z_axis_title),
+            ),
+            legend={"x": 1, "y": 1},
+            autosize=True,
+            margin=dict(r=0, b=0, l=0, t=25),
+            hovermode="closest",
+        )
+        fig = Patch()
+        fig.layout = layout
+        return fig
+
     @app.callback(
         Output(ids.SCATTERPLOT_3D, "figure"),
         [
