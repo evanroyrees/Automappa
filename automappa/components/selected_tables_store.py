@@ -28,10 +28,15 @@ def render(
             Input(ids.BINNING_SELECT, "value"),
             Input(ids.MARKERS_SELECT, "value"),
             Input(ids.METAGENOME_SELECT, "value"),
+            Input(ids.CYTOSCAPE_SELECT, "value"),
         ],
     )
     def on_refine_mags_button_click(
-        n, binning_select_value, markers_select_value, metagenome_select_value
+        n: int,
+        binning_select_value: str,
+        markers_select_value: str,
+        metagenome_select_value: str,
+        cytoscape_select_value: str,
     ):
         if n is None:
             raise PreventUpdate
@@ -49,6 +54,8 @@ def render(
             )
         if markers_select_value is not None:
             tables_dict["markers"] = {"id": markers_select_value}
+        if cytoscape_select_value is not None:
+            tables_dict["cytoscape"] = {"id": cytoscape_select_value}
         sample = SampleTables(**tables_dict)
         # BEGIN Queueing tasks from annotations...
         # TODO: Refactor to separate bg-task submission?

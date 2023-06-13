@@ -21,8 +21,6 @@ binning_main_upload = du.Upload(
         "margin": "10px",
     },
     max_files=1,
-    # 10240 MB = 10GB
-    # TODO: Add text to modal with max_file_size info...
     max_file_size=10240,
 )
 
@@ -38,7 +36,6 @@ markers_upload = du.Upload(
     },
     max_files=1,
     # 10240 MB = 10GB
-    # TODO: Add text to modal with max_file_size info...
     max_file_size=10240,
 )
 
@@ -53,8 +50,20 @@ metagenome_upload = du.Upload(
         "margin": "10px",
     },
     max_files=1,
-    # 10240 MB = 10GB
-    # TODO: Add text to modal with max_file_size info...
+    max_file_size=10240,
+)
+
+cytoscape_connection_upload = du.Upload(
+    id=ids.UPLOAD_CYTOSCAPE_DATA,
+    text="Drag and Drop or Select cytoscape contig connections file",
+    default_style={
+        "width": "100%",
+        "borderWidth": "1px",
+        "borderStyle": "dashed",
+        "borderRadius": "5px",
+        "margin": "10px",
+    },
+    max_files=1,
     max_file_size=10240,
 )
 
@@ -73,6 +82,7 @@ def render(app: DashProxy) -> html.Div:
             return not is_open
         return is_open
 
+    # TODO: Add text to modal with max_file_size info...
     return html.Div(
         dbc.Modal(
             [
@@ -85,6 +95,7 @@ def render(app: DashProxy) -> html.Div:
                         binning_main_upload,
                         markers_upload,
                         metagenome_upload,
+                        cytoscape_connection_upload,
                     ]
                 ),
                 dbc.ModalFooter(

@@ -74,13 +74,37 @@ class KmerTable(BaseModel):
         )
 
 
+class CytoscapeConnectionsTable(BaseModel):
+    id: str
+
+    @property
+    def sample_checksum(self):
+        return self.id.split("-")[0]
+
+    @property
+    def name(self):
+        return "-".join(self.id.split("-")[1:])
+
+    @property
+    def table(self):
+        return get_table(self.id)
+
+    @property
+    def exists(self):
+        return check_table_exists(self.id)
+
+    @property
+    def columns(self):
+        return self.table.columns
+
+
 class SampleTables(BaseModel):
     binning: Optional[AnnotationTable]
     markers: Optional[AnnotationTable]
     metagenome: Optional[AnnotationTable]
+    cytoscape: Optional[CytoscapeConnectionsTable]
     # The following are created after user upload
     # via:
-    # db ingestion (see serializers.py)
     # celery tasks (see tasks.py)
     refinements: Optional[AnnotationTable]
     # geom_medians: Optional[str]

@@ -8,6 +8,7 @@ dependencies:
   - autometa
   - dash==2.10.2
   - dash-bootstrap-components
+  - dash_cytoscape==0.2.0
   - dash-daq
   - dash-labs
   - dash-mantine-components

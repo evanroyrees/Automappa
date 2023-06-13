@@ -25,11 +25,13 @@ def render(
             Input(ids.BINNING_MAIN_UPLOAD_STORE, "modified_timestamp"),
             Input(ids.MARKERS_UPLOAD_STORE, "modified_timestamp"),
             Input(ids.METAGENOME_UPLOAD_STORE, "modified_timestamp"),
+            Input(ids.CONTIG_CYTOSCAPE_UPLOAD_STORE, "modified_timestamp"),
         ],
         [
             State(ids.BINNING_MAIN_UPLOAD_STORE, "data"),
             State(ids.MARKERS_UPLOAD_STORE, "data"),
             State(ids.METAGENOME_UPLOAD_STORE, "data"),
+            State(ids.CONTIG_CYTOSCAPE_UPLOAD_STORE, "data"),
             State(ids.SAMPLES_STORE, "data"),
         ],
     )
@@ -37,19 +39,23 @@ def render(
         binning_uploads_timestamp: str,
         markers_uploads_timestamp: str,
         metagenome_uploads_timestamp: str,
+        cytoscape_uploads_timestamp: str,
         binning_uploads_df: pd.DataFrame,
         markers_uploads_df: pd.DataFrame,
         metagenome_uploads_df: pd.DataFrame,
+        cytoscape_uploads_df: pd.DataFrame,
         samples_store_data_df: pd.DataFrame,
     ):
         if (
             binning_uploads_df is None
             and markers_uploads_df is None
             and metagenome_uploads_df is None
+            and cytoscape_uploads_df is None
         ) or (
             binning_uploads_timestamp is None
             and markers_uploads_timestamp is None
             and metagenome_uploads_timestamp is None
+            and cytoscape_uploads_timestamp is None
         ):
             # Check if db has any samples in table
             uploaded_files_df = get_uploaded_files_table()
@@ -60,6 +66,7 @@ def render(
             binning_uploads_df,
             markers_uploads_df,
             metagenome_uploads_df,
+            cytoscape_uploads_df,
             samples_store_data_df,
         ]
         samples_df = pd.concat(upload_dfs).drop_duplicates(subset=["table_id"])
@@ -67,7 +74,6 @@ def render(
             f"{samples_df.shape[0]:,} samples retrieved from data upload stores"
         )
         return Serverside(samples_df)
-        # return samples_df.to_json(orient="split")
 
     return dcc.Store(
         id=ids.SAMPLES_STORE,

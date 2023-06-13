@@ -195,6 +195,46 @@ def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
     return table_name
 
 
+def store_cytoscape(filepath: Path, if_exists: str = "replace") -> str:
+    """Parse `filepath` into `pd.DataFrame` then save to postgres table
+
+    `table_id` is composed of 2 pieces:
+
+        1. md5 checksum of 'filepath'
+        2. cytoscape connections table
+
+        e.g. `'{checksum}-cytoscape'`
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to cytoscape connections table
+    if_exists : str
+        {'fail', 'replace', 'append'}, by default 'replace'
+        How to behave if the table already exists.
+
+    Returns
+    -------
+    str
+        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
+        e.g. `'{checksum}-cytoscape'`
+    """
+    # Read filepath contents
+    logger.debug(f"{filepath} uploaded... reading to datatable...")
+    df = pd.read_table(
+        filepath,
+        dtype={"node1": str, "interaction": int, "node2": str, "connections": int},
+    )
+    logger.debug(f"saving {filepath} to datatable...")
+    # NOTE: table_name must not exceed maximum length of 63 characters
+    # Construct table name
+    checksum = calc_checksum(str(filepath)).split()[0]
+    table_name = f"{checksum}-cytoscape"
+    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
+    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
+    return table_name
+
+
 def file_to_db(
     filepath: Path,
     filetype: str,
@@ -209,7 +249,7 @@ def file_to_db(
         Path to uploaded file to be stored in db table
     filetype : str
         type of file to be stored
-        choices include 'markers', 'metagenome', 'binning'
+        choices include 'markers', 'metagenome', 'binning', "cytoscape"
 
     Returns
     -------
@@ -229,6 +269,7 @@ def file_to_db(
         "markers": store_markers,
         "metagenome": store_metagenome,
         "binning": store_binning_main,
+        "cytoscape": store_cytoscape,
     }
     if filetype not in filetype_store_methods:
         raise ValueError(

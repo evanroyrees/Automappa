@@ -16,6 +16,7 @@ from automappa.pages.mag_refinement.components import (
     mag_refinement_coverage_boxplot,
     mag_refinement_gc_content_boxplot,
     mag_refinement_length_boxplot,
+    contig_cytoscape,
 )
 
 
@@ -62,6 +63,9 @@ def render() -> DashBlueprint:
                     dbc.Col(mag_refinement_gc_content_boxplot.render(app), width=4),
                     dbc.Col(mag_refinement_length_boxplot.render(app), width=4),
                 ]
+            ),
+            dbc.Row(
+                [dbc.Col(contig_cytoscape.render(app), width=12)], justify="center"
             ),
             dbc.Row([dbc.Col(refinements_table.render(app), width=12)]),
         ],

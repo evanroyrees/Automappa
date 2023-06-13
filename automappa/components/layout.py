@@ -1,9 +1,8 @@
 import logging
+import dash
 
 from typing import Literal
 from dash_extensions.enrich import DashProxy, html
-import dash_bootstrap_components as dbc
-import dash
 
 from automappa.components import (
     binning_main_upload_store,
@@ -13,6 +12,8 @@ from automappa.components import (
     selected_tables_store,
     samples_store,
     binning_store,
+    # TODO: Uncomment when implemented
+    cytoscape_connections_store,
 )
 
 from automappa.pages.home.layout import render as render_home_layout
@@ -91,6 +92,9 @@ def render(
             app, storage_type=storage_type, clear_data=clear_data
         ),
         binning_store.render(app),
+        cytoscape_connections_store.render(
+            app, storage_type=storage_type, clear_data=clear_data
+        ),
     ]
     return html.Div(
         children=[
