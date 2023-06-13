@@ -45,7 +45,7 @@ def render(app: DashProxy) -> dbc.Offcanvas:
                             ),
                             dbc.Row(dbc.Col(kmer_size_dropdown.render())),
                             dbc.Row(dbc.Col(norm_method_dropdown.render())),
-                            dbc.Row(dbc.Col(scatterplot_2d_axes_dropdown.render())),
+                            dbc.Row(dbc.Col(scatterplot_2d_axes_dropdown.render(app))),
                         ],
                         title="Figure 1: 2D Metagenome Overview",
                     ),
