@@ -68,6 +68,7 @@ MAG_REFINEMENT_LENGTH_BOXPLOT = "mag-refinement-length-boxplot"
 LOADING_REFINEMENTS_TABLE = "loading-refinements-table"
 REFINEMENTS_TABLE = "refinements-table"
 SETTINGS_BUTTON = "settings-button"
+LOADING_CONTIG_CYTOSCAPE = "loading-contig-cytoscape"
 CONTIG_CYTOSCAPE = "contig-cytoscape"
 # MAG SUMMARY
 MAG_SUMMARY_TAB_ID = "MAG-summary"
