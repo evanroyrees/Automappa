@@ -107,19 +107,6 @@ def render(app: DashProxy) -> html.Div:
                 id=ids.CONTIG_CYTOSCAPE,
                 layout={"name": "cose"},
                 style={"width": "100%", "height": "600px"},
-                stylesheet=[
-                    {
-                        "selector": "node",
-                        "style": {"label": "data(label)", "opacity": 0.7},
-                    },
-                    {
-                        "selector": "edge",
-                        "style": {
-                            "opacity": 0.4,
-                            "curve-style": "bezier",
-                        },
-                    },
-                ],
                 responsive=True,
             ),
             id=ids.LOADING_CONTIG_CYTOSCAPE,
