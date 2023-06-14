@@ -105,7 +105,7 @@ def render(app: DashProxy) -> html.Div:
         dcc.Loading(
             cyto.Cytoscape(
                 id=ids.CONTIG_CYTOSCAPE,
-                layout={"name": "grid"},
+                layout={"name": "cose"},
                 style={"width": "100%", "height": "600px"},
                 stylesheet=[
                     {
