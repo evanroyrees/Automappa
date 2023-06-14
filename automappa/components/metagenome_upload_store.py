@@ -10,6 +10,7 @@ from automappa.data.loader import (
     validate_uploader,
 )
 from automappa.components import ids
+from automappa.data.db import file_system_backend
 
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ def render(
         if not filepath:
             raise PreventUpdate
         df = file_to_db(filepath, "metagenome")
-        return Serverside(df)
+        return Serverside(df, backend=file_system_backend)
 
     return dcc.Store(
         id=ids.METAGENOME_UPLOAD_STORE,

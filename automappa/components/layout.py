@@ -12,7 +12,6 @@ from automappa.components import (
     selected_tables_store,
     samples_store,
     binning_store,
-    # TODO: Uncomment when implemented
     cytoscape_connections_store,
 )
 

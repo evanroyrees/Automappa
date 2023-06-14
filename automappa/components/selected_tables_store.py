@@ -12,6 +12,7 @@ from automappa.tasks import (
     preprocess_embeddings,
     preprocess_marker_symbols,
 )
+from automappa.data.db import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ def render(
         # df = pd.DataFrame([get_task(t.id) for t in [marker_symbols_task, clusters_geom_medians_task, *embedding_tasks]])
         # TODO: Monitor tasks progress with dcc.Interval in another callback...
         # logger.debug(df)
-        return Serverside(sample)
+        return Serverside(sample, backend=redis_backend)
 
     return dcc.Store(
         id=ids.SELECTED_TABLES_STORE,

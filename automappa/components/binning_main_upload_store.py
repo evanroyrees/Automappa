@@ -10,6 +10,7 @@ from automappa.data.loader import (
     validate_uploader,
 )
 from automappa.components import ids
+from automappa.data.db import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ def render(
             filepath=filepath,
             filetype="binning",
         )
-        return Serverside(df)
+        return Serverside(df, backend=redis_backend)
 
     return dcc.Store(
         id=ids.BINNING_MAIN_UPLOAD_STORE,

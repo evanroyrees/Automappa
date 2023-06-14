@@ -6,6 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine.reflection import Inspector
 from contextlib import contextmanager
 
+from dash_extensions.enrich import RedisBackend, FileSystemBackend
+
 from automappa import settings
 
 # Create the engine and session
@@ -82,3 +84,24 @@ class MetagenomeTable(Base):
 
     id = Column(String, primary_key=True)
     sequence = Column(String)
+
+
+class CytoscapeTable(Base):
+    __tablename__ = "cytoscape"
+
+    id = Column(String, primary_key=True)
+    sequence = Column(String)
+    node1 = Column(String)
+    interaction = Column(Integer)
+    node2 = Column(String)
+    connections = Column(Integer)
+    mappingtype = Column(String)
+    name = Column(String)
+    contiglength = Column(String)
+
+
+redis_backend = RedisBackend(
+    **dict(host=settings.redis.host, port=settings.redis.port, db=settings.redis.db),
+    # password=settings.redis.password,
+)
+file_system_backend = FileSystemBackend(cache_dir=settings.server.root_upload_folder)

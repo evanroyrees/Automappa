@@ -7,10 +7,10 @@ from dash_extensions.enrich import Input, Output, State, DashProxy, dcc, Servers
 
 from automappa.data.loader import (
     file_to_db,
-    get_table,
     validate_uploader,
 )
 from automappa.components import ids
+from automappa.data.db import file_system_backend
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def render(
             filepath=filepath,
             filetype="cytoscape",
         )
-        return Serverside(df)
+        return Serverside(df, backend=file_system_backend)
 
     return dcc.Store(
         id=ids.CONTIG_CYTOSCAPE_UPLOAD_STORE,

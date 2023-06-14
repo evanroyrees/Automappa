@@ -12,6 +12,7 @@ from dash.exceptions import PreventUpdate
 
 from automappa.data.source import SampleTables
 from automappa.components import ids
+from automappa.data.db import redis_backend
 
 
 def render(app: DashProxy) -> dcc.Store:
@@ -23,6 +24,6 @@ def render(app: DashProxy) -> dcc.Store:
     def query_binning_in_db(sample: SampleTables):
         if sample is None:
             raise PreventUpdate
-        return Serverside(sample.binning.table)
+        return Serverside(sample.binning.table, backend=redis_backend)
 
     return dcc.Loading(dcc.Store(ids.BINNING_STORE), type="dot")

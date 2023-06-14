@@ -10,6 +10,7 @@ from automappa.data.loader import (
     validate_uploader,
 )
 from automappa.components import ids
+from automappa.data.db import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def render(
         if not filepath:
             raise PreventUpdate
         df = file_to_db(filepath, "markers")
-        return Serverside(df)
+        return Serverside(df, backend=redis_backend)
 
     return dcc.Store(
         id=ids.MARKERS_UPLOAD_STORE,

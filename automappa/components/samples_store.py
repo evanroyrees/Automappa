@@ -10,6 +10,7 @@ from automappa.data.loader import (
     get_uploaded_files_table,
 )
 from automappa.components import ids
+from automappa.data.db import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def render(
             # Check if db has any samples in table
             uploaded_files_df = get_uploaded_files_table()
             if not uploaded_files_df.empty:
-                return Serverside(uploaded_files_df)
+                return Serverside(uploaded_files_df, backend=redis_backend)
             raise PreventUpdate
         upload_dfs = [
             binning_uploads_df,
@@ -73,7 +74,7 @@ def render(
         logger.debug(
             f"{samples_df.shape[0]:,} samples retrieved from data upload stores"
         )
-        return Serverside(samples_df)
+        return Serverside(samples_df, backend=redis_backend)
 
     return dcc.Store(
         id=ids.SAMPLES_STORE,

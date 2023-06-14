@@ -25,6 +25,18 @@ class DatabaseSettings(BaseSettings):
         env_file_encoding: str = "utf-8"
 
 
+class RedisSettings(BaseSettings):
+    host: str
+    port: int
+    db: int
+    password: str
+
+    class Config:
+        env_prefix: str = "REDIS_BACKEND_"
+        env_file: str = ".env"
+        env_file_encoding: str = "utf-8"
+
+
 class RabbitmqSettings(BaseSettings):
     url: AmqpDsn
 
@@ -68,6 +80,7 @@ class ServerSettings(BaseSettings):
 
 server = ServerSettings()
 db = DatabaseSettings()
+redis = RedisSettings()
 database = DatabaseSettings()
 rabbitmq = RabbitmqSettings()
 celery = CelerySettings()
