@@ -1,9 +1,7 @@
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 import dash
-from dash_extensions.enrich import html, DashProxy, Output, Input
-
-from automappa.components import ids
+from dash_extensions.enrich import html
 
 
 def render() -> html.Div:
