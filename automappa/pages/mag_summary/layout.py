@@ -20,6 +20,7 @@ from automappa.pages.mag_summary.components import (
 def render() -> DashBlueprint:
     app = DashBlueprint()
     app.name = ids.MAG_SUMMARY_TAB_ID
+    app.icon = "material-symbols:auto-graph-rounded"
     app.description = (
         "Automappa MAG summary page displaying overview of genome binning results."
     )

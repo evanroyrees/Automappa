@@ -23,6 +23,7 @@ from automappa.pages.mag_refinement.components import (
 def render() -> DashBlueprint:
     app = DashBlueprint()
     app.name = ids.MAG_REFINEMENT_TAB_ID
+    app.icon = "mingcute:broom-line"
     app.description = (
         "Automappa MAG refinement page to manually inspect genome binning results."
     )

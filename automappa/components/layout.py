@@ -11,7 +11,6 @@ from automappa.components import (
     pages_navbar,
     selected_tables_store,
     samples_store,
-    binning_store,
     cytoscape_connections_store,
 )
 
@@ -35,39 +34,42 @@ def render(
     home_page.register(
         app=app,
         module=home_page.name,
-        **{
-            "name": home_page.name,
-            "description": home_page.description,
-            "title": home_page.title,
-            "top_nav": True,
-            "order": 0,
-            "redirect_from": ["/home"],
-            "path": "/",
-        }
+        **dict(
+            name=home_page.name,
+            description=home_page.description,
+            title=home_page.title,
+            icon=home_page.icon,
+            top_nav=True,
+            order=0,
+            redirect_from=["/home"],
+            path="/",
+        )
     )
     mag_refinement_page = render_mag_refinement_layout()
     mag_refinement_page.register(
         app=app,
         module=mag_refinement_page.name,
-        **{
-            "name": mag_refinement_page.name,
-            "description": mag_refinement_page.description,
-            "title": mag_refinement_page.title,
-            "top_nav": False,
-            "order": 1,
-        }
+        **dict(
+            name=mag_refinement_page.name,
+            description=mag_refinement_page.description,
+            title=mag_refinement_page.title,
+            icon=mag_refinement_page.icon,
+            top_nav=False,
+            order=1,
+        )
     )
     mag_summary_page = render_mag_summary_layout()
     mag_summary_page.register(
         app=app,
         module=mag_summary_page.name,
-        **{
-            "name": mag_summary_page.name,
-            "description": mag_summary_page.description,
-            "title": mag_summary_page.title,
-            "top_nav": False,
-            "order": 2,
-        }
+        **dict(
+            name=mag_summary_page.name,
+            description=mag_summary_page.description,
+            title=mag_summary_page.title,
+            icon=mag_summary_page.icon,
+            top_nav=False,
+            order=2,
+        )
     )
     not_found_404_page = render_not_found_404()
     not_found_404_page.register(
@@ -90,7 +92,6 @@ def render(
         selected_tables_store.render(
             app, storage_type=storage_type, clear_data=clear_data
         ),
-        binning_store.render(app),
         cytoscape_connections_store.render(
             app, storage_type=storage_type, clear_data=clear_data
         ),

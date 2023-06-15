@@ -17,6 +17,7 @@ from automappa.pages.home.components import (
 def render() -> DashBlueprint:
     app = DashBlueprint()
     app.name = ids.HOME_TAB_ID
+    app.icon = "line-md:home"
     app.description = "Automappa home page to upload genome binning results."
     app.title = "Automappa home"
     app.layout = dbc.Container(
