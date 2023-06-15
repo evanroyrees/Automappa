@@ -17,6 +17,7 @@ from automappa.pages.mag_refinement.components import (
     mag_refinement_gc_content_boxplot,
     mag_refinement_length_boxplot,
     contig_cytoscape,
+    coverage_range_slider,
 )
 
 
@@ -50,12 +51,13 @@ def render() -> DashBlueprint:
                     dbc.Col(mag_metrics_table.render(app), width=3),
                 ]
             ),
-            # TODO: Add MAG assembly metrics table
+            dbc.Row(
+                [dbc.Col(coverage_range_slider.render(app), width=9), dbc.Col(width=3)]
+            ),
             dbc.Row(
                 [
                     dbc.Col(taxonomy_distribution.render(app), width=7),
                     dbc.Col(scatterplot_3d.render(app), width=5),
-                    # TODO: dbc.Col(coverage_range_slider.render(app), width=3),
                 ]
             ),
             dbc.Row(

@@ -38,6 +38,7 @@ NORM_METHOD_DROPDOWN = "norm-method-dropdown"
 NORM_METHOD_DROPDOWN_VALUE_DEFAULT = "am_clr"
 AXES_2D_DROPDOWN = "axes-2d"
 AXES_2D_DROPDOWN_VALUE_DEFAULT = "coverage|gc_content"
+COVERAGE_RANGE_SLIDER = "coverage-range-slider"
 SCATTERPLOT_3D_LEGEND_TOGGLE = "scatterplot-3d-legend-toggle"
 SCATTERPLOT_3D_LEGEND_TOGGLE_VALUE_DEFAULT = True
 SCATTERPLOT_3D_ZAXIS_DROPDOWN = "scatterplot-3d-zaxis-dropdown"

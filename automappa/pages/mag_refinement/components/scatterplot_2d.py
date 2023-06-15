@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from typing import Tuple
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
 
@@ -24,6 +25,7 @@ def render(app: DashProxy) -> html.Div:
             Input(ids.SCATTERPLOT_2D_LEGEND_TOGGLE, "checked"),
             Input(ids.COLOR_BY_COLUMN_DROPDOWN, "value"),
             Input(ids.HIDE_SELECTIONS_TOGGLE, "checked"),
+            Input(ids.COVERAGE_RANGE_SLIDER, "value"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
         ],
     )
@@ -35,6 +37,7 @@ def render(app: DashProxy) -> html.Div:
         show_legend: bool,
         color_by_col: str,
         hide_selection_toggle: bool,
+        coverage_range: Tuple[float, float],
         btn_clicks: int,
     ) -> go.Figure:
         # NOTE: btn_clicks is an input so this figure is updated when new refinements are saved
@@ -68,6 +71,10 @@ def render(app: DashProxy) -> html.Div:
                 bin_df.drop(
                     refined_contigs_index, axis="index", inplace=True, errors="ignore"
                 )
+        min_coverage, max_coverage = coverage_range
+        bin_df = bin_df.loc[
+            bin_df.coverage.ge(min_coverage) & bin_df.coverage.le(max_coverage)
+        ]
         # TODO: Refactor figure s.t. updates are applied in
         # batches for respective styling,layout,traces, etc.
         # TODO: Put figure or traces in store, get/update/select
