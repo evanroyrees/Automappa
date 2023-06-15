@@ -15,9 +15,10 @@ def render(app: DashProxy) -> html.Div:
             dmc.Button(
                 "Upload data",
                 id=ids.OPEN_MODAL_BUTTON,
-                leftIcon=[DashIconify(icon="line-md:upload-outline")],
+                leftIcon=[DashIconify(icon="line-md:upload-outline", width=25)],
                 variant="gradient",
                 gradient={"from": "#CA2270", "to": "#F36E2D"},
+                fullWidth=True,
             ),
             upload_modal.render(app),
         ]

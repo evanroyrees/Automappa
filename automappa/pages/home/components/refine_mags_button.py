@@ -31,8 +31,9 @@ def render(app: DashProxy) -> html.Div:
         dmc.Button(
             "Refine MAGs",
             id=ids.REFINE_MAGS_BUTTON,
-            leftIcon=[DashIconify(icon="mingcute:broom-line")],
+            leftIcon=[DashIconify(icon="mingcute:broom-line", width=25)],
             variant="gradient",
             gradient={"from": "#642E8D", "to": "#1f58a6", "deg": 150},
+            fullWidth=True,
         )
     )

@@ -23,10 +23,10 @@ def render() -> DashBlueprint:
         children=[
             dbc.Row(
                 [
-                    dbc.Col(upload_modal_button.render(app), width=2, align="center"),
-                    dbc.Col(refine_mags_button.render(app), width=2, align="center"),
+                    dbc.Col(upload_modal_button.render(app), align="center"),
+                    dbc.Col(refine_mags_button.render(app), align="center"),
                 ],
-                justify="center",
+                justify="evenly",
             ),
             dbc.Row(dbc.Col(samples_datatable.render(app)), justify="center"),
             dbc.Row(
