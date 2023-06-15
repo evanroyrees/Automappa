@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dash import dcc, html
-from dash_extensions.enrich import DashProxy, Input, Output
+from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
 
 from automappa.data.source import SampleTables
