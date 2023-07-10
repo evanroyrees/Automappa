@@ -47,9 +47,9 @@ image: Dockerfile
 
 ## Remove automappa-{web,flower,celery} docker images
 rm-images: Dockerfile
-	docker rmi -f $(docker images -q automappa-web)
-	docker rmi -f $(docker images -q automappa-celery)
-	docker rmi -f $(docker images -q automappa-flower)
+	docker rmi -f `docker images -q automappa-web`
+	docker rmi -f `docker images -q automappa-celery`
+	docker rmi -f `docker images -q automappa-flower`
 
 ## Install automappa entrypoint into current environment
 install: 

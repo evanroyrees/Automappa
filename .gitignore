@@ -14,3 +14,4 @@ data
 !automappa/data
 db-data
 file_system_backend
+*.db

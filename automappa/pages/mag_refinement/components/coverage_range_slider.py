@@ -1,33 +1,29 @@
-from typing import Tuple
+from typing import Protocol, Tuple
 from dash_extensions.enrich import DashProxy, Output, Input, html
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
 from automappa.components import ids
-from automappa.data.source import SampleTables
 
 
-def render(app: DashProxy) -> html.Div:
+class CoverageRangeSliderDataSource(Protocol):
+    def get_coverage_min_max_values(self, metagenome_id: int) -> Tuple[float, float]:
+        ...
+
+
+def render(app: DashProxy, source: CoverageRangeSliderDataSource) -> html.Div:
     @app.callback(
         Output(ids.COVERAGE_RANGE_SLIDER, "max"),
         Output(ids.COVERAGE_RANGE_SLIDER, "value"),
-        Output(ids.COVERAGE_RANGE_SLIDER, "marks"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
     )
     def update_slider_range(
-        sample: SampleTables,
+        metagenome_id: int,
     ) -> Tuple[float, float, Tuple[float, float]]:
-        df = sample.binning.table
-        minimum = df.coverage.round().astype(int).min()
-        max = df.coverage.round().astype(int).max()
-        marks = [
-            {"value": mark, "label": f"{mark:,}x"}
-            for mark in df.coverage.quantile([0, 0.25, 0.5, 0.75, 1])
-            .round()
-            .astype(int)
-            .values
-        ]
-        return max, (minimum, max), marks
+        min_cov, max_cov = source.get_coverage_min_max_values(metagenome_id)
+        min_cov = round(min_cov, 2)
+        max_cov = round(max_cov, 2)
+        return max_cov, (min_cov, max_cov)
 
     return html.Div(
         [

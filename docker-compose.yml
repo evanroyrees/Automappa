@@ -12,6 +12,11 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
   rabbitmq:
     image: rabbitmq:3.10.1-management-alpine
     restart: always
@@ -36,6 +41,7 @@ services:
     depends_on:
       - redis
       - rabbitmq
+
   flower:
     build:
       context: .
@@ -51,6 +57,25 @@ services:
     depends_on:
       - celery
       - rabbitmq
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    mem_limit: 4GB
+    # Not sure which is more appropriate for production :shrug:
+    # The current command allows live-reloading for dev
+    # command: automappa
+    command: python -m automappa.__main__
+    volumes:
+      # /usr/src/app is location of install in Dockerfile
+      - .:/usr/src/app
+    ports:
+      - "8050:8050"
+    depends_on:
+      - postgres
+      - celery
 
   # prometheus:
   #   image: prom/prometheus:latest
@@ -75,29 +100,6 @@ services:
   #     - ./docker/grafana/dashboards:/etc/grafana/dashboards
   #   depends_on:
   #     - prometheus
-
-  redis:
-    image: redis:latest
-    ports:
-      - "6379:6379"
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: always
-    mem_limit: 4GB
-    # Not sure which is more appropriate for production :shrug:
-    # The current command allows live-reloading for dev
-    # command: automappa
-    command: python -m automappa.__main__
-    volumes:
-      # /usr/src/app is location of install in Dockerfile
-      - .:/usr/src/app
-    ports:
-      - "8050:8050"
-    depends_on:
-      - postgres
-      - celery
 
 volumes:
   postgres-data:

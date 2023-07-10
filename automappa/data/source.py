@@ -1,20 +1,53 @@
+from functools import partial
 import itertools
+import uuid
+import logging
+import pandas as pd
 from pydantic import BaseModel
-from typing import List, Optional
-from typing_extensions import Literal
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
-from automappa.data.db import check_table_exists
+from sqlmodel import SQLModel, Session, select, func
+import numpy as np
 
-from automappa.data.loader import get_table
+from sqlalchemy.exc import NoResultFound, MultipleResultsFound
+from automappa.data import loader
 
 
-class MetagenomeAnnotations(BaseModel):
-    contig: str
-    binning: Optional[str]
-    refinements: Optional[str]
-    markers: Optional[str]
-    # marker_symbols: Union[AsyncResult,str]
-    metagenome: Optional[str]
+from automappa.data.database import engine, create_db_and_tables
+from automappa.data.loader import (
+    get_table,
+    in_table_names,
+    read_cytoscape_connections,
+    Metagenome,
+    Contig,
+    Marker,
+    CytoscapeConnection,
+    create_sample_metagenome,
+    validate_uploader,
+)
+from automappa.data.schemas import ContigSchema
+
+logger = logging.getLogger(__name__)
+
+
+def sqlmodel_to_df(objects: List[SQLModel], set_index: bool = True) -> pd.DataFrame:
+    """Converts SQLModel objects into a Pandas DataFrame.
+
+    From https://github.com/tiangolo/sqlmodel/issues/215#issuecomment-1092348993
+
+    Usage
+    ----------
+    df = sqlmodel_to_df(list_of_sqlmodels)
+    Parameters
+    ----------
+    :param objects: List[SQLModel]: List of SQLModel objects to be converted.
+    :param set_index: bool: Sets the first column, usually the primary key, to dataframe index.
+    """
+
+    records = [obj.dict() for obj in objects]
+    columns = list(objects[0].schema()["properties"].keys())
+    df = pd.DataFrame.from_records(records, columns=columns)
+    return df.set_index(columns[0]) if set_index else df
 
 
 class AnnotationTable(BaseModel):
@@ -35,7 +68,7 @@ class AnnotationTable(BaseModel):
 
     @property
     def exists(self):
-        return check_table_exists(self.id)
+        return in_table_names(self.id)
 
     @property
     def columns(self):
@@ -74,6 +107,11 @@ class KmerTable(BaseModel):
         )
 
 
+class Scatterplot2DSource(BaseModel):
+    def coverage_filter(coverage_range: Tuple[float, float]) -> pd.DataFrame:
+        return get_contigs_from_coverage_range((10, 20))
+
+
 class CytoscapeConnectionsTable(BaseModel):
     id: str
 
@@ -87,11 +125,11 @@ class CytoscapeConnectionsTable(BaseModel):
 
     @property
     def table(self):
-        return get_table(self.id)
+        return read_cytoscape_connections()
 
     @property
     def exists(self):
-        return check_table_exists(self.id)
+        return in_table_names(self.id)
 
     @property
     def columns(self):
@@ -154,3 +192,129 @@ class SampleTables(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         smart_union = True
+
+
+## DataSource filter methods
+
+
+def get_mag_completeness_purities(metagenome_id: int) -> List[Tuple[float, float]]:
+    with Session(engine) as session:
+        results = session.exec(
+            select(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+            .where(Contig.cluster.isnot(None), Contig.cluster != "nan")
+            .group_by(Contig.cluster)
+        ).all()
+    return [(result.cluster, result.completeness, result.purity) for result in results]
+
+
+def get_gc_contents(metagenome_id: int) -> List[float]:
+    with Session(engine) as session:
+        results = session.exec(
+            select(Contig).join(Metagenome).where(Metagenome.id == metagenome_id)
+        ).all()
+    return [result.gc_content for result in results]
+
+
+def get_lengths(metagenome_id: int) -> List[float]:
+    with Session(engine) as session:
+        results = session.exec(
+            select(Contig).where(Contig.metagenome_id == metagenome_id)
+        ).all()
+    return [result.length for result in results]
+
+
+def get_coverages(metagenome_id: int) -> List[float]:
+    with Session(engine) as session:
+        statement = select(Contig).where(Contig.metagenome_id == metagenome_id)
+        results = session.exec(statement).all()
+    return [result.coverage for result in results]
+
+
+def get_contigs_from_coverage_range(
+    metagenome_id: int, coverage_range: Tuple[float, float]
+) -> List[Contig]:
+    min_coverage, max_coverage = coverage_range
+    with Session(engine) as session:
+        statement = (
+            select(Contig)
+            .where(
+                Contig.coverage >= min_coverage,
+                Contig.coverage <= max_coverage,
+            )
+            .join(Metagenome)
+            .where(Metagenome.id == metagenome_id)
+        )
+        results = session.exec(statement).all()
+    return sqlmodel_to_df(results)
+
+
+def get_coverage_quantiles(
+    quantiles: List[int] = [0, 0.25, 0.5, 0.75, 1]
+) -> List[float]:
+    with Session(engine) as session:
+        statement = select(Contig.coverage)
+        coverages = session.exec(statement).all()
+    quantile = np.quantile(coverages, q=quantiles)
+    return quantile
+
+
+def get_min_max_coverages() -> Tuple[float, float]:
+    with Session(engine) as session:
+        statement = select(func.min(Contig.coverage), func.max(Contig.coverage))
+        min_cov, max_cov = session.exec(statement).first()
+    return min_cov, max_cov
+
+
+def get_scatterplot_2d_data(
+    metagenome_id: int, coverage_range: Tuple[float, float]
+) -> pd.DataFrame:
+    # refinements_filter
+    # coverage_range_filter
+    min_coverage, max_coverage = coverage_range
+    with Session(engine) as session:
+        statement = (
+            select(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+            .where(
+                Contig.coverage >= min_coverage,
+                Contig.coverage <= max_coverage,
+            )
+        )
+        results = session.exec(statement).all()
+    # join_markers
+    return sqlmodel_to_df(results)
+
+
+def main():
+    # init database and tables
+    create_db_and_tables()
+    source = HomeDataSource()
+    markers = source.create_markers()
+    # metagenome_getter(contigs_getter(markers_getter()))
+    contigs = source.create_contigs(markers)
+    source.create_metagenome(contigs)
+    sample_names = source.get_sample_names()
+    print(f"{sample_names=}")
+    for sample_name in sample_names:
+        name_is_unique = source.name_is_unique(sample_name)
+        print(f"{sample_name=}, {name_is_unique=}")
+        marker_count = source.marker_count(sample_name)
+        print(f"{sample_name=}, {marker_count=}")
+        contig_count = source.contig_count(sample_name)
+        print(f"{sample_name=}, {contig_count=}")
+        connections_count = source.connections_count(sample_name)
+        print(f"{sample_name=}, {connections_count=}")
+        mags = get_mag_completeness_purities(sample_name)
+        print(mags)
+    # min_cov, max_cov = get_min_max_coverages()
+    # print(f"min: {min_cov:,}, max: {max_cov:,}")
+    # quantiles = get_coverage_quantiles()
+    # print(f"coverage quantiles: {quantiles}")
+    # res = get_mag_completeness_purities()
+    # print(res)
+    # contig_df = get_contigs_from_coverage_range((10, 20))
+
+
+if __name__ == "__main__":
+    main()

@@ -5,12 +5,9 @@ from typing import Literal
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import Input, Output, State, DashProxy, dcc, Serverside
 
-from automappa.data.loader import (
-    file_to_db,
-    validate_uploader,
-)
+from automappa.data.loader import file_to_db, validate_uploader
 from automappa.components import ids
-from automappa.data.db import file_system_backend
+from automappa.data.database import file_system_backend
 
 
 logger = logging.getLogger(__name__)
@@ -52,10 +49,10 @@ def render(
 
     @app.callback(
         Output(ids.METAGENOME_UPLOAD_STORE, "data"),
-        [Input(ids.UPLOAD_METAGENOME_DATA, "isCompleted")],
+        [Input(ids.METAGENOME_UPLOAD, "isCompleted")],
         [
-            State(ids.UPLOAD_METAGENOME_DATA, "fileNames"),
-            State(ids.UPLOAD_METAGENOME_DATA, "upload_id"),
+            State(ids.METAGENOME_UPLOAD, "fileNames"),
+            State(ids.METAGENOME_UPLOAD, "upload_id"),
         ],
     )
     def on_metagenome_upload(iscompleted, filenames, upload_id):

@@ -1,12 +1,12 @@
 import dash_bootstrap_components as dbc
-import dash_uploader as du
 
 from dash_extensions.enrich import (
     DashProxy,
     ServersideOutputTransform,
 )
+import dash_uploader as du
+from automappa.data.database import redis_backend, file_system_backend
 from automappa import settings
-from automappa.data.db import redis_backend, file_system_backend
 
 
 app = DashProxy(
@@ -22,9 +22,8 @@ app = DashProxy(
         ServersideOutputTransform(
             default_backend=[file_system_backend],
             backends=[redis_backend, file_system_backend],
-        )
+        ),
     ],
 )
 
-# Setup main app layout.
 du.configure_upload(app=app, folder=settings.server.root_upload_folder)

@@ -1,47 +1,31 @@
-import dash_bootstrap_components as dbc
-from dash_extensions.enrich import DashBlueprint
+from dash_extensions.enrich import DashBlueprint, LogTransform
+import dash_mantine_components as dmc
 from automappa.components import ids
-from automappa.pages.home.components import (
-    binning_select,
-    markers_select,
-    metagenome_select,
-    cytoscape_connections_select,
-    selected_tables_datatable,
-    tasks_table,
-    upload_modal_button,
-    samples_datatable,
-    refine_mags_button,
-)
+from automappa.pages.home.components import sample_cards, upload_modal_button
+from automappa.pages.home.source import HomeDataSource
 
 
-def render() -> DashBlueprint:
-    app = DashBlueprint()
+HEIGHT_MARGIN = 10
+WIDTH_MARGIN = 10
+
+
+def render(source: HomeDataSource) -> DashBlueprint:
+    app = DashBlueprint(transforms=[LogTransform()])
     app.name = ids.HOME_TAB_ID
     app.icon = "line-md:home"
     app.description = "Automappa home page to upload genome binning results."
     app.title = "Automappa home"
-    app.layout = dbc.Container(
-        children=[
-            dbc.Row(
-                [
-                    dbc.Col(upload_modal_button.render(app), align="center"),
-                    dbc.Col(refine_mags_button.render(app), align="center"),
-                ],
-                justify="evenly",
-            ),
-            dbc.Row(dbc.Col(samples_datatable.render(app)), justify="center"),
-            dbc.Row(
-                [
-                    dbc.Col(binning_select.render(app)),
-                    dbc.Col(markers_select.render(app)),
-                    dbc.Col(metagenome_select.render(app)),
-                    dbc.Col(cytoscape_connections_select.render(app)),
-                ],
-                justify="center",
-            ),
-            dbc.Row(dbc.Col(selected_tables_datatable.render(app)), justify="center"),
-            dbc.Row(dbc.Col(tasks_table.render(app)), justify="center"),
-        ],
-        fluid=True,
+    app.layout = dmc.NotificationsProvider(
+        dmc.Container(
+            [
+                dmc.Space(h=HEIGHT_MARGIN, w=WIDTH_MARGIN),
+                sample_cards.render(app, source),
+                dmc.Affix(
+                    upload_modal_button.render(app, source),
+                    position={"bottom": HEIGHT_MARGIN, "left": WIDTH_MARGIN},
+                ),
+            ],
+            fluid=True,
+        )
     )
     return app

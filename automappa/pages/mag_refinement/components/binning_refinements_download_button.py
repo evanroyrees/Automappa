@@ -1,35 +1,39 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Dict
+from typing import Dict, Protocol
 
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
+import pandas as pd
 
-from automappa.data.source import SampleTables
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class RefinementsDownloadButtonDataSource(Protocol):
+    def get_refinements_dataframe(self, metagenome_id: int) -> pd.DataFrame:
+        ...
+
+
+def render(app: DashProxy, source: RefinementsDownloadButtonDataSource) -> html.Div:
     @app.callback(
         Output(ids.REFINEMENTS_DOWNLOAD, "data"),
         [
             Input(ids.REFINEMENTS_DOWNLOAD_BUTTON, "n_clicks"),
-            Input(ids.SELECTED_TABLES_STORE, "data"),
+            Input(ids.METAGENOME_ID_STORE, "data"),
         ],
     )
     def download_refinements(
         n_clicks: int,
-        sample: SampleTables,
+        metagenome_id: int,
     ) -> Dict[str, "str | bool"]:
         if not n_clicks:
             raise PreventUpdate
-        return dcc.send_data_frame(
-            sample.refinements.table.to_csv, "refinements.csv", index=False
-        )
+        df = source.get_refinements_dataframe(metagenome_id)
+        return dcc.send_data_frame(df.to_csv, "refinements.csv", index=False)
 
     # Download Refinements Button
     return html.Div(

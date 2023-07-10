@@ -16,6 +16,7 @@ def render() -> html.Div:
         dmc.Anchor(
             [logo, "  Automappa"],
             href="https://github.com/WiscEvan/Automappa",
+            target="_blank",
             underline=False,
             color="dark",
             size="xl",
@@ -29,13 +30,13 @@ def render() -> html.Div:
     link_group = dmc.Group(
         [
             dmc.NavLink(
-                label=page["name"],
+                label=dmc.Text(page["name"], align="center", weight=500),
                 href=page["path"],
                 icon=DashIconify(icon=page["icon"], height=30),
                 variant="subtle",
                 color="gray",
                 id=page["name"],
-                style={"textAlign": "center"},
+                # style={"textAlign": "center"},
             )
             for page in dash.page_registry.values()
             if page["module"] != "not_found_404"
@@ -56,7 +57,8 @@ def render() -> html.Div:
             gutter="xs",
         ),
         height=50,
-        style={"backgroundColor": "#adb5bd"},
+        # style={"backgroundColor": "#adb5bd"},
+        style={"backgroundColor": "#FFFFFF"},
         zIndex=99999999,
     )
     return html.Div(header)

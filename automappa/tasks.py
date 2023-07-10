@@ -3,9 +3,10 @@
 
 # import random
 import tempfile
+import logging
 
 # import time
-from typing import List
+from typing import List, Literal
 import numpy as np
 import pandas as pd
 
@@ -32,6 +33,20 @@ from automappa.data.loader import (
     table_to_db,
 )
 
+logging.basicConfig(
+    format="[%(levelname)s] %(name)s: %(message)s",
+    level=logging.DEBUG,
+)
+
+logger = logging.getLogger(__name__)
+numba_logger = logging.getLogger("numba")
+numba_logger.setLevel(logging.WARNING)
+numba_logger.propagate = False
+h5py_logger = logging.getLogger("h5py")
+h5py_logger.setLevel(logging.WARNING)
+h5py_logger.propagate = False
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.WARNING)
 
 queue = Celery(
     __name__, backend=settings.celery.backend_url, broker=settings.celery.broker_url
@@ -72,22 +87,20 @@ def get_task(job_id) -> dict[str, str]:
 
 
 @queue.task(bind=True)
-def preprocess_marker_symbols(self, binning_table: str, markers_table: str) -> str:
-    bin_df = get_table(binning_table, index_col="contig")
-    markers_df = get_table(markers_table, index_col="contig")
+def preprocess_marker_symbols(self, sample_id: int) -> str:
+    # TODO
+    # 1. get all contigs with their marker counts
+    # 2.
+    # results = session.exec(Select(Contig)).where(Contig.metagenome_id == sample_id)
+    markers_df = results
     marker_symbols_df = get_marker_symbols(bin_df, markers_df).set_index("contig")
     marker_symbols_table = markers_table.replace("-markers", "-marker-symbols")
     table_to_db(marker_symbols_df, marker_symbols_table, index=True)
     return marker_symbols_table
 
 
-# TODO: STRETCH GOALS
-# Data loader [stretch...]
+# TODO STRETCH GOALS
 # CheckM annotation
-
-# TODO
-# Create 2d-scatterplot figure
-# Marker symbols table
 # kmer freq. analysis pipeline
 # scatterplot 2-d embedding views
 
@@ -174,7 +187,12 @@ def preprocess_embeddings(
     kmer_size: int = 5,
     norm_method: str = "am_clr",
     embed_dims: int = 2,
-    embed_methods: List[str] = ["bhsne", "densmap", "trimap", "umap"],
+    embed_methods: List[Literal["bhsne", "densmap", "trimap", "umap"]] = [
+        "bhsne",
+        "densmap",
+        "trimap",
+        "umap",
+    ],
 ):
     embeddings_table = metagenome_table.replace(
         "-metagenome", f"-{kmer_size}mers-{norm_method}-embeddings"

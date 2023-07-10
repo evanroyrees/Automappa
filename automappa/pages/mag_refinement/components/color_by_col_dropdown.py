@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 
+from typing import Dict, List, Literal, Protocol
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
-from automappa.data.source import SampleTables
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class ColorByColDropdown(Protocol):
+    def get_color_by_column_options(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        ...
+
+
+def render(app: DashProxy, source: ColorByColDropdown) -> html.Div:
     @app.callback(
         Output(ids.COLOR_BY_COLUMN_DROPDOWN, "options"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
     )
-    def get_color_options(sample: SampleTables):
-        df = sample.binning.table
-        return [
-            {"label": col.title().replace("_", " "), "value": col}
-            for col in df.select_dtypes("object").columns
-        ]
+    def get_color_options(
+        metagenome_id: int,
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        return source.get_color_by_column_options(metagenome_id)
 
     return html.Div(
         [

@@ -10,7 +10,7 @@ from automappa.data.loader import (
     get_uploaded_files_table,
 )
 from automappa.components import ids
-from automappa.data.db import redis_backend
+from automappa.data.database import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,13 @@ def render(
             Input(ids.BINNING_MAIN_UPLOAD_STORE, "modified_timestamp"),
             Input(ids.MARKERS_UPLOAD_STORE, "modified_timestamp"),
             Input(ids.METAGENOME_UPLOAD_STORE, "modified_timestamp"),
-            Input(ids.CONTIG_CYTOSCAPE_UPLOAD_STORE, "modified_timestamp"),
+            Input(ids.CYTOSCAPE_STORE, "modified_timestamp"),
         ],
         [
             State(ids.BINNING_MAIN_UPLOAD_STORE, "data"),
             State(ids.MARKERS_UPLOAD_STORE, "data"),
             State(ids.METAGENOME_UPLOAD_STORE, "data"),
-            State(ids.CONTIG_CYTOSCAPE_UPLOAD_STORE, "data"),
+            State(ids.CYTOSCAPE_STORE, "data"),
             State(ids.SAMPLES_STORE, "data"),
         ],
     )
@@ -63,14 +63,15 @@ def render(
             if not uploaded_files_df.empty:
                 return Serverside(uploaded_files_df, backend=redis_backend)
             raise PreventUpdate
-        upload_dfs = [
-            binning_uploads_df,
-            markers_uploads_df,
-            metagenome_uploads_df,
-            cytoscape_uploads_df,
-            samples_store_data_df,
-        ]
-        samples_df = pd.concat(upload_dfs).drop_duplicates(subset=["table_id"])
+        samples_df = pd.concat(
+            [
+                binning_uploads_df,
+                markers_uploads_df,
+                metagenome_uploads_df,
+                cytoscape_uploads_df,
+                samples_store_data_df,
+            ]
+        ).drop_duplicates(subset=["table_id"])
         logger.debug(
             f"{samples_df.shape[0]:,} samples retrieved from data upload stores"
         )

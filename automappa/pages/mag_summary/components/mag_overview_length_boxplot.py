@@ -10,7 +10,7 @@ from automappa.utils.figures import metric_boxplot
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+def render(app: DashProxy, source) -> html.Div:
     @app.callback(
         Output(ids.MAG_OVERVIEW_LENGTH_BOXPLOT, "figure"),
         Input(ids.SELECTED_TABLES_STORE, "data"),

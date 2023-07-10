@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from typing import Dict, List
 import pandas as pd
 
 from dash.exceptions import PreventUpdate
@@ -19,17 +20,15 @@ def render(app: DashProxy) -> html.Div:
         [Input(ids.SAMPLES_STORE, "data")],
         State(ids.SAMPLES_STORE, "data"),
     )
-    def binning_select_options(samples_df: pd.DataFrame, new_samples_df: pd.DataFrame):
+    def binning_select_options(
+        samples_df: pd.DataFrame, new_samples_df: pd.DataFrame
+    ) -> List[Dict[str, str]]:
         if samples_df is None or samples_df.empty:
             raise PreventUpdate
         if new_samples_df is not None:
             samples_df = pd.concat([samples_df, new_samples_df]).drop_duplicates(
                 subset=["table_id"]
             )
-
-        if samples_df.empty:
-            raise PreventUpdate
-
         df = samples_df.loc[samples_df.filetype.eq("binning")]
         logger.debug(f"{df.shape[0]:,} binning available for mag_refinement")
         return [

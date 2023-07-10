@@ -1,104 +1,112 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List
-
-from dash.dash_table import DataTable
+from typing import Dict, List, Literal, Optional, Protocol, Union
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
-import pandas as pd
+import dash_ag_grid as dag
 
-
-from automappa.data.source import SampleTables
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class MagMetricsTableDataSource(Protocol):
+    def get_marker_overview(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        ...
+
+    def get_mag_metrics(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        ...
+
+
+def render(app: DashProxy, source: MagMetricsTableDataSource) -> html.Div:
     @app.callback(
-        Output(ids.MAG_METRICS_DATATABLE, "children"),
+        Output(ids.MAG_METRICS_DATATABLE, "rowData", allow_duplicate=True),
         [
-            Input(ids.SELECTED_TABLES_STORE, "data"),
-            Input(ids.SCATTERPLOT_2D, "selectedData"),
+            Input(ids.METAGENOME_ID_STORE, "data"),
+            Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
         ],
+        prevent_initial_call=True,
     )
-    def update_mag_metrics_datatable_callback(
-        sample: SampleTables,
-        selected_contigs: Dict[str, List[Dict[str, str]]],
-    ) -> DataTable:
-        markers_df = sample.markers.table
-        if selected_contigs:
-            contigs = {point["text"] for point in selected_contigs["points"]}
-            selected_contigs_count = len(contigs)
-            markers_df = markers_df.loc[markers_df.index.isin(contigs)]
-
-        expected_markers_count = markers_df.shape[1]
-
-        pfam_counts = markers_df.sum()
-        if pfam_counts[pfam_counts.ge(1)].empty:
-            total_markers = 0
-            single_copy_marker_count = 0
-            markers_present_count = 0
-            redundant_markers_count = 0
-            marker_set_count = 0
-            completeness = "NA"
-            purity = "NA"
-        else:
-            total_markers = pfam_counts.sum()
-            single_copy_marker_count = pfam_counts.eq(1).sum()
-            markers_present_count = pfam_counts.ge(1).sum()
-            redundant_markers_count = pfam_counts.gt(1).sum()
-            completeness = markers_present_count / expected_markers_count * 100
-            purity = single_copy_marker_count / markers_present_count * 100
-            marker_set_count = total_markers / expected_markers_count
-
-        marker_contig_count = markers_df.sum(axis=1).ge(1).sum()
-        single_marker_contig_count = markers_df.sum(axis=1).eq(1).sum()
-        multi_marker_contig_count = markers_df.sum(axis=1).gt(1).sum()
-        metrics_data = {
-            "Expected Markers": expected_markers_count,
-            "Total Markers": total_markers,
-            "Redundant-Markers": redundant_markers_count,
-            "Markers Count": markers_present_count,
-            "Marker Sets (Total / Expected)": marker_set_count,
-            "Marker-Containing Contigs": marker_contig_count,
-            "Multi-Marker Contigs": multi_marker_contig_count,
-            "Single-Marker Contigs": single_marker_contig_count,
-        }
-        if selected_contigs:
-            selection_metrics = {
-                "Contigs": selected_contigs_count,
-                "Completeness (%)": completeness,
-                "Purity (%)": purity,
-            }
-            selection_metrics.update(metrics_data)
-            # Adding this extra step b/c to keep selection metrics at top of the table...
-            metrics_data = selection_metrics
-
-        metrics_df = pd.DataFrame([metrics_data]).T
-        metrics_df.rename(columns={0: "Value"}, inplace=True)
-        metrics_df.index.name = "MAG Metric"
-        metrics_df.reset_index(inplace=True)
-        metrics_df = metrics_df.round(2)
-        return DataTable(
-            data=metrics_df.to_dict("records"),
-            columns=[{"name": col, "id": col} for col in metrics_df.columns],
-            style_cell={
-                "height": "auto",
-                # all three widths are needed
-                "minWidth": "20px",
-                "width": "20px",
-                "maxWidth": "20px",
-                "whiteSpace": "normal",
-                "textAlign": "center",
-            },
-            # TODO: style completeness and purity cells to MIMAG standards as mentioned above
+    def compute_mag_metrics(
+        metagenome_id: int,
+        selected_contigs: Optional[Dict[str, List[Dict[str, str]]]],
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        headers = (
+            {point["text"] for point in selected_contigs["points"]}
+            if selected_contigs
+            else None
         )
+        row_data = source.get_mag_metrics(metagenome_id=metagenome_id, headers=headers)
+        return row_data
 
+    @app.callback(
+        Output(ids.MAG_METRICS_DATATABLE, "rowData", allow_duplicate=True),
+        Input(ids.METAGENOME_ID_STORE, "data"),
+        prevent_initial_call="initial_duplicate",
+    )
+    def compute_markers_overview(
+        metagenome_id: int,
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        row_data = source.get_marker_overview(metagenome_id)
+        return row_data
+
+    GREEN = "#2FCC90"
+    YELLOW = "#f2e530"
+    ORANGE = "#f57600"
+    MIMAG_STYLE_CONDITIONS = {
+        "styleConditions": [
+            # High-quality >90% complete > 95% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value > 90",
+                "style": {"backgroundColor": GREEN},
+            },
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value > 95",
+                "style": {"backgroundColor": GREEN},
+            },
+            # Medium-quality >=50% complete > 90% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value >= 50",
+                "style": {"backgroundColor": YELLOW},
+            },
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value > 90",
+                "style": {"backgroundColor": YELLOW},
+            },
+            # Low-quality <50% complete < 90% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value < 50",
+                "style": {"backgroundColor": ORANGE, "color": "white"},
+            },
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value < 90",
+                "style": {"backgroundColor": ORANGE, "color": "white"},
+            },
+        ]
+    }
+
+    column_defs = [
+        {"field": "metric", "headerName": "MAG Metric", "resizable": True},
+        {
+            "field": "metric_value",
+            "headerName": "Value",
+            "cellStyle": MIMAG_STYLE_CONDITIONS,
+        },
+    ]
     return html.Div(
         [
             html.Label("Table 1. MAG Marker Metrics"),
             dcc.Loading(
+                dag.AgGrid(
+                    id=ids.MAG_METRICS_DATATABLE,
+                    className="ag-theme-material",
+                    columnSize="responsiveSizeToFit",
+                    style={"height": 600, "width": "100%"},
+                    columnDefs=column_defs,
+                ),
                 id=ids.LOADING_MAG_METRICS_DATATABLE,
-                children=[html.Div(id=ids.MAG_METRICS_DATATABLE)],
                 type="dot",
                 color="#646569",
             ),

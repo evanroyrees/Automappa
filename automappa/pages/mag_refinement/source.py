@@ -1,0 +1,679 @@
+#!/usr/bin/env python
+
+
+import itertools
+import logging
+import pandas as pd
+from pydantic import BaseModel
+from typing import Dict, List, Literal, Optional, Tuple, Union
+
+from sqlmodel import Session, or_, select, func, case
+
+from automappa.data.database import engine
+from automappa.data.loader import Metagenome, Contig, Marker
+from automappa.data.models import CytoscapeConnection, Refinement
+from automappa.data.schemas import ContigSchema
+from automappa.data.source import sqlmodel_to_df
+
+logger = logging.getLogger(__name__)
+
+
+class RefinementDataSource(BaseModel):
+    def get_sankey_records(
+        self,
+        metagenome_id: int,
+        headers: Optional[List[str]],
+        selected_rank: Literal[
+            "superkingdom", "phylum", "class", "order", "family", "genus", "species"
+        ] = ContigSchema.SPECIES,
+    ) -> pd.DataFrame:
+        ranks = [
+            "superkingdom",
+            "phylum",
+            "class",
+            "order",
+            "family",
+            "genus",
+            "species",
+        ]
+        ranks = ranks[: ranks.index(selected_rank) + 1]
+        model_ranks = {
+            "superkingdom": Contig.superkingdom,
+            "phylum": Contig.phylum,
+            "class": Contig.klass,
+            "order": Contig.order,
+            "family": Contig.family,
+            "genus": Contig.genus,
+            "species": Contig.species,
+        }
+        selections = [model_ranks.get(rank) for rank in ranks]
+        selections.insert(0, Contig.header)
+        with Session(engine) as session:
+            statement = (
+                select(*selections)
+                .join(Metagenome)
+                .where(Metagenome.id == metagenome_id)
+            )
+            if headers:
+                statement = statement.where(Contig.header.in_(headers))
+            results = session.exec(statement).all()
+
+        schema_ranks = {
+            "superkingdom": ContigSchema.DOMAIN,
+            "phylum": ContigSchema.PHYLUM,
+            "class": ContigSchema.CLASS,
+            "order": ContigSchema.ORDER,
+            "family": ContigSchema.FAMILY,
+            "genus": ContigSchema.GENUS,
+            "species": ContigSchema.SPECIES,
+        }
+        columns = [schema_ranks[rank] for rank in ranks]
+        columns.insert(0, ContigSchema.HEADER)
+
+        df = pd.DataFrame.from_records(
+            results,
+            index=ContigSchema.HEADER,
+            columns=columns,
+        ).fillna("unclassified")
+
+        for rank in df.columns:
+            df[rank] = df[rank].map(lambda taxon: f"{rank[0]}_{taxon}")
+
+        return df
+
+    def get_coverage_boxplot_records(
+        self, metagenome_id: int, headers: List[str]
+    ) -> pd.DataFrame:
+        with Session(engine) as session:
+            statement = select(Contig).where(Contig.metagenome_id == metagenome_id)
+            if headers:
+                statement = statement.where(Contig.header.in_(headers))
+            results = session.exec(statement).all()
+        return sqlmodel_to_df(results)
+
+    def get_coverage_min_max_values(self, metagenome_id: int) -> Tuple[float, float]:
+        with Session(engine) as session:
+            statement = select(
+                func.min(Contig.coverage), func.max(Contig.coverage)
+            ).where(Contig.metagenome_id == metagenome_id)
+            min_cov, max_cov = session.exec(statement).first()
+        return min_cov, max_cov
+
+    def get_scatterplot2d_records(
+        self,
+        metagenome_id: int,
+        x_axis: str,
+        y_axis: str,
+        color_by_col: str,
+        headers: Optional[List[str]] = [],
+    ) -> Dict[
+        Literal["x", "y", "marker_symbol", "marker_size", "text", "customdata"],
+        List[Union[float, str, Tuple[float, float, int]]],
+    ]:
+        axes = {
+            ContigSchema.LENGTH: Contig.length,
+            ContigSchema.COVERAGE: Contig.coverage,
+            ContigSchema.GC_CONTENT: Contig.gc_content,
+            ContigSchema.X_1: Contig.x_1,
+            ContigSchema.X_2: Contig.x_2,
+        }
+        # Set color by column
+        categoricals = {
+            ContigSchema.CLUSTER: Contig.cluster,
+            ContigSchema.SUPERKINGDOM: Contig.superkingdom,
+            ContigSchema.PHYLUM: Contig.phylum,
+            ContigSchema.CLASS: Contig.klass,
+            ContigSchema.ORDER: Contig.order,
+            ContigSchema.FAMILY: Contig.family,
+            ContigSchema.GENUS: Contig.genus,
+            ContigSchema.SPECIES: Contig.species,
+        }
+
+        name_select = categoricals[color_by_col]
+        x_select = axes[x_axis]
+        y_select = axes[y_axis]
+
+        marker_symbols_subquery = (
+            select(
+                [
+                    Contig.id,
+                    case(
+                        [
+                            (func.count(Marker.id) == 0, "circle"),
+                            (func.count(Marker.id) == 1, "square"),
+                            (func.count(Marker.id) == 2, "diamond"),
+                            (func.count(Marker.id) == 3, "triangle-up"),
+                            (func.count(Marker.id) == 4, "x"),
+                            (func.count(Marker.id) == 5, "pentagon"),
+                            (func.count(Marker.id) == 6, "hexagon2"),
+                            (func.count(Marker.id) >= 7, "hexagram"),
+                        ],
+                        else_="circle",
+                    ).label("symbol"),
+                    case(
+                        [
+                            (func.count(Marker.id) == 0, 7),
+                            (func.count(Marker.id) == 1, 8),
+                            (func.count(Marker.id) == 2, 9),
+                            (func.count(Marker.id) == 3, 10),
+                            (func.count(Marker.id) == 4, 11),
+                            (func.count(Marker.id) == 5, 12),
+                            (func.count(Marker.id) == 6, 13),
+                            (func.count(Marker.id) >= 7, 14),
+                        ],
+                        else_=7,
+                    ).label("size"),
+                ]
+            )
+            .select_from(Contig)
+            .join(Marker, isouter=True)
+            .group_by(Contig.id)
+            .subquery()
+        )
+
+        stmt = (
+            select(
+                x_select,
+                y_select,
+                marker_symbols_subquery.c.size,
+                marker_symbols_subquery.c.symbol,
+                Contig.coverage,
+                Contig.gc_content,
+                Contig.length,
+                Contig.header,
+                name_select,
+            )
+            .select_from(Contig)
+            .join(
+                marker_symbols_subquery,
+                marker_symbols_subquery.c.id == Contig.id,
+            )
+        )
+
+        with Session(engine) as session:
+            results = session.exec(stmt).all()
+
+        if headers:
+            stmt = stmt.where(Contig.header.in_(headers))
+
+        stmt = stmt.where(Contig.metagenome_id == metagenome_id)
+
+        # query db
+        with Session(engine) as session:
+            results = session.exec(stmt).all()
+
+        # format for traces
+        data = {}
+        for (
+            x,
+            y,
+            marker_size,
+            marker_symbol,
+            coverage,
+            gc_content,
+            length,
+            header,
+            name,
+        ) in results:
+            customdata = (coverage, gc_content, length)
+            if name not in data:
+                data[name] = dict(
+                    x=[x],
+                    y=[y],
+                    marker_size=[marker_size],
+                    marker_symbol=[marker_symbol],
+                    customdata=[customdata],
+                    text=[header],
+                )
+            else:
+                data[name]["x"].append(x)
+                data[name]["y"].append(y)
+                data[name]["marker_size"].append(marker_size)
+                data[name]["marker_symbol"].append(marker_symbol)
+                data[name]["customdata"].append(customdata)
+                data[name]["text"].append(header)
+        return data
+
+    def get_scaterplot3d_records(
+        self,
+        metagenome_id: int,
+        x_axis: str,
+        y_axis: str,
+        z_axis: str,
+        color_by_col: str,
+        headers: Optional[List[str]] = [],
+    ) -> Dict[
+        str,
+        Dict[Literal["x", "y", "z", "marker_size", "text"], List[Union[float, str]]],
+    ]:
+        # Set x,y,z axes
+        axes = {
+            ContigSchema.LENGTH: Contig.length,
+            ContigSchema.COVERAGE: Contig.coverage,
+            ContigSchema.GC_CONTENT: Contig.gc_content,
+            ContigSchema.X_1: Contig.x_1,
+            ContigSchema.X_2: Contig.x_2,
+        }
+        # Set color by column
+        categoricals = {
+            ContigSchema.CLUSTER: Contig.cluster,
+            ContigSchema.SUPERKINGDOM: Contig.superkingdom,
+            ContigSchema.PHYLUM: Contig.phylum,
+            ContigSchema.CLASS: Contig.klass,
+            ContigSchema.ORDER: Contig.order,
+            ContigSchema.FAMILY: Contig.family,
+            ContigSchema.GENUS: Contig.genus,
+            ContigSchema.SPECIES: Contig.species,
+        }
+        name_select = categoricals[color_by_col]
+        x_select = axes[x_axis]
+        y_select = axes[y_axis]
+        z_select = axes[z_axis]
+        stmt = select(
+            x_select,
+            y_select,
+            z_select,
+            (
+                (
+                    func.ceil(
+                        (Contig.length - func.min(Contig.length).over())
+                        / (
+                            func.max(Contig.length).over()
+                            - func.min(Contig.length).over()
+                        )
+                    )
+                    * 2
+                    + 4
+                ).label("marker_size")
+            ),
+            Contig.header,
+            name_select,
+        )
+
+        if headers:
+            stmt = stmt.where(Contig.header.in_(headers))
+
+        stmt = stmt.where(Contig.metagenome_id == metagenome_id)
+        with Session(engine) as session:
+            results = session.exec(stmt).all()
+
+        data = {}
+        for x, y, z, marker_size, header, name in results:
+            if name not in data:
+                data[name] = dict(
+                    x=[x], y=[y], z=[z], marker_size=[marker_size], text=[header]
+                )
+            else:
+                data[name]["x"].append(x)
+                data[name]["y"].append(y)
+                data[name]["z"].append(z)
+                data[name]["marker_size"].append(marker_size)
+                data[name]["text"].append(header)
+        return data
+
+    def get_color_by_column_options(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        with Session(engine) as session:
+            results = session.exec(
+                select(Contig).where(Contig.metagenome_id == metagenome_id).limit(1)
+            ).all()
+        # TODO OPTIMIZE
+        # TODO Could probably just check ContigSchema here...
+        df = sqlmodel_to_df(results, set_index=False).drop(columns=["id"])
+        return [
+            {"label": col.title().replace("_", " "), "value": col}
+            for col in df.select_dtypes("object").columns
+        ]
+
+    def get_scatterplot_2d_axes_options(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
+        # TODO OPTIMIZE
+        with Session(engine) as session:
+            results = session.exec(
+                select(Contig).where(Contig.metagenome_id == metagenome_id).limit(1)
+            ).all()
+        df = (
+            sqlmodel_to_df(results, set_index=False)
+            .drop(columns=["id"])
+            .set_index("header")
+        )
+        binning_combinations = [
+            {
+                "label": " vs. ".join(
+                    [x_axis.title().replace("_", " "), y_axis.title().replace("_", " ")]
+                ),
+                "value": "|".join([x_axis, y_axis]),
+                "disabled": False,
+            }
+            for x_axis, y_axis in itertools.combinations(
+                df.select_dtypes({"float64", "int64"}).columns, 2
+            )
+            if x_axis not in {"completeness", "purity", "taxid"}
+            and y_axis not in {"completeness", "purity", "taxid"}
+        ]
+        # embeddings = [
+        #     {
+        #         "label": kmer.embedding.name,
+        #         "value": f"{kmer.embedding.name}_x_1|{kmer.embedding.name}_x_2",
+        #         "disabled": not kmer.embedding.exists,
+        #     }
+        #     for kmer in sample.kmers
+        #     if kmer.size == kmer_size_dropdown_value
+        #     and kmer.norm_method == norm_method_dropdown_value
+        # ]
+        # return binning_combinations + embeddings
+        return binning_combinations
+
+    def update_refinements(self, metagenome_id: int, headers: List[str]) -> None:
+        with Session(engine) as session:
+            results = session.exec(
+                select(Contig)
+                .where(Contig.metagenome_id == metagenome_id)
+                .where(Contig.header.in_(headers))
+            ).all()
+        bin_df = sqlmodel_to_df(results, set_index=False).drop(columns=["id"])
+        # TODO Add Refinement model associated with metagenome
+        # FIXME
+        # Allow arbitrary updates to Contig binning where initial data is not touched
+        refinement_cols = [col for col in bin_df.columns if "refinement" in col]
+        refinement_num = len(refinement_cols) + 1
+        refinement_name = f"refinement_{refinement_num}"
+        bin_df.loc[headers, refinement_name] = refinement_name
+        bin_df = bin_df.fillna(axis="columns", method="ffill")
+        bin_df.reset_index(inplace=True)
+        # table_to_db(df=bin_df, name=sample.refinements.id)
+
+    def get_marker_overview(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        MARKER_SET_SIZE = 139
+        marker_count_stmt = (
+            select(func.count(Marker.id))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        with Session(engine) as session:
+            total_markers = session.exec(marker_count_stmt).first()
+
+        markers_sets = total_markers // MARKER_SET_SIZE
+        return [
+            {"metric": "Total Markers", "metric_value": total_markers},
+            {"metric": "Marker Set Size", "metric_value": MARKER_SET_SIZE},
+            {"metric": "Approx. Marker Sets", "metric_value": markers_sets},
+        ]
+
+    def get_mag_metrics(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        MARKER_SET_SIZE = 139
+        contig_count_stmt = select(func.count(Contig.id)).where(
+            Contig.metagenome_id == metagenome_id
+        )
+        marker_contig_count_stmt = (
+            select(func.count(func.distinct(Marker.contig_id)))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        # - single-copy marker contig count
+        single_copy_stmt = (
+            select(Contig.id)
+            .where(Contig.metagenome_id == metagenome_id)
+            .join(Marker)
+            .group_by(Contig.id)
+            .having(func.count(Marker.id) == 1)
+        )
+        # - multi-copy marker contig count
+        multi_copy_stmt = (
+            select(Contig.id)
+            .where(Contig.metagenome_id == metagenome_id)
+            .join(Marker)
+            .group_by(Contig.id)
+            .having(func.count(Marker.id) > 1)
+        )
+        marker_count_stmt = (
+            select(func.count(Marker.id))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        unique_marker_stmt = (
+            select(Marker.sacc)
+            .join(Contig)
+            .distinct()
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        redundant_marker_sacc_stmt = (
+            select(Marker.sacc)
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+            .group_by(Marker.sacc)
+            .having(func.count(Marker.id) > 1)
+        )
+        if headers:
+            contig_count_stmt = contig_count_stmt.where(Contig.header.in_(headers))
+            marker_contig_count_stmt = marker_contig_count_stmt.where(
+                Contig.header.in_(headers)
+            )
+            multi_copy_stmt = multi_copy_stmt.where(Contig.header.in_(headers))
+            single_copy_stmt = single_copy_stmt.where(Contig.header.in_(headers))
+            redundant_marker_sacc_stmt = redundant_marker_sacc_stmt.where(
+                Contig.header.in_(headers)
+            )
+            marker_count_stmt = marker_count_stmt.where(Contig.header.in_(headers))
+            unique_marker_stmt = unique_marker_stmt.where(Contig.header.in_(headers))
+
+        with Session(engine) as session:
+            contig_count = session.exec(contig_count_stmt).first() or 0
+            marker_contigs_count = session.exec(marker_contig_count_stmt).first() or 0
+            single_copy_contig_count = (
+                session.exec(select(func.count()).select_from(single_copy_stmt)).first()
+                or 0
+            )
+            multi_copy_contig_count = (
+                session.exec(select(func.count()).select_from(multi_copy_stmt)).first()
+                or 0
+            )
+            markers_count = session.exec(marker_count_stmt).first() or 0
+            unique_marker_count = session.exec(
+                select(func.count()).select_from(unique_marker_stmt)
+            ).first()
+            redundant_marker_sacc = session.exec(redundant_marker_sacc_stmt).all()
+
+        completeness = round(unique_marker_count / MARKER_SET_SIZE * 100, 2)
+        purity = (
+            round(unique_marker_count / markers_count * 100, 2) if markers_count else 0
+        )
+
+        row_data = [
+            {"metric": "Contigs", "metric_value": contig_count},
+            {
+                "metric": "Marker Contigs",
+                "metric_value": marker_contigs_count,
+            },
+            {
+                "metric": "Multi-Marker Contigs",
+                "metric_value": multi_copy_contig_count,  # Forcepia sp. should be 968
+            },
+            {
+                "metric": "Single-Marker Contigs",
+                "metric_value": single_copy_contig_count,  # Forcepia sp. should be 1321
+            },
+            {"metric": "Markers Count", "metric_value": markers_count},
+            {
+                "metric": "Redundant Markers",
+                "metric_value": len(redundant_marker_sacc),
+            },
+            {
+                "metric": "Redundant Marker Accessions",
+                "metric_value": ", ".join(redundant_marker_sacc),
+            },
+        ]
+        if headers:
+            row_data.insert(0, {"metric": "Purity (%)", "metric_value": purity})
+            row_data.insert(
+                0, {"metric": "Completeness (%)", "metric_value": completeness}
+            )
+        return row_data
+
+    def get_coverage_boxplot_records(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[Tuple[str, pd.Series]]:
+        with Session(engine) as session:
+            stmt = select(Contig.coverage).where(Contig.metagenome_id == metagenome_id)
+            if headers:
+                stmt = stmt.where(Contig.header.in_(headers))
+            coverages = session.exec(stmt).all()
+        return [
+            (
+                ContigSchema.COVERAGE.title(),
+                pd.Series(coverages, name=ContigSchema.COVERAGE).round(2),
+            )
+        ]
+
+    def get_gc_content_boxplot_records(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[Tuple[str, pd.Series]]:
+        with Session(engine) as session:
+            stmt = select(Contig.gc_content).where(
+                Contig.metagenome_id == metagenome_id
+            )
+            if headers:
+                stmt = stmt.where(Contig.header.in_(headers))
+            gc_contents = session.exec(stmt).all()
+
+        return [
+            (
+                "GC Content",
+                pd.Series(gc_contents, name=ContigSchema.GC_CONTENT).round(2),
+            )
+        ]
+
+    def get_length_boxplot_records(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[Tuple[str, pd.Series]]:
+        with Session(engine) as session:
+            stmt = select(Contig.length).where(Contig.metagenome_id == metagenome_id)
+            if headers:
+                stmt = stmt.where(Contig.header.in_(headers))
+            lengths = session.exec(stmt).all()
+        return [(ContigSchema.LENGTH.title(), pd.Series(lengths))]
+
+    def get_cytoscape_elements(
+        self, metagenome_id: int, headers: Optional[List[str]] = []
+    ) -> List[
+        Dict[
+            Literal["data"],
+            Dict[
+                Literal["id", "label", "source", "target", "connections"],
+                Union[str, int],
+            ],
+        ]
+    ]:
+        stmt = (
+            select(
+                CytoscapeConnection.node1,
+                CytoscapeConnection.node2,
+                CytoscapeConnection.connections,
+            )
+            .select_from(CytoscapeConnection)
+            .where(CytoscapeConnection.metagenome_id == metagenome_id)
+        )
+        if headers:
+            start_nodes = {f"{header}s" for header in headers}
+            end_nodes = {f"{header}e" for header in headers}
+            nodes = start_nodes.union(end_nodes)
+            stmt = stmt.where(
+                or_(
+                    CytoscapeConnection.node1.in_(nodes),
+                    CytoscapeConnection.node2.in_(nodes),
+                )
+            )
+        with Session(engine) as session:
+            records = session.exec(stmt).all()
+
+        src_nodes = {src_node for src_node, *_ in records}
+        target_nodes = {target_node for _, target_node, _ in records}
+        nodes = [
+            dict(data=dict(id=node, label=node))
+            for node in src_nodes.union(target_nodes)
+        ]
+        edges = [
+            dict(
+                data=dict(source=src_node, target=target_node, connections=connections)
+            )
+            for src_node, target_node, connections in records
+        ]
+        return nodes + edges
+
+    def get_cytoscape_stylesheet(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List:
+        stmt = (
+            select(
+                CytoscapeConnection.node1,
+                CytoscapeConnection.node2,
+                CytoscapeConnection.connections,
+            )
+            .select_from(CytoscapeConnection)
+            .where(CytoscapeConnection.metagenome_id == metagenome_id)
+        )
+        if headers:
+            start_nodes = {f"{header}s" for header in headers}
+            end_nodes = {f"{header}e" for header in headers}
+            nodes = start_nodes.union(end_nodes)
+            stmt = stmt.where(
+                or_(
+                    CytoscapeConnection.node1.in_(nodes),
+                    CytoscapeConnection.node2.in_(nodes),
+                )
+            )
+        with Session(engine) as session:
+            records = session.exec(stmt).all()
+        stylesheet = [
+            dict(
+                selector=f"[label = {node1}]",
+                style={"line-color": "blue", "opacity": 0.8},
+            )
+            for node1, *_ in records
+        ]
+        stylesheet += [
+            dict(
+                selector=f"[label = {node2}]",
+                style={"line-color": "blue", "opacity": 0.8},
+            )
+            for _, node2, _ in records
+        ]
+        return stylesheet
+
+    def get_refinements_row_data(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["contig", "cluster"], str]]:
+        stmt = (
+            select(
+                Contig.header,
+                Contig.cluster,
+            )
+            .select_from(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        with Session(engine) as session:
+            results = session.exec(stmt).all()
+        return results
+
+    def put_refinements_data(self, metagenome_id: int, headers: List[str]) -> None:
+        with Session(engine) as session:
+            mg = session.exec(
+                select(Metagenome).where(Metagenome.id == metagenome_id)
+            ).one()
+            contigs = session.exec(
+                select(Contig)
+                .where(Contig.metagenome_id == metagenome_id)
+                .where(Contig.header.in_(headers))
+            ).all()
+            # refinement_contigs = [contig for contig in contigs if contig.header in headers]
+            # untouched_contigs = [contig for contig in contigs if contig.header not in headers]
+            refinement = Refinement(contigs=contigs, metagenome_id=mg.id)
+            session.add(refinement)
+            session.commit()
+            session.refresh(refinement)

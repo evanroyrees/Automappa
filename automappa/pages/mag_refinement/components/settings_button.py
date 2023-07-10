@@ -7,7 +7,7 @@ from automappa.components import ids
 from automappa.pages.mag_refinement.components import settings_offcanvas
 
 
-def render(app: DashProxy) -> html.Div:
+def render(app: DashProxy, source) -> html.Div:
     return html.Div(
         [
             dmc.Button(
@@ -20,6 +20,6 @@ def render(app: DashProxy) -> html.Div:
                 gradient={"from": "#CA2270", "to": "#F36E2D"},
                 fullWidth=True,
             ),
-            settings_offcanvas.render(app),
+            settings_offcanvas.render(app, source),
         ]
     )

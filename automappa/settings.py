@@ -16,7 +16,7 @@ from pydantic import (
 
 class DatabaseSettings(BaseSettings):
     url: PostgresDsn
-    pool_size: Optional[int] = 3
+    pool_size: Optional[int] = 4
     pool_pre_ping: Optional[bool] = False
 
     class Config:

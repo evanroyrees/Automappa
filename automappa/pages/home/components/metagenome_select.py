@@ -29,9 +29,6 @@ def render(app: DashProxy) -> html.Div:
                 subset=["table_id"]
             )
 
-        if samples_df.empty:
-            raise PreventUpdate
-
         df = samples_df.loc[samples_df.filetype.eq("metagenome")]
         logger.debug(f"{df.shape[0]:,} metagenomes available for mag_refinement")
         return [

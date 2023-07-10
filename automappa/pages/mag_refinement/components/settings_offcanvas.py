@@ -20,7 +20,7 @@ from automappa.pages.mag_refinement.components import (
 )
 
 
-def render(app: DashProxy) -> dbc.Offcanvas:
+def render(app: DashProxy, source) -> dbc.Offcanvas:
     @app.callback(
         Output(ids.SETTINGS_OFFCANVAS, "is_open"),
         Input(ids.SETTINGS_BUTTON, "n_clicks"),
@@ -39,13 +39,17 @@ def render(app: DashProxy) -> dbc.Offcanvas:
                         [
                             dbc.Row(
                                 [
-                                    dbc.Col(color_by_col_dropdown.render(app)),
+                                    dbc.Col(color_by_col_dropdown.render(app, source)),
                                     dbc.Col(scatterplot_2d_legend_toggle.render()),
                                 ]
                             ),
                             dbc.Row(dbc.Col(kmer_size_dropdown.render())),
                             dbc.Row(dbc.Col(norm_method_dropdown.render())),
-                            dbc.Row(dbc.Col(scatterplot_2d_axes_dropdown.render(app))),
+                            dbc.Row(
+                                dbc.Col(
+                                    scatterplot_2d_axes_dropdown.render(app, source)
+                                )
+                            ),
                         ],
                         title="Figure 1: 2D Metagenome Overview",
                     ),
@@ -75,14 +79,11 @@ def render(app: DashProxy) -> dbc.Offcanvas:
             html.Br(),
             dbc.Row(
                 dbc.Col(
-                    binning_refinements_download_button.render(app), align="stretch"
+                    binning_refinements_download_button.render(app, source),
+                    align="stretch",
                 ),
                 justify="center",
             ),
-            # dbc.Row(
-            #     dbc.Col(binning_refinements_summary_button.render(), align="center"),
-            #     justify="center",
-            # ),
         ],
         id=ids.SETTINGS_OFFCANVAS,
         title="Settings",

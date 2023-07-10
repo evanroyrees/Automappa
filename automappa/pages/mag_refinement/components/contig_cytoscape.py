@@ -1,34 +1,60 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Optional, Protocol, Union
 from dash.exceptions import PreventUpdate
 import dash_cytoscape as cyto
 from dash_extensions.enrich import DashProxy, html, Output, Input, dcc
 
 from automappa.components import ids
-from automappa.data.source import SampleTables
 
 
-def render(app: DashProxy) -> html.Div:
+class ContigCytoscapeDataSource(Protocol):
+    def get_cytoscape_elements(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[
+        Dict[
+            Literal["data"],
+            Dict[
+                Literal["id", "label", "source", "target", "connections"],
+                Union[str, int],
+            ],
+        ]
+    ]:
+        ...
+
+    def get_cytoscape_stylesheet(
+        self, metagenome_id: int, headers: Optional[List[str]]
+    ) -> List[
+        Dict[
+            Literal["selector", "style"],
+            Union[Literal["node", "edge"], Dict[str, Union[str, int, float]]],
+        ]
+    ]:
+        ...
+
+
+def render(app: DashProxy, source: ContigCytoscapeDataSource) -> html.Div:
     @app.callback(
         Output(ids.CONTIG_CYTOSCAPE, "stylesheet"),
         [
-            Input(ids.SELECTED_TABLES_STORE, "data"),
-            Input(ids.SCATTERPLOT_2D, "selectedData"),
+            Input(ids.METAGENOME_ID_STORE, "data"),
+            Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
         ],
     )
     def highlight_selected_contigs(
-        sample: SampleTables,
+        metagenome_id: int,
         selected_contigs: Dict[str, List[Dict[str, str]]],
-    ) -> List[Dict[str, Dict[str, Union[str, int, float]]]]:
+    ) -> List[
+        Dict[
+            Literal["selector", "style"],
+            Union[Literal["node", "edge"], Dict[str, Union[str, int, float]]],
+        ]
+    ]:
         if not selected_contigs:
             raise PreventUpdate
-        contigs = {point["text"] for point in selected_contigs["points"]}
-        cyto_df = sample.cytoscape.table
-        contigs_regstr = "|".join(contigs)
-        cyto_df = cyto_df[
-            cyto_df.node1.str.contains(contigs_regstr)
-            | cyto_df.node2.str.contains(contigs_regstr)
-        ]
-        stylesheet = [
+        headers = {point["text"] for point in selected_contigs["points"]}
+        stylesheet = source.get_cytoscape_stylesheet(metagenome_id, headers)
+
+        SELECTED_COLOR = "#B10DC9"
+        stylesheet += [
             {
                 "selector": "node",
                 "style": {"label": "data(label)", "opacity": 0.7},
@@ -42,71 +68,49 @@ def render(app: DashProxy) -> html.Div:
                 },
             },
         ]
-
-        for contigs in contigs:
-            if contigs in cyto_df["node1"].values or (
-                contigs in cyto_df["node2"].values
-            ):
-                stylesheet.append(
-                    {
-                        "selector": f"[label = '{contigs}']",
-                        "style": {"background-color": "#B10DC9", "opacity": 0.8},
-                    }
-                )
-            stylesheet.append(
-                {"selector": "edge", "style": {"width": "data(connections)"}}
-            )
+        # TODO
+        # 1. Style connections using mappingtype
+        # (i.e. differentiate between start and end connections)
+        # - https://dash.plotly.com/cytoscape/styling#edge-arrows
+        # TODO
+        # 2. Add selector based on number of contig connections
+        # - https://dash.plotly.com/cytoscape/styling#comparing-data-items-using-selectors
+        # It looks like this could be done using the 'weight' key for the edge
+        # and then selecting using stylesheet = [{'selector': '[weight > 3]'}]
+        # where the '3' could be dynamically updated by a slider component (or other component)
         return stylesheet
 
     @app.callback(
         Output(ids.CONTIG_CYTOSCAPE, "elements"),
         [
-            Input(ids.SELECTED_TABLES_STORE, "data"),
-            Input(ids.SCATTERPLOT_2D, "selectedData"),
+            Input(ids.METAGENOME_ID_STORE, "data"),
+            Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
         ],
     )
-    def cytoscape_callback(
-        sample: SampleTables,
+    def update_cytoscape_elements(
+        metagenome_id: int,
         selected_contigs: Dict[str, List[Dict[str, str]]],
-    ) -> List[Dict[str, Dict[str, Union[str, int, float]]]]:
+    ) -> List[
+        Dict[
+            Literal["data"],
+            Dict[
+                Literal["id", "label", "source", "target", "connections"],
+                Union[str, int],
+            ],
+        ]
+    ]:
         if not selected_contigs:
             raise PreventUpdate
-        contigs = {point["text"] for point in selected_contigs["points"]}
-        cyto_df = sample.cytoscape.table
-        contigs_regstr = "|".join(contigs)
-        cyto_df = cyto_df[
-            cyto_df.node1.str.contains(contigs_regstr)
-            | cyto_df.node2.str.contains(contigs_regstr)
-        ]
-        nodes = set()
-        cy_edges = []
-        cy_nodes = []
-        for source, target, connections in zip(
-            cyto_df.node1, cyto_df.node2, cyto_df.connections
-        ):
-            if source not in nodes:
-                nodes.add(source)
-                cy_nodes.append({"data": {"id": source, "label": source}})
-            if target not in nodes:
-                nodes.add(target)
-                cy_nodes.append({"data": {"id": target, "label": target}})
-            cy_edges.append(
-                {
-                    "data": {
-                        "source": source,
-                        "target": target,
-                        "connections": connections,
-                    }
-                }
-            )
-        return cy_edges + cy_nodes
+        headers = {point["text"] for point in selected_contigs["points"]}
+        records = source.get_cytoscape_elements(metagenome_id, headers)
+        return records
 
     return html.Div(
         dcc.Loading(
             cyto.Cytoscape(
                 id=ids.CONTIG_CYTOSCAPE,
-                layout={"name": "cose"},
-                style={"width": "100%", "height": "600px"},
+                layout=dict(name="cose"),
+                style=dict(width="100%", height="600px"),
                 responsive=True,
             ),
             id=ids.LOADING_CONTIG_CYTOSCAPE,

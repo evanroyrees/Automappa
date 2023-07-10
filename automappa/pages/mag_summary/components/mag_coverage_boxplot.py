@@ -5,20 +5,19 @@ from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 from plotly import graph_objects as go
 
-from automappa.data.source import SampleTables
 from automappa.utils.figures import metric_boxplot
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+def render(app: DashProxy, source) -> html.Div:
     @app.callback(
         Output(ids.MAG_COVERAGE_BOXPLOT, "figure"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
     def mag_summary_gc_content_boxplot_callback(
-        sample: SampleTables, cluster_col: str, selected_mag: str
+        metagenome_id: int, cluster_col: str, selected_mag: str
     ) -> go.Figure:
         if not selected_mag:
             raise PreventUpdate

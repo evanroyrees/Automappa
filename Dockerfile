@@ -1,8 +1,8 @@
 FROM condaforge/miniforge3:latest
 
-COPY environment.yml /tmp/environment.yml
 RUN conda install -c conda-forge --name base mamba --yes
 
+COPY environment.yml /tmp/environment.yml
 RUN mamba env update --name base --file=/tmp/environment.yml \
     && mamba clean --all --force-pkgs-dirs --yes
 

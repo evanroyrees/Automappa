@@ -1,44 +1,56 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from dash.dash_table import DataTable
 
+import dash_ag_grid as dag
+from typing import Dict, List, Literal, Protocol
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
-
-from automappa.data.source import SampleTables
 
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class RefinementsTableDataSource(Protocol):
+    def get_refinements_row_data(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["contig", "cluster"], str]]:
+        ...
+
+
+def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
     @app.callback(
-        Output(ids.REFINEMENTS_TABLE, "children"),
+        Output(ids.REFINEMENTS_TABLE, "rowData"),
         [
-            Input(ids.SELECTED_TABLES_STORE, "data"),
+            Input(ids.METAGENOME_ID_STORE, "data"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
         ],
     )
     def refinements_table_callback(
-        sample: SampleTables,
+        metagenome_id: int,
         btn_clicks: int,
-    ) -> DataTable:
-        return DataTable(
-            data=sample.refinements.table.to_dict("records"),
-            columns=[
-                {"name": col, "id": col} for col in sample.refinements.table.columns
-            ],
-            style_cell={"textAlign": "center"},
-            style_cell_conditional=[
-                {"if": {"column_id": "contig"}, "textAlign": "right"}
-            ],
-            virtualization=True,
-        )
+    ) -> List[Dict[Literal["contig", "cluster"], str]]:
+        row_data = source.get_refinements_row_data(metagenome_id)
+
+        return row_data
+
+    column_defs = [
+        {"field": "contig", "headerName": "Contig", "resizable": True},
+        {"field": "cluster", "headerName": "Cluster"},
+    ]
 
     return html.Div(
-        dcc.Loading(
-            id=ids.LOADING_REFINEMENTS_TABLE,
-            children=[html.Div(id=ids.REFINEMENTS_TABLE)],
-            type="circle",
-            color="#646569",
-        )
+        [
+            html.Label("Table 2. MAG Refinements"),
+            dcc.Loading(
+                dag.AgGrid(
+                    id=ids.REFINEMENTS_TABLE,
+                    className="ag-theme-material",
+                    columnSize="responsiveSizetoFit",
+                    style=dict(height=600, width="100%"),
+                    columnDefs=column_defs,
+                ),
+                id=ids.LOADING_REFINEMENTS_TABLE,
+                type="circle",
+                color="#646569",
+            ),
+        ]
     )

@@ -30,9 +30,6 @@ def render(app: DashProxy) -> html.Div:
                 subset=["table_id"]
             )
 
-        if samples_df.empty:
-            raise PreventUpdate
-
         markers_samples = samples_df.loc[samples_df.filetype.eq("markers")]
         logger.debug(
             f"{markers_samples.shape[0]:,} markers available for mag_refinement"

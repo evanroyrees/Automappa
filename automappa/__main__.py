@@ -7,6 +7,7 @@ import logging
 
 from automappa import settings
 from automappa.components import layout
+from automappa.data.database import create_db_and_tables
 from automappa.app import app
 
 logging.basicConfig(
@@ -52,6 +53,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    create_db_and_tables()
     app.layout = layout.render(app, args.storage_type, args.clear_store_data)
     app.run(
         host=settings.server.host,

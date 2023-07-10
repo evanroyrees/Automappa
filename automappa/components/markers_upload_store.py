@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from typing import Literal
+from typing import List, Literal
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import Input, Output, State, DashProxy, dcc, Serverside
 
@@ -10,7 +10,7 @@ from automappa.data.loader import (
     validate_uploader,
 )
 from automappa.components import ids
-from automappa.data.db import redis_backend
+from automappa.data.database import redis_backend
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +22,15 @@ def render(
 ) -> dcc.Store:
     @app.callback(
         Output(ids.MARKERS_UPLOAD_STORE, "data"),
-        [Input(ids.UPLOAD_MARKERS_DATA, "isCompleted")],
+        [Input(ids.MARKERS_UPLOAD, "isCompleted")],
         [
-            State(ids.UPLOAD_MARKERS_DATA, "fileNames"),
-            State(ids.UPLOAD_MARKERS_DATA, "upload_id"),
+            State(ids.MARKERS_UPLOAD, "fileNames"),
+            State(ids.MARKERS_UPLOAD, "upload_id"),
         ],
     )
-    def on_markers_upload(iscompleted, filenames, upload_id):
+    def on_markers_upload(is_completed: bool, filenames: List[str], upload_id: str):
         try:
-            filepath = validate_uploader(iscompleted, filenames, upload_id)
+            filepath = validate_uploader(is_completed, filenames, upload_id)
         except ValueError as err:
             logger.warn(err)
             raise PreventUpdate
