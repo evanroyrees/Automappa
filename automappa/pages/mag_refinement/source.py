@@ -311,60 +311,72 @@ class RefinementDataSource(BaseModel):
                 data[name]["text"].append(header)
         return data
 
-    def get_color_by_column_options(
-        self, metagenome_id: int
-    ) -> List[Dict[Literal["label", "value"], str]]:
-        with Session(engine) as session:
-            results = session.exec(
-                select(Contig).where(Contig.metagenome_id == metagenome_id).limit(1)
-            ).all()
-        # TODO OPTIMIZE
-        # TODO Could probably just check ContigSchema here...
-        df = sqlmodel_to_df(results, set_index=False).drop(columns=["id"])
+    def get_color_by_column_options(self) -> List[Dict[Literal["label", "value"], str]]:
+        categoricals = [
+            ContigSchema.CLUSTER,
+            ContigSchema.SUPERKINGDOM,
+            ContigSchema.PHYLUM,
+            ContigSchema.CLASS,
+            ContigSchema.ORDER,
+            ContigSchema.FAMILY,
+            ContigSchema.GENUS,
+            ContigSchema.SPECIES,
+        ]
         return [
-            {"label": col.title().replace("_", " "), "value": col}
-            for col in df.select_dtypes("object").columns
+            {"label": category.title(), "value": category} for category in categoricals
         ]
 
     def get_scatterplot_2d_axes_options(
-        self, metagenome_id: int
+        self,
     ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
-        # TODO OPTIMIZE
-        with Session(engine) as session:
-            results = session.exec(
-                select(Contig).where(Contig.metagenome_id == metagenome_id).limit(1)
-            ).all()
-        df = (
-            sqlmodel_to_df(results, set_index=False)
-            .drop(columns=["id"])
-            .set_index("header")
-        )
-        binning_combinations = [
-            {
-                "label": " vs. ".join(
-                    [x_axis.title().replace("_", " "), y_axis.title().replace("_", " ")]
-                ),
-                "value": "|".join([x_axis, y_axis]),
-                "disabled": False,
-            }
-            for x_axis, y_axis in itertools.combinations(
-                df.select_dtypes({"float64", "int64"}).columns, 2
+        axes = {
+            ContigSchema.LENGTH,
+            ContigSchema.COVERAGE,
+            ContigSchema.GC_CONTENT,
+            ContigSchema.X_1,
+            ContigSchema.X_2,
+        }
+        axes_permutations = itertools.permutations(axes, 2)
+        options = []
+        for x_axis, y_axis in axes_permutations:
+            x_axis_label = (
+                "GC content" if ContigSchema.GC_CONTENT in x_axis else x_axis.title()
             )
-            if x_axis not in {"completeness", "purity", "taxid"}
-            and y_axis not in {"completeness", "purity", "taxid"}
+            y_axis_label = (
+                "GC content" if ContigSchema.GC_CONTENT in y_axis else y_axis.title()
+            )
+            label = f"{x_axis_label} vs. {y_axis_label}"
+            value = "|".join([x_axis, y_axis])
+            options.append({"label": label, "value": value})
+
+        return options
+
+    def get_scatterplot_3d_zaxis_dropdown_options(
+        self,
+    ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
+        axes = {
+            ContigSchema.LENGTH,
+            ContigSchema.COVERAGE,
+            ContigSchema.GC_CONTENT,
+        }
+        options = []
+        for value in axes:
+            label = "GC content" if ContigSchema.GC_CONTENT in value else value.title()
+            options.append({"label": label, "value": value})
+
+        return options
+
+    def get_taxonomy_distribution_dropdown_options(
+        self,
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        ranks = [
+            ContigSchema.CLASS,
+            ContigSchema.ORDER,
+            ContigSchema.FAMILY,
+            ContigSchema.GENUS,
+            ContigSchema.SPECIES,
         ]
-        # embeddings = [
-        #     {
-        #         "label": kmer.embedding.name,
-        #         "value": f"{kmer.embedding.name}_x_1|{kmer.embedding.name}_x_2",
-        #         "disabled": not kmer.embedding.exists,
-        #     }
-        #     for kmer in sample.kmers
-        #     if kmer.size == kmer_size_dropdown_value
-        #     and kmer.norm_method == norm_method_dropdown_value
-        # ]
-        # return binning_combinations + embeddings
-        return binning_combinations
+        return [{"label": rank.title(), "value": rank} for rank in ranks]
 
     def update_refinements(self, metagenome_id: int, headers: List[str]) -> None:
         with Session(engine) as session:

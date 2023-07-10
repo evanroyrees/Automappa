@@ -4,6 +4,11 @@
 
 ### 🐰:carrot: task-queue
 
+- [ ] Determine minimal task-queue case for setup/testing
+- [ ] simple time.sleep(10) and generation of tasks table displaying progress
+- [ ] pre-processing step for marker symbols and marker sizes based on marker counts in `Contig`
+- [ ] k-mer freq. analysis steps
+
 #### Data ingestion, CRUD Operations and UI
 
 - [ ] create metagenome
@@ -24,8 +29,8 @@
 
 #### base Layout components
 
-- [x] `sample_id_store = dcc.Store(ids.SAMPLE_STORE_ID, "data")`
-  - [x] Pattern matching callback to get `sample_id` (or `sample_name`) for
+- [x] `metagenome_id_store = dcc.Store(ids.METAGENOME_ID_STORE, "data")`
+  - [x] Pattern matching callback to get `metagenome_id` (or `Metagenome.name`) for
   selected sample card
   - [ ] Pattern matching callback to uncheck any other cards when a sample is selected
 
@@ -38,7 +43,7 @@
   
   Supposedly background callbacks here are not supported with notifications.
 - [ ] :bug: new sample card rendered upon stepper sample submit button click
-- [x] Synchronize pages using `sample_id` in a `dcc.Store(ids.SAMPLE_ID_STORE)`
+- [x] Synchronize pages using `metagenome_id` in a `dcc.Store(ids.METAGENOME_ID_STORE)`
   - [x] 🔗 Add callbacks for sample cards
   - [x] :fire: Remove button ~refine button navigates to `MAG-refinement`~
   - [x] :fire: Remove button ~summarize button navigates to `MAG-summary`~
@@ -46,28 +51,34 @@
 
 #### MAG refinement components
 
-Passed `DataSource` object:
-
-- [ ] `class RefinementDataSource(BaseModel)`
+- [ ] Determine construction of `Refinement(SQLModel)`
+- [ ] Allow save MAG refinement after scatterplot selections
+- [ ] Allow table generation from saved refinements
+- [ ] Allow data download
+- [ ] re-implement cytoscape contig connection graph callbacks
 
 Component protocols:
 
 > Following syntax: `class ComponentDataSource(Protocol)`
 
-- [ ] `class Scatterplot2dDataSource(Protocol)`
-- [ ] `class MarkerSymbolsLegendDataSource(Protocol)`
-- [ ] `class SaveSelectionsButtonDataSource(Protocol)` (WIP)
-- [ ] `class SettingsOffcanvasDataSource(Protocol)` (WIP)
-  - [ ] `class Scatterplot2dAxesOptionsDataSource(Protocol)`
-  - [ ] `class ColorByColumnOptionsDataSource(Protocol)`
-- [ ] `class MagMetricsDataSource(Protocol)` (WIP)
+- [x] `class Scatterplot2dDataSource(Protocol)`
+- [x] `class MarkerSymbolsLegendDataSource(Protocol)`
+- [ ] `class SaveSelectionsButtonDataSource(Protocol)`
+- [ ] `class SettingsOffcanvasDataSource(Protocol)`
+  - [x] `class Scatterplot2dAxesOptionsDataSource(Protocol)`
+  - [x] `class ColorByColumnOptionsDataSource(Protocol)`
+  - [ ] `class KmerNormMethodDropdownOptionsDataSource`
+  - [ ] `class KmerEmbedMethodDropdownOptionsDataSource`
+- [x] `class MagMetricsDataSource(Protocol)`
 - [x] `class TaxonomyDistributionDataSource(Protocol)`
-- [ ] `class Scatterplot3dDataSource(Protocol)` (WIP)
+  - [ ] :fire: remove use of pandas in source method
+- [x] `class Scatterplot3dDataSource(Protocol)`
+- [x] `class CoverageRangeSliderDataSource(Protocol)`
 - [x] `class CoverageBoxplotDataSource(Protocol)`
 - [x] `class GcPercentBoxplotDataSource(Protocol)`
 - [x] `class LengthBoxplotDataSource(Protocol)`
 - [ ] `class ContigCytoscapeDataSource(Protocol)`
-- [x] `class CoverageRangeSliderDataSource(Protocol)`
+- [ ] `class RefinementsTableDataSource(Protocol)`
 
 #### MAG Summary components
 
@@ -111,7 +122,6 @@ Component protocols:
 - [plotly dash `dcc.Store` docs](<https://dash.plotly.com/dash-core-components/store#store-clicks-example>)
 - [how to access rabbitmq publicly](<https://stackoverflow.com/questions/23020908/how-to-access-rabbitmq-publicly> "how to access RabbitMQ publicly")
 - [StackOverflow: how to access rabbitmq publicly](https://stackoverflow.com/a/57612615 "StackOverflow: how to access RabbitMQ publicly")
-
 
 ### Miscellaneous
 

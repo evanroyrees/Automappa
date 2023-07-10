@@ -138,17 +138,22 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         BOTTOM_MARGIN = 20
         TOP_MARGIN = 20
         legend = go.layout.Legend(visible=show_legend, x=1, y=1)
+        # NOTE: Changing `uirevision` will trigger the graph to change
+        # graph properties state (like zooming, panning, clicking on legend items).
+        # i.e. if the axes change we want to reset the ui
+        # See: https://community.plotly.com/t/preserving-ui-state-like-zoom-in-dcc-graph-with-uirevision-with-dash/15793
+        # for more details
         layout = go.Layout(
             legend=legend,
             margin=dict(r=RIGHT_MARGIN, b=BOTTOM_MARGIN, l=LEFT_MARGIN, t=TOP_MARGIN),
             hovermode="closest",
             clickmode="event+select",
+            uirevision=axes_columns,
+            xaxis=go.layout.XAxis(title=format_axis_title(x_axis)),
+            yaxis=go.layout.YAxis(title=format_axis_title(y_axis)),
             height=600,
         )
-        fig = go.Figure(data=traces, layout=layout)
-        return fig
-
-    # fig = go.Figure(id=ids.SCATTERPLOT_2D_FIGURE)
+        return go.Figure(data=traces, layout=layout)
 
     return html.Div(
         [

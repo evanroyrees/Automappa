@@ -57,7 +57,11 @@ def render(app: DashProxy, source) -> dbc.Offcanvas:
                         [
                             dbc.Row(
                                 [
-                                    dbc.Col(scatterplot_3d_zaxis_dropdown.render()),
+                                    dbc.Col(
+                                        scatterplot_3d_zaxis_dropdown.render(
+                                            app, source
+                                        )
+                                    ),
                                     dbc.Col(scatterplot_3d_legend_toggle.render()),
                                 ]
                             ),
@@ -66,7 +70,7 @@ def render(app: DashProxy, source) -> dbc.Offcanvas:
                     ),
                     dbc.AccordionItem(
                         [
-                            dbc.Col(taxa_rank_dropdown.render()),
+                            dbc.Col(taxa_rank_dropdown.render(app, source)),
                         ],
                         title="Figure 3: Taxonomic Distribution",
                     ),
