@@ -11,7 +11,9 @@ from automappa.components import ids
 
 
 class OverviewMetricsBoxplotDataSource(Protocol):
-    def get_records(self, metagenome_id: int) -> List[Tuple[str, List[float]]]:
+    def get_completeness_purity_boxplot_records(
+        self, metagenome_id: int
+    ) -> List[Tuple[str, List[float]]]:
         ...
 
 
@@ -19,22 +21,19 @@ def render(app: DashProxy, source: OverviewMetricsBoxplotDataSource) -> html.Div
     @app.callback(
         Output(ids.MAG_OVERVIEW_METRICS_BOXPLOT, "figure"),
         Input(ids.METAGENOME_ID_STORE, "data"),
-        Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
     )
-    def subset_by_selected_mag(metagenome_id: int, cluster_col: str) -> go.Figure:
-        data = source.get_records(metagenome_id)
+    def subset_by_selected_mag(metagenome_id: int) -> go.Figure:
+        data = source.get_completeness_purity_boxplot_records(metagenome_id)
         fig = metric_boxplot(data=data)
         return fig
 
     return html.Div(
         dcc.Loading(
+            dcc.Graph(
+                id=ids.MAG_OVERVIEW_METRICS_BOXPLOT,
+                config={"displayModeBar": False, "displaylogo": False},
+            ),
             id=ids.LOADING_MAG_OVERVIEW_METRICS_BOXPLOT,
-            children=[
-                dcc.Graph(
-                    id=ids.MAG_OVERVIEW_METRICS_BOXPLOT,
-                    config={"displayModeBar": False, "displaylogo": False},
-                )
-            ],
             type="default",
             color="#0479a8",
         )

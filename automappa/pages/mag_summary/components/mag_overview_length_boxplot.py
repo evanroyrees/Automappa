@@ -1,32 +1,28 @@
 # -*- coding: utf-8 -*-
 
-from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
-
+from typing import Protocol, Optional, List, Tuple
 from plotly import graph_objects as go
 
-from automappa.data.source import SampleTables
 from automappa.utils.figures import metric_boxplot
 from automappa.components import ids
 
 
-def render(app: DashProxy, source) -> html.Div:
+class LengthOverviewBoxplotDataSource(Protocol):
+    def get_length_boxplot_records(
+        self, metagenome_id: int, cluster: Optional[str]
+    ) -> List[Tuple[str, List[int]]]:
+        ...
+
+
+def render(app: DashProxy, source: LengthOverviewBoxplotDataSource) -> html.Div:
     @app.callback(
         Output(ids.MAG_OVERVIEW_LENGTH_BOXPLOT, "figure"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
-        Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
     )
-    def mag_overview_length_boxplot_callback(
-        sample: SampleTables, cluster_col: str
-    ) -> go.Figure:
-        mag_summary_df = sample.binning.table
-        if cluster_col not in mag_summary_df.columns:
-            raise PreventUpdate
-        mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
-        mag_summary_df = mag_summary_df.loc[
-            mag_summary_df[cluster_col].ne("unclustered")
-        ]
-        fig = metric_boxplot(mag_summary_df, metrics=["length"])
+    def mag_overview_length_boxplot_callback(metagenome_id: int) -> go.Figure:
+        data = source.get_length_boxplot_records(metagenome_id)
+        fig = metric_boxplot(data)
         return fig
 
     return html.Div(

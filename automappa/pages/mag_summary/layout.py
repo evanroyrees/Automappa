@@ -36,18 +36,18 @@ def render(source: SummaryDataSource) -> DashBlueprint:
                         mag_overview_gc_content_boxplot.render(app, source), width=3
                     ),
                     dbc.Col(mag_overview_length_boxplot.render(app, source), width=3),
-                    dbc.Col(mag_overview_coverage_boxplot.render(app), width=3),
+                    dbc.Col(mag_overview_coverage_boxplot.render(app, source), width=3),
                 ]
             ),
-            dbc.Row([dbc.Col(mag_summary_cluster_col_dropdown.render(app))]),
-            dbc.Col(mag_summary_stats_datatable.render(app)),
-            dbc.Col(mag_selection_dropdown.render(app)),
-            dbc.Col(mag_taxonomy_sankey.render(app)),
+            # dbc.Row(dbc.Col(mag_summary_cluster_col_dropdown.render(app))),
+            dbc.Row(dbc.Col(mag_summary_stats_datatable.render(app, source))),
+            dbc.Row(dbc.Col(mag_selection_dropdown.render(app, source))),
+            dbc.Row(dbc.Col(mag_taxonomy_sankey.render(app, source))),
             dbc.Row(
                 [
-                    dbc.Col(mag_metrics_barplot.render(app), width=3),
-                    dbc.Col(mag_gc_content_boxplot.render(app), width=3),
-                    dbc.Col(mag_length_boxplot.render(app), width=3),
+                    dbc.Col(mag_metrics_barplot.render(app, source), width=3),
+                    dbc.Col(mag_gc_content_boxplot.render(app, source), width=3),
+                    dbc.Col(mag_length_boxplot.render(app, source), width=3),
                     dbc.Col(mag_coverage_boxplot.render(app, source), width=3),
                 ]
             ),

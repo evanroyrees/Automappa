@@ -75,30 +75,28 @@ def metric_boxplot(
     PreventUpdate
         No metrics were provided to generate traces.
     """
-    fig = go.Figure()
     if not data:
         raise PreventUpdate
+    traces = []
     for metric, series in data:
         if horizontal:
             trace = go.Box(x=series, name=metric, boxmean=boxmean)
         else:
             trace = go.Box(y=series, name=metric, boxmean=boxmean)
-        fig.add_trace(trace)
-    return fig
+        traces.append(trace)
+    return go.Figure(data=traces)
 
 
 def metric_barplot(
-    df: pd.DataFrame,
-    metrics: List[str] = [],
+    data: Tuple[str, List[float], List[float]],
     horizontal: bool = False,
-    name: str = None,
 ) -> go.Figure:
-    if not metrics:
+    if not data:
         raise PreventUpdate
-    x = [metric.replace("_", " ").title() for metric in metrics]
-    y = [df[metric].iat[0] for metric in metrics]
+    name, x, y = data
     orientation = "h" if horizontal else "v"
-    return go.Figure([go.Bar(x=x, y=y, orientation=orientation, name=name)])
+    trace = go.Bar(x=x, y=y, orientation=orientation, name=name)
+    return go.Figure([trace])
 
 
 def format_axis_title(axis_title: str) -> str:

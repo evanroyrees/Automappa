@@ -47,7 +47,7 @@
   - [x] 🔗 Add callbacks for sample cards
   - [x] :fire: Remove button ~refine button navigates to `MAG-refinement`~
   - [x] :fire: Remove button ~summarize button navigates to `MAG-summary`~
-  - [x] :link: "Card selected" option for storage in `ids.SAMPLE_ID_STORE`
+  - [x] :link: "Card selected" option for storage in `ids.METAGENOME_ID_STORE`
 
 #### MAG refinement components
 
@@ -90,14 +90,14 @@ Component protocols:
 
 > Following syntax: `class ComponentDataSource(Protocol)`
 
-- [ ] `class CoverageBoxplotDataSource(Protocol)`
-- [ ] `class GcPercentBoxplotDataSource(Protocol)`
-- [ ] `class LengthBoxplotDataSource(Protocol)`
+- [x] `class CoverageBoxplotDataSource(Protocol)`
+- [x] `class GcPercentBoxplotDataSource(Protocol)`
+- [x] `class LengthBoxplotDataSource(Protocol)`
+- [x] `class ClusterMetricsBarplotDataSource(Protocol)`
+- [x] `class ClusterDropdownDataSource(Protocol)`
 - [ ] `class ClusterMetricsBoxplotDataSource(Protocol)`
-- [ ] `class ClusterDropdownDataSource(Protocol)`
 - [ ] `class ClusterStatsTableDataSource(Protocol)`
 - [ ] `class ClusterTaxonomyDistributionDataSource(Protocol)`
-- [ ] `class ClusterMetricsBarplotDataSource(Protocol)`
 
 -----------------------------------------------------
 

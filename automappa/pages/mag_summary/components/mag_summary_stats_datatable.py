@@ -1,54 +1,85 @@
 # -*- coding: utf-8 -*-
-
-from dash.dash_table import DataTable
-from dash.exceptions import PreventUpdate
+from typing import Protocol, List, Union, Literal, Dict
+import dash_ag_grid as dag
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
-from automappa.data.source import SampleTables
-from automappa.tasks import get_metabin_stats_summary
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class SummaryStatsTableDataSource(Protocol):
+    def get_mag_stats_summary_row_data(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        ...
+
+
+def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
     @app.callback(
-        Output(ids.MAG_SUMMARY_STATS_DATATABLE, "children"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
-        Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
+        Output(ids.MAG_SUMMARY_STATS_DATATABLE, "rowData"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
     )
     def mag_summary_stats_datatable_callback(
-        sample: SampleTables, cluster_col: str
-    ) -> DataTable:
-        if cluster_col is None:
-            raise PreventUpdate
-        stats_df = get_metabin_stats_summary(
-            binning_table=sample.binning.id,
-            refinements_table=sample.refinements.id,
-            markers_table=sample.markers.id,
-            cluster_col=cluster_col,
-        )
-        return DataTable(
-            data=stats_df.to_dict("records"),
-            columns=[
-                {"name": col.replace("_", " "), "id": col} for col in stats_df.columns
-            ],
-            style_table={"overflowX": "auto"},
-            style_cell={
-                "height": "auto",
-                # all three widths are needed
-                "width": "120px",
-                "minWidth": "120px",
-                "maxWidth": "120px",
-                "whiteSpace": "normal",
+        metagenome_id: int,
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        row_data = source.get_mag_stats_summary_row_data(metagenome_id)
+        return row_data
+
+    GREEN = "#2FCC90"
+    YELLOW = "#f2e530"
+    ORANGE = "#f57600"
+    MIMAG_STYLE_CONDITIONS = {
+        "styleConditions": [
+            # High-quality >90% complete > 95% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value > 90",
+                "style": {"backgroundColor": GREEN},
             },
-            fixed_rows={"headers": True},
-        )
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value > 95",
+                "style": {"backgroundColor": GREEN},
+            },
+            # Medium-quality >=50% complete > 90% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value >= 50",
+                "style": {"backgroundColor": YELLOW},
+            },
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value > 90",
+                "style": {"backgroundColor": YELLOW},
+            },
+            # Low-quality <50% complete < 90% pure
+            {
+                "condition": "params.data.metric == 'Completeness (%)' && params.value < 50",
+                "style": {"backgroundColor": ORANGE, "color": "white"},
+            },
+            {
+                "condition": "params.data.metric == 'Purity (%)' && params.value < 90",
+                "style": {"backgroundColor": ORANGE, "color": "white"},
+            },
+        ]
+    }
+
+    column_defs = [
+        {"field": "metric", "headerName": "MAG Metric", "resizable": True},
+        {
+            "field": "metric_value",
+            "headerName": "Value",
+            "cellStyle": MIMAG_STYLE_CONDITIONS,
+        },
+    ]
 
     return html.Div(
-        children=[
+        [
             html.Label("Table 1. MAGs Summary"),
             dcc.Loading(
+                dag.AgGrid(
+                    id=ids.MAG_SUMMARY_STATS_DATATABLE,
+                    className="ag-theme-material",
+                    columnSize="responsiveSizeToFit",
+                    style={"height": 600, "width": "100%"},
+                    columnDefs=column_defs,
+                ),
                 id=ids.LOADING_MAG_SUMMARY_STATS_DATATABLE,
-                children=[html.Div(id=ids.MAG_SUMMARY_STATS_DATATABLE)],
                 type="circle",
                 color="#646569",
             ),

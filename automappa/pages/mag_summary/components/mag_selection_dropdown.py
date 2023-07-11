@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List
+from typing import Dict, List, Protocol, Literal
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
-from automappa.data.source import SampleTables
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class ClusterSelectionDropdownOptionsDataSource(Protocol):
+    def get_cluster_selection_dropdown_options(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        ...
+
+
+def render(
+    app: DashProxy, source: ClusterSelectionDropdownOptionsDataSource
+) -> html.Div:
     @app.callback(
         Output(ids.MAG_SELECTION_DROPDOWN, "options"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
-        Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
     )
     def mag_selection_dropdown_options_callback(
-        sample: SampleTables, cluster_col: str
-    ) -> List[Dict[str, str]]:
-        df = sample.refinements.table
-        if cluster_col not in df.columns:
-            options = []
-        else:
-            options = [
-                {"label": cluster, "value": cluster}
-                for cluster in df[cluster_col].dropna().unique()
-            ]
+        metagenome_id: int,
+    ) -> List[Dict[Literal["label", "value"], str]]:
+        options = source.get_cluster_selection_dropdown_options(metagenome_id)
         return options
 
     return html.Div(

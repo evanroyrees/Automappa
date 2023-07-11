@@ -1,38 +1,33 @@
 # -*- coding: utf-8 -*-
+from typing import Protocol, List, Tuple, Optional
 
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 from plotly import graph_objects as go
 
-from automappa.data.source import SampleTables
 from automappa.utils.figures import metric_barplot
 from automappa.components import ids
 
 
-def render(app: DashProxy) -> html.Div:
+class ClusterMetricsBarplotDataSource(Protocol):
+    def get_metrics_barplot_records(
+        self, metagenome_id: int, cluster: Optional[str]
+    ) -> Tuple[str, List[float], List[float]]:
+        ...
+
+
+def render(app: DashProxy, source: ClusterMetricsBarplotDataSource) -> html.Div:
     @app.callback(
         Output(ids.MAG_METRICS_BARPLOT, "figure"),
-        Input(ids.SELECTED_TABLES_STORE, "data"),
-        Input(ids.MAG_SUMMARY_CLUSTER_COL_DROPDOWN, "value"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
-    def mag_metrics_callback(
-        sample: SampleTables, cluster_col: str, selected_mag: str
-    ) -> go.Figure:
-        if not selected_mag:
+    def mag_metrics_callback(metagenome_id: int, cluster: str) -> go.Figure:
+        if not cluster:
             raise PreventUpdate
-        bin_df = sample.binning.table
-        refinement_df = sample.refinements.table.drop(columns="cluster")
-        mag_summary_df = bin_df.join(refinement_df, how="right")
-        if cluster_col not in mag_summary_df.columns:
-            raise PreventUpdate
-        mag_summary_df = mag_summary_df.dropna(subset=[cluster_col])
-        mag_df = mag_summary_df.loc[mag_summary_df[cluster_col].eq(selected_mag)]
-        mag_df = mag_df.round(2)
-        fig = metric_barplot(
-            df=mag_df, metrics=["completeness", "purity"], name=selected_mag
-        )
+        data = source.get_metrics_barplot_records(metagenome_id, cluster=cluster)
+        fig = metric_barplot(data)
         return fig
 
     return html.Div(
