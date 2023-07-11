@@ -702,7 +702,7 @@ class RefinementDataSource(BaseModel):
             for refinement in refinements:
                 row = dict(
                     refinement_id=refinement.id,
-                    timestamp=refinement.timestamp,
+                    timestamp=refinement.timestamp.strftime("%d-%b-%Y, %H:%M:%S"),
                     initial_cluster=refinement.initial_refinement,
                     contigs=len(refinement.contigs),
                 )
@@ -729,3 +729,21 @@ class RefinementDataSource(BaseModel):
             )
             session.add(refinement)
             session.commit()
+
+    def get_refinements_dataframe(self, metagenome_id: int) -> pd.DataFrame:
+        stmt = select(Refinement).where(
+            Refinement.metagenome_id == metagenome_id,
+            Refinement.outdated == False,
+        )
+        data = []
+        with Session(engine) as session:
+            refinements = session.exec(stmt).all()
+            for refinement in refinements:
+                data.append(
+                    dict(
+                        refinement_id=f"refinement_{refinement.id}",
+                        timestamp=refinement.timestamp.strftime("%d-%b-%Y"),
+                        contig=[contig.header for contig in refinement.contigs],
+                    )
+                )
+        return pd.DataFrame(data).explode("contig")
