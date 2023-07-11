@@ -8,7 +8,9 @@ from automappa.components import ids
 
 
 class SaveSelectionButtonDataSource(Protocol):
-    def update_refinements(self, metagenome_id: int, headers: List[str]) -> None:
+    def save_selections_to_refinement(
+        self, metagenome_id: int, headers: List[str]
+    ) -> None:
         ...
 
 
@@ -38,8 +40,10 @@ def render(app: DashProxy, source: SaveSelectionButtonDataSource) -> html.Div:
         # Initial load...
         if not n_clicks or (n_clicks and not selected_data) or not selected_data:
             raise PreventUpdate
-        headers = list({point["text"] for point in selected_data["points"]})
-        source.update_refinements(metagenome_id=metagenome_id, headers=headers)
+        headers = {point["text"] for point in selected_data["points"]}
+        source.save_selections_to_refinement(
+            metagenome_id=metagenome_id, headers=headers
+        )
         return 0
 
     return html.Div(

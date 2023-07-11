@@ -3,8 +3,9 @@
 
 
 import dash_ag_grid as dag
-from typing import Dict, List, Literal, Protocol
+from typing import Dict, List, Literal, Protocol, Union
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
+from datetime import datetime
 
 from automappa.components import ids
 
@@ -12,7 +13,12 @@ from automappa.components import ids
 class RefinementsTableDataSource(Protocol):
     def get_refinements_row_data(
         self, metagenome_id: int
-    ) -> List[Dict[Literal["contig", "cluster"], str]]:
+    ) -> List[
+        Dict[
+            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Union[str, int, datetime],
+        ]
+    ]:
         ...
 
 
@@ -27,14 +33,21 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
     def refinements_table_callback(
         metagenome_id: int,
         btn_clicks: int,
-    ) -> List[Dict[Literal["contig", "cluster"], str]]:
+    ) -> List[
+        Dict[
+            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Union[str, int, datetime],
+        ]
+    ]:
         row_data = source.get_refinements_row_data(metagenome_id)
 
         return row_data
 
     column_defs = [
-        {"field": "contig", "headerName": "Contig", "resizable": True},
-        {"field": "cluster", "headerName": "Cluster"},
+        {"field": "refinement_id", "headerName": "ID", "resizable": False},
+        {"field": "timestamp", "headerName": "Timestamp"},
+        {"field": "initial_cluster", "headerName": "Initial Cluster?"},
+        {"field": "contigs", "headerName": "Contigs"},
     ]
 
     return html.Div(
@@ -44,7 +57,7 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
                 dag.AgGrid(
                     id=ids.REFINEMENTS_TABLE,
                     className="ag-theme-material",
-                    columnSize="responsiveSizetoFit",
+                    columnSize="responsiveSizeToFit",
                     style=dict(height=600, width="100%"),
                     columnDefs=column_defs,
                 ),

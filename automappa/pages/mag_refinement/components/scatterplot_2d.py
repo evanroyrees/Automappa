@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from typing import Dict, List, Literal, Optional, Protocol, Tuple, Union
+from typing import Dict, List, Literal, Optional, Protocol, Set, Tuple, Union
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
 
@@ -25,6 +25,14 @@ class Scatterplot2dDataSource(Protocol):
         Literal["x", "y", "marker_symbol", "marker_size", "text", "customdata"],
         List[Union[float, str, Tuple[float, float, int]]],
     ]:
+        ...
+
+    def get_contig_headers_from_coverage_range(
+        self, metagenome_id: int, coverage_range: Tuple[float, float]
+    ) -> Set[str]:
+        ...
+
+    def get_refinement_contig_headers(self, metagenome_id: int) -> Set[str]:
         ...
 
 
@@ -120,16 +128,23 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         # - data.marker_symbol
         # - data.customdata i.e. List[Tuple(coverage, gc_content, length)]
 
-        # callback to subset based on coverage slider
-        # min_coverage, max_coverage = coverage_range
         x_axis, y_axis = axes_columns.split("|")
         hovertemplate = get_hovertemplate(x_axis, y_axis)
+
+        headers = source.get_contig_headers_from_coverage_range(
+            metagenome_id, coverage_range
+        )
+
+        if hide_selection_toggle:
+            refinements_headers = source.get_refinement_contig_headers(metagenome_id)
+            headers = headers.difference(refinements_headers)
 
         records = source.get_scatterplot2d_records(
             metagenome_id=metagenome_id,
             x_axis=x_axis,
             y_axis=y_axis,
             color_by_col=color_by_col,
+            headers=headers,
         )
 
         traces = get_traces(records, hovertemplate=hovertemplate)

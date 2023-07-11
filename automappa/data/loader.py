@@ -30,6 +30,7 @@ from automappa.data.models import (
     Marker,
     Metagenome,
     CytoscapeConnection,
+    Refinement,
     SQLModel,
 )
 
@@ -752,6 +753,41 @@ def create_sample_metagenome(
     return metagenome
 
 
+def create_initial_refinements(metagenome_id: int) -> None:
+    """Initialize Contig.refinements for contigs with Contig.cluster values
+
+    Parameters
+    ----------
+    metagenome_id : int
+        Metagenome.id value corresponding to Contigs
+    """
+    clusters_stmt = (
+        select([Contig.cluster])
+        .where(
+            Contig.metagenome_id == metagenome_id,
+            Contig.cluster != None,
+            Contig.cluster != "nan",
+        )
+        .distinct()
+    )
+    with Session(engine) as session:
+        clusters = session.exec(clusters_stmt).all()
+
+        for cluster in clusters:
+            contigs_in_cluster = session.exec(
+                select(Contig).where(Contig.cluster == cluster)
+            ).all()
+
+            refinement = Refinement(
+                contigs=contigs_in_cluster,
+                outdated=False,
+                initial_refinement=True,
+                metagenome_id=metagenome_id,
+            )
+            session.add(refinement)
+        session.commit()
+
+
 def main():
     # init database and tables
     create_db_and_tables()
@@ -760,19 +796,21 @@ def main():
 
     # CRUD sample (this will take some time with the connection mapping...)
     # NOTE: Create two samples for testing...
-    create_sample_metagenome(
+    sponge_mg = create_sample_metagenome(
         name="lasonolide",
         metagenome_fpath="data/lasonolide/metagenome.filtered.fna",
         binning_fpath="data/lasonolide/binning.tsv",
         markers_fpath="data/lasonolide/bacteria.markers.tsv",
         # connections_fpath="data/lasonolide/cytoscape.connections.tab",
     )
-    create_sample_metagenome(
+    create_initial_refinements(sponge_mg.id)
+    nubbins_mg = create_sample_metagenome(
         name="nubbins",
         metagenome_fpath="data/nubbins/scaffolds.fasta",
         binning_fpath="data/nubbins/nubbins.tsv",
         markers_fpath="data/nubbins/bacteria.markers.tsv",
     )
+    create_initial_refinements(nubbins_mg.id)
 
 
 if __name__ == "__main__":

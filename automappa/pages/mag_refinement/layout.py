@@ -88,7 +88,7 @@ def render(source: RefinementDataSource) -> DashBlueprint:
                 [dbc.Col(contig_cytoscape.render(app, source), width=12)],
                 justify="center",
             ),
-            # dbc.Row([dbc.Col(refinements_table.render(app, source), width=12)]),
+            dbc.Row(dbc.Col(refinements_table.render(app, source), width=12)),
         ],
         fluid=True,
     )

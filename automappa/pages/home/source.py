@@ -75,17 +75,18 @@ class HomeDataSource(BaseModel):
 
         Returns
         -------
-        List[str]
-            Metagenome names uploaded to/available in database
+        List[Tuple[int,str]]
+            Metagenome id,name available in database
         """
+        stmt = select(Metagenome.id, Metagenome.name)
         with Session(engine) as session:
-            sample_names = session.exec(select(Metagenome.id, Metagenome.name)).all()
+            sample_names = session.exec(stmt).all()
         return sample_names
 
     def marker_count(self, metagenome_id: int) -> int:
         with Session(engine) as session:
             statement = (
-                select(func.count(Marker.id))
+                select([func.count(Marker.id)])
                 .join(Contig)
                 .join(Metagenome)
                 .where(Metagenome.id == metagenome_id)
@@ -96,7 +97,7 @@ class HomeDataSource(BaseModel):
     def contig_count(self, metagenome_id: int) -> int:
         with Session(engine) as session:
             statement = (
-                select(func.count(Metagenome.contigs))
+                select([func.count(Metagenome.contigs)])
                 .join(Contig)
                 .where(Metagenome.id == metagenome_id)
             )
@@ -106,7 +107,7 @@ class HomeDataSource(BaseModel):
     def connections_count(self, metagenome_id: int) -> int:
         with Session(engine) as session:
             statement = (
-                select(func.count(Metagenome.connections))
+                select([func.count(Metagenome.connections)])
                 .join(CytoscapeConnection)
                 .where(Metagenome.id == metagenome_id)
             )
@@ -148,8 +149,5 @@ class HomeDataSource(BaseModel):
         metagenome = loader.create_sample_metagenome(
             name, metagenome_fpath, binning_fpath, markers_fpath, connections_fpath
         )
+        loader.create_initial_refinements(metagenome.id)
         return metagenome.id
-        # TODO Preprocess marker symbols from marker counts
-        # marker_symbols_task = preprocess_marker_symbols.delay(
-        #     metagenome_id,
-        # )

@@ -5,15 +5,16 @@ import itertools
 import logging
 import pandas as pd
 from pydantic import BaseModel
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 
-from sqlmodel import Session, or_, select, func, case
+from sqlmodel import Session, and_, or_, select, func, case
 
 from automappa.data.database import engine
 from automappa.data.loader import Metagenome, Contig, Marker
 from automappa.data.models import CytoscapeConnection, Refinement
 from automappa.data.schemas import ContigSchema
 from automappa.data.source import sqlmodel_to_df
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,34 @@ class RefinementDataSource(BaseModel):
             ).where(Contig.metagenome_id == metagenome_id)
             min_cov, max_cov = session.exec(statement).first()
         return min_cov, max_cov
+
+    def get_contig_headers_from_coverage_range(
+        self, metagenome_id: int, coverage_range: Tuple[float, float]
+    ) -> Set[str]:
+        min_cov, max_cov = coverage_range
+        with Session(engine) as session:
+            headers = session.exec(
+                select([Contig.header]).where(
+                    Contig.metagenome_id == metagenome_id,
+                    Contig.coverage >= min_cov,
+                    Contig.coverage <= max_cov,
+                )
+            ).all()
+        return set(headers)
+
+    def get_refinement_contig_headers(self, metagenome_id: int) -> Set[str]:
+        stmt = select(Contig.header).where(
+            Contig.metagenome_id == metagenome_id,
+            Contig.refinements.any(
+                and_(
+                    Refinement.initial_refinement == False,
+                    Refinement.outdated == False,
+                )
+            ),
+        )
+        with Session(engine) as session:
+            headers = session.exec(stmt).all()
+        return set(headers)
 
     def get_scatterplot2d_records(
         self,
@@ -189,9 +218,6 @@ class RefinementDataSource(BaseModel):
                 marker_symbols_subquery.c.id == Contig.id,
             )
         )
-
-        with Session(engine) as session:
-            results = session.exec(stmt).all()
 
         if headers:
             stmt = stmt.where(Contig.header.in_(headers))
@@ -660,32 +686,46 @@ class RefinementDataSource(BaseModel):
 
     def get_refinements_row_data(
         self, metagenome_id: int
-    ) -> List[Dict[Literal["contig", "cluster"], str]]:
-        stmt = (
-            select(
-                Contig.header,
-                Contig.cluster,
-            )
-            .select_from(Contig)
-            .where(Contig.metagenome_id == metagenome_id)
+    ) -> List[
+        Dict[
+            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Union[str, int, datetime],
+        ]
+    ]:
+        stmt = select(Refinement).where(
+            Refinement.metagenome_id == metagenome_id,
+            Refinement.outdated == False,
         )
+        data = []
         with Session(engine) as session:
-            results = session.exec(stmt).all()
-        return results
+            refinements = session.exec(stmt).all()
+            for refinement in refinements:
+                row = dict(
+                    refinement_id=refinement.id,
+                    timestamp=refinement.timestamp,
+                    initial_cluster=refinement.initial_refinement,
+                    contigs=len(refinement.contigs),
+                )
+                data.append(row)
+        return data
 
-    def put_refinements_data(self, metagenome_id: int, headers: List[str]) -> None:
+    def save_selections_to_refinement(
+        self, metagenome_id: int, headers: List[str]
+    ) -> None:
         with Session(engine) as session:
-            mg = session.exec(
-                select(Metagenome).where(Metagenome.id == metagenome_id)
-            ).one()
             contigs = session.exec(
-                select(Contig)
-                .where(Contig.metagenome_id == metagenome_id)
-                .where(Contig.header.in_(headers))
+                select(Contig).where(
+                    Contig.metagenome_id == metagenome_id, Contig.header.in_(headers)
+                )
             ).all()
-            # refinement_contigs = [contig for contig in contigs if contig.header in headers]
-            # untouched_contigs = [contig for contig in contigs if contig.header not in headers]
-            refinement = Refinement(contigs=contigs, metagenome_id=mg.id)
+            for contig in contigs:
+                for refinement in contig.refinements:
+                    refinement.outdated = True
+            refinement = Refinement(
+                contigs=contigs,
+                metagenome_id=metagenome_id,
+                outdated=False,
+                initial_refinement=False,
+            )
             session.add(refinement)
             session.commit()
-            session.refresh(refinement)

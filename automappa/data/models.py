@@ -27,7 +27,9 @@ class ContigRefinementLink(SQLModel, table=True):
 
 class Refinement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    timestamp: datetime = Field(default=utc_now())
+    timestamp: datetime = Field(default=utc_now(), index=True)
+    outdated: bool = False
+    initial_refinement: bool = False
     contigs: List["Contig"] = Relationship(
         back_populates="refinements", link_model=ContigRefinementLink
     )
