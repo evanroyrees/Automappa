@@ -19,7 +19,11 @@
 
 - [Adding a page](#pages)
 - [Services and dependencies](#automappa-services-and-dependencies)
+  - [Postgres](#postgres)
+  - [RabbitMQ](#rabbitmq)
   - [Celery](#celery-task-queue)
+  - [Redis](#redis)
+  - [Flower](#flower)
 - [dev resources](#development-resources)
   - [component libraries](#libraries)
 
@@ -554,6 +558,8 @@ To retrieve information from components while interacting with the application
 >NOTE: There are other keywords that may be supplied to `@app.callback` and you can
 find more information on this in the [Dash basic callbacks docs](<<https://dash.plotly.com/basic-callbacks> "Dash callbacks documentation") and [Dash advanced callbacks docs](https://dash.plotly.com/advanced-callbacks "Dash advanced callbacks documentation").
 
+###### [Back to top](#contributing)
+
 ## Pages
 
 > If you are not adding a page to Automappa but simply a component to an existing page, you may skip this section.
@@ -566,6 +572,8 @@ Similarly, many useful dash utilities are also available in a package called
 which has been used throughout. Unfortunately these packages are not completely synchronized,
 so the simple approach as described in the dash documentation may not be taken. However, some workarounds
 are described in the [dash-extensions docs](https://www.dash-extensions.com/getting_started/enrich).
+
+###### [Back to top](#contributing)
 
 ## Automappa services and dependencies
 
@@ -590,6 +598,8 @@ These services are:
 Customization of the urls to these services may be
 performed by editing the `.env` files as many of
 these settings are configured from here.
+
+###### [Back to top](#contributing)
 
 ### Postgres
 
@@ -645,6 +655,8 @@ PostgreSQL init process complete; ready for start up.
 ```
 
 </details>
+
+###### [Back to top](#contributing)
 
 ### RabbitMQ
 
@@ -1093,6 +1105,8 @@ PostgreSQL init process complete; ready for start up.
 
 </details>
 
+###### [Back to top](#contributing)
+
 ### Celery task-queue
 
 Celery is currently being used as to process background jobs via a task-queue
@@ -1136,6 +1150,8 @@ automappa-celery-1    |
 
 </details>
 
+###### [Back to top](#contributing)
+
 ### Redis
 
 <details>
@@ -1153,6 +1169,8 @@ automappa-celery-1    |
 ```
 
 </details>
+
+###### [Back to top](#contributing)
 
 ### Flower
 
@@ -1202,6 +1220,8 @@ WARNING:flower.inspector:Inspect method revoked failed
 
 </details>
 
+###### [Back to top](#contributing)
+
 ## Development resources
 
 ### Libraries
@@ -1212,3 +1232,5 @@ WARNING:flower.inspector:Inspect method revoked failed
 - [dash-bootstrap-components docs](http://dash-bootstrap-components.opensource.faculty.ai/ "dash-bootstrap-components documentation")
 - [dash-mantine-components docs](https://www.dash-mantine-components.com/ "dash-mantine-components documentation")
 - [dash-iconify icons browser](<https://icon-sets.iconify.design/> "Iconify icon sets")
+
+[Back to top](#contributing)
