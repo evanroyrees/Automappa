@@ -19,7 +19,11 @@
 
 - [Adding a page](#pages)
 - [Services and dependencies](#automappa-services-and-dependencies)
+  - [Postgres](#postgres)
+  - [RabbitMQ](#rabbitmq)
   - [Celery](#celery-task-queue)
+  - [Redis](#redis)
+  - [Flower](#flower)
 - [dev resources](#development-resources)
   - [component libraries](#libraries)
 
@@ -93,7 +97,7 @@ ids.COMPONENT_ID
 
 The component should be placed respective to the page where it will be added.
 
-The name of the file should describe your component and located in the components sub-directory.
+The name of the file should describe your component and be located in the `components` sub-directory.
 
 i.e. `automappa/pages/<page>/components/your_component.py`
 
@@ -109,7 +113,7 @@ We'll start with:
 # contents of your_component.py
 from dash_extensions.enrich import html
 
-def render() - html.Div:
+def render() -> html.Div:
     ...
 ```
 
@@ -185,8 +189,8 @@ The `callback_function` to create a reactive component in the app may have an
 arbitrary name but I tend to stick with something related to the type of
 reactivity of the component and what property is being updated.
 
-You will have to check your particular components documentation to determine
-the properties that are available (Often referred to as `props`).
+You will have to check your particular component's documentation to determine
+the properties that are available (often referred to as `props`).
 
 ```python
 from automappa.components import ids
@@ -205,7 +209,8 @@ def render(app: DashProxy) -> html.Div:
     return html.Div(dcc.Component(id=ids.COMPONENT_ID, ...), ...)
 ```
 
->NOTE: The actual `app` object that will ultimately be passed to this is a `DashBlueprint` which is a wrapper of `DashProxy` used similarly to flask
+>NOTE: The actual `app` object that will ultimately be passed to this is
+ a `DashBlueprint` which is a wrapper of `DashProxy` used similarly to flask
 blueprint templates. For more details on this see the respective
 `automappa/pages/<page>/layout.py` file.
 
@@ -215,8 +220,32 @@ Up until now we've only discussed the `app: DashProxy` argument in
 `def render(...)`, but we still require one more argument--a "data source".
 We will use this to access uploaded user data.
 
-The database operations have been isolated to their own directory under:
-`automappa/data/{database,models,schemas,loader,source}.py`
+The database setup has been isolated to its own directory under:
+`automappa/data/{database,models,schemas,loader}.py`
+
+The respective data source will use these database objects for the respective page.
+
+All of the Automappa pages have their own data source.
+
+For example if we look at the `mag_refinement` page, we will notice three items:
+
+a `components` directory containing the page's components and two files, `layout.py` and `source.py`
+
+The components and data source are implemented, then imported in 
+`layout.py` to be instantiated in the page's layout (i.e. in a `render` function)
+
+```bash
+automappa/pages/mag_refinement
+├── __init__.py
+├── components
+├── layout.py
+├── source.py
+└── tests
+
+2 directories, 3 files
+```
+
+The data source handles all of the component methods used to interact with the database.
 
 Here we outline our database, models (w/schemas), loading and pre-processing
 methods to construct a `DataSource` object that can handle any database operations.
@@ -273,11 +302,11 @@ def render(app: DashProxy, source: ComponentDataSource) -> html.Div:
 ```
 
 Here we provide our source type using our protocol: `source: ComponentDataSource` and this allows us
-to continue on with implementation without any imports! 🤯
+to continue on with the component's implementation without any data source imports! 🤯
 
 Let's continue with using the `source` in a callback...
 
-> NOTE: I've also added typehints to the callback function (this was omitted in
+> NOTE: I've also added typehints to the callback function below (this was omitted in
 >previous examples for simplicity, but should always be done 🙈).
 
 ```python
@@ -423,7 +452,7 @@ we are placing our component in the MAG-refinement layout can we define this in
 >be passed to `your_component.render(app, source)`.
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         raise NotImplemented
@@ -470,7 +499,7 @@ component:
 Returning to our data source implementation...
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         raise NotImplemented
@@ -479,7 +508,7 @@ class RefinementDataSource(BaseModel):
 ...we implement the required database query operation
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         min_gc_content, max_gc_content = min_max_values
@@ -494,8 +523,8 @@ class RefinementDataSource(BaseModel):
 
 ### 5. Import and render your component into the page layout
 
-At this point, the majority of the work has been done, now all of you have to do is simply place your component
-into the layout of the page. This should correspond to the same page for which you've implemented your component:
+At this point, the majority of the work has been done, now all that is left is to simply place the component
+into the layout of the page. This should correspond to the same page for which the component is implemented
 
 - `automappa/pages/<page>/layout.py`
 
@@ -529,6 +558,8 @@ To retrieve information from components while interacting with the application
 >NOTE: There are other keywords that may be supplied to `@app.callback` and you can
 find more information on this in the [Dash basic callbacks docs](<<https://dash.plotly.com/basic-callbacks> "Dash callbacks documentation") and [Dash advanced callbacks docs](https://dash.plotly.com/advanced-callbacks "Dash advanced callbacks documentation").
 
+###### [Back to top](#contributing)
+
 ## Pages
 
 > If you are not adding a page to Automappa but simply a component to an existing page, you may skip this section.
@@ -541,6 +572,8 @@ Similarly, many useful dash utilities are also available in a package called
 which has been used throughout. Unfortunately these packages are not completely synchronized,
 so the simple approach as described in the dash documentation may not be taken. However, some workarounds
 are described in the [dash-extensions docs](https://www.dash-extensions.com/getting_started/enrich).
+
+###### [Back to top](#contributing)
 
 ## Automappa services and dependencies
 
@@ -565,6 +598,8 @@ These services are:
 Customization of the urls to these services may be
 performed by editing the `.env` files as many of
 these settings are configured from here.
+
+###### [Back to top](#contributing)
 
 ### Postgres
 
@@ -620,6 +655,8 @@ PostgreSQL init process complete; ready for start up.
 ```
 
 </details>
+
+###### [Back to top](#contributing)
 
 ### RabbitMQ
 
@@ -1068,6 +1105,8 @@ PostgreSQL init process complete; ready for start up.
 
 </details>
 
+###### [Back to top](#contributing)
+
 ### Celery task-queue
 
 Celery is currently being used as to process background jobs via a task-queue
@@ -1111,6 +1150,8 @@ automappa-celery-1    |
 
 </details>
 
+###### [Back to top](#contributing)
+
 ### Redis
 
 <details>
@@ -1128,6 +1169,8 @@ automappa-celery-1    |
 ```
 
 </details>
+
+###### [Back to top](#contributing)
 
 ### Flower
 
@@ -1177,6 +1220,8 @@ WARNING:flower.inspector:Inspect method revoked failed
 
 </details>
 
+###### [Back to top](#contributing)
+
 ## Development resources
 
 ### Libraries
@@ -1187,3 +1232,5 @@ WARNING:flower.inspector:Inspect method revoked failed
 - [dash-bootstrap-components docs](http://dash-bootstrap-components.opensource.faculty.ai/ "dash-bootstrap-components documentation")
 - [dash-mantine-components docs](https://www.dash-mantine-components.com/ "dash-mantine-components documentation")
 - [dash-iconify icons browser](<https://icon-sets.iconify.design/> "Iconify icon sets")
+
+[Back to top](#contributing)
