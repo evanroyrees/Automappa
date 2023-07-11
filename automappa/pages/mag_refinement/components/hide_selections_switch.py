@@ -1,13 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-from dash_extensions.enrich import html
+from typing import Protocol
+from dash_extensions.enrich import html, Input, Output, DashProxy
 import dash_mantine_components as dmc
 
 from automappa.components import ids
 
 
-def render() -> html.Div:
+class HideRefinementsSwitchDataSource(Protocol):
+    def has_user_refinements(self, metagenome_id: int) -> bool:
+        ...
+
+
+def render(app: DashProxy, source: HideRefinementsSwitchDataSource) -> html.Div:
+    @app.callback(
+        Output(ids.HIDE_SELECTIONS_TOGGLE, "disabled"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
+    )
+    def disable_switch(metagenome_id: int) -> bool:
+        return not source.has_user_refinements(metagenome_id)
+
     return html.Div(
         dmc.Tooltip(
             label='Toggling this to "On" will hide your manually-curated MAG refinement groups',

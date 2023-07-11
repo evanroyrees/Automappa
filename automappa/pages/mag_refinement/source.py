@@ -684,17 +684,31 @@ class RefinementDataSource(BaseModel):
         ]
         return stylesheet
 
+    def has_user_refinements(self, metagenome_id: int) -> bool:
+        with Session(engine) as session:
+            refinement = session.exec(
+                select(Refinement).where(
+                    Refinement.metagenome_id == metagenome_id,
+                    Refinement.initial_refinement == False,
+                    Refinement.outdated == False,
+                )
+            ).first()
+        if refinement:
+            return True
+        return False
+
     def get_refinements_row_data(
         self, metagenome_id: int
     ) -> List[
         Dict[
-            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Literal["refinement_id", "timestamp", "contigs"],
             Union[str, int, datetime],
         ]
     ]:
         stmt = select(Refinement).where(
             Refinement.metagenome_id == metagenome_id,
             Refinement.outdated == False,
+            Refinement.initial_refinement == False,
         )
         data = []
         with Session(engine) as session:
@@ -703,7 +717,6 @@ class RefinementDataSource(BaseModel):
                 row = dict(
                     refinement_id=refinement.id,
                     timestamp=refinement.timestamp.strftime("%d-%b-%Y, %H:%M:%S"),
-                    initial_cluster=refinement.initial_refinement,
                     contigs=len(refinement.contigs),
                 )
                 data.append(row)

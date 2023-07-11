@@ -15,7 +15,7 @@ class RefinementsTableDataSource(Protocol):
         self, metagenome_id: int
     ) -> List[
         Dict[
-            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Literal["refinement_id", "timestamp", "contigs"],
             Union[str, int, datetime],
         ]
     ]:
@@ -35,7 +35,7 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
         btn_clicks: int,
     ) -> List[
         Dict[
-            Literal["refinement_id", "timestamp", "initial_cluster", "contigs"],
+            Literal["refinement_id", "timestamp", "contigs"],
             Union[str, int, datetime],
         ]
     ]:
@@ -46,7 +46,6 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
     column_defs = [
         {"field": "refinement_id", "headerName": "ID", "resizable": False},
         {"field": "timestamp", "headerName": "Timestamp"},
-        {"field": "initial_cluster", "headerName": "Initial Cluster?"},
         {"field": "contigs", "headerName": "Contigs"},
     ]
 

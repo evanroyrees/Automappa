@@ -42,7 +42,11 @@ def render(source: RefinementDataSource) -> DashBlueprint:
                         width=6,
                         align="center",
                     ),
-                    dbc.Col(hide_selections_switch.render(), width=3, align="center"),
+                    dbc.Col(
+                        hide_selections_switch.render(app, source),
+                        width=3,
+                        align="center",
+                    ),
                     dbc.Col(
                         settings_button.render(app, source), width=3, align="center"
                     ),
