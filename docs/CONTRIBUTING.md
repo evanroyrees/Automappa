@@ -93,7 +93,7 @@ ids.COMPONENT_ID
 
 The component should be placed respective to the page where it will be added.
 
-The name of the file should describe your component and located in the components sub-directory.
+The name of the file should describe your component and be located in the `components` sub-directory.
 
 i.e. `automappa/pages/<page>/components/your_component.py`
 
@@ -109,7 +109,7 @@ We'll start with:
 # contents of your_component.py
 from dash_extensions.enrich import html
 
-def render() - html.Div:
+def render() -> html.Div:
     ...
 ```
 
@@ -185,8 +185,8 @@ The `callback_function` to create a reactive component in the app may have an
 arbitrary name but I tend to stick with something related to the type of
 reactivity of the component and what property is being updated.
 
-You will have to check your particular components documentation to determine
-the properties that are available (Often referred to as `props`).
+You will have to check your particular component's documentation to determine
+the properties that are available (often referred to as `props`).
 
 ```python
 from automappa.components import ids
@@ -205,7 +205,8 @@ def render(app: DashProxy) -> html.Div:
     return html.Div(dcc.Component(id=ids.COMPONENT_ID, ...), ...)
 ```
 
->NOTE: The actual `app` object that will ultimately be passed to this is a `DashBlueprint` which is a wrapper of `DashProxy` used similarly to flask
+>NOTE: The actual `app` object that will ultimately be passed to this is
+ a `DashBlueprint` which is a wrapper of `DashProxy` used similarly to flask
 blueprint templates. For more details on this see the respective
 `automappa/pages/<page>/layout.py` file.
 
@@ -215,8 +216,32 @@ Up until now we've only discussed the `app: DashProxy` argument in
 `def render(...)`, but we still require one more argument--a "data source".
 We will use this to access uploaded user data.
 
-The database operations have been isolated to their own directory under:
-`automappa/data/{database,models,schemas,loader,source}.py`
+The database setup has been isolated to its own directory under:
+`automappa/data/{database,models,schemas,loader}.py`
+
+The respective data source will use these database objects for the respective page.
+
+All of the Automappa pages have their own data source.
+
+For example if we look at the `mag_refinement` page, we will notice three items:
+
+a `components` directory containing the page's components and two files, `layout.py` and `source.py`
+
+The components and data source are implemented, then imported in 
+`layout.py` to be instantiated in the page's layout (i.e. in a `render` function)
+
+```bash
+automappa/pages/mag_refinement
+├── __init__.py
+├── components
+├── layout.py
+├── source.py
+└── tests
+
+2 directories, 3 files
+```
+
+The data source handles all of the component methods used to interact with the database.
 
 Here we outline our database, models (w/schemas), loading and pre-processing
 methods to construct a `DataSource` object that can handle any database operations.
@@ -273,11 +298,11 @@ def render(app: DashProxy, source: ComponentDataSource) -> html.Div:
 ```
 
 Here we provide our source type using our protocol: `source: ComponentDataSource` and this allows us
-to continue on with implementation without any imports! 🤯
+to continue on with the component's implementation without any data source imports! 🤯
 
 Let's continue with using the `source` in a callback...
 
-> NOTE: I've also added typehints to the callback function (this was omitted in
+> NOTE: I've also added typehints to the callback function below (this was omitted in
 >previous examples for simplicity, but should always be done 🙈).
 
 ```python
@@ -423,7 +448,7 @@ we are placing our component in the MAG-refinement layout can we define this in
 >be passed to `your_component.render(app, source)`.
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         raise NotImplemented
@@ -470,7 +495,7 @@ component:
 Returning to our data source implementation...
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         raise NotImplemented
@@ -479,7 +504,7 @@ class RefinementDataSource(BaseModel):
 ...we implement the required database query operation
 
 ```python
-# contents of automappa/data/source.py
+# contents of automappa/pages/mag_refinement/source.py
 class RefinementDataSource(BaseModel):
     def get_contig_count_in_gc_content_range(self, min_max_values: Tuple[float,float]) -> int:
         min_gc_content, max_gc_content = min_max_values
@@ -494,8 +519,8 @@ class RefinementDataSource(BaseModel):
 
 ### 5. Import and render your component into the page layout
 
-At this point, the majority of the work has been done, now all of you have to do is simply place your component
-into the layout of the page. This should correspond to the same page for which you've implemented your component:
+At this point, the majority of the work has been done, now all that is left is to simply place the component
+into the layout of the page. This should correspond to the same page for which the component is implemented
 
 - `automappa/pages/<page>/layout.py`
 
