@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from typing import Protocol, List, Tuple, Optional
+from typing import Protocol, List, Tuple
 
-from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 from plotly import graph_objects as go
@@ -12,7 +11,7 @@ from automappa.components import ids
 
 class ClusterMetricsBarplotDataSource(Protocol):
     def get_metrics_barplot_records(
-        self, metagenome_id: int, refinement_id: Optional[int]
+        self, metagenome_id: int, refinement_id: int
     ) -> Tuple[str, List[float], List[float]]:
         ...
 
@@ -22,10 +21,9 @@ def render(app: DashProxy, source: ClusterMetricsBarplotDataSource) -> html.Div:
         Output(ids.MAG_METRICS_BARPLOT, "figure"),
         Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
+        prevent_initial_call=True,
     )
     def mag_metrics_callback(metagenome_id: int, refinement_id: int) -> go.Figure:
-        if not refinement_id:
-            raise PreventUpdate
         data = source.get_metrics_barplot_records(
             metagenome_id, refinement_id=refinement_id
         )

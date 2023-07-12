@@ -31,39 +31,41 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
         "styleConditions": [
             # High-quality >90% complete > 95% pure
             {
-                "condition": "params.data.metric == 'Completeness (%)' && params.value > 90",
+                "condition": "params.data.completeness == 'Completeness (%)' && params.value > 90",
                 "style": {"backgroundColor": GREEN},
             },
             {
-                "condition": "params.data.metric == 'Purity (%)' && params.value > 95",
+                "condition": "params.data.purity == 'Purity (%)' && params.value > 95",
                 "style": {"backgroundColor": GREEN},
             },
             # Medium-quality >=50% complete > 90% pure
             {
-                "condition": "params.data.metric == 'Completeness (%)' && params.value >= 50",
+                "condition": "params.data.completeness == 'Completeness (%)' && params.value >= 50",
                 "style": {"backgroundColor": YELLOW},
             },
             {
-                "condition": "params.data.metric == 'Purity (%)' && params.value > 90",
+                "condition": "params.data.purity == 'Purity (%)' && params.value > 90",
                 "style": {"backgroundColor": YELLOW},
             },
             # Low-quality <50% complete < 90% pure
             {
-                "condition": "params.data.metric == 'Completeness (%)' && params.value < 50",
+                "condition": "params.data.completeness == 'Completeness (%)' && params.value < 50",
                 "style": {"backgroundColor": ORANGE, "color": "white"},
             },
             {
-                "condition": "params.data.metric == 'Purity (%)' && params.value < 90",
+                "condition": "params.data.purity == 'Purity (%)' && params.value < 90",
                 "style": {"backgroundColor": ORANGE, "color": "white"},
             },
         ]
     }
 
     column_defs = [
-        {"field": "metric", "headerName": "MAG Metric", "resizable": True},
+        {"field": "refinement_id", "headerName": "Refinement Id", "resizable": True},
+        {"field": "completeness", "headerName": "Completeness (%)", "resizable": True},
+        {"field": "purity", "headerName": "Purity (%)", "resizable": True},
         {
-            "field": "metric_value",
-            "headerName": "Value",
+            "field": "contig_count",
+            "headerName": "Contig Count",
             "cellStyle": MIMAG_STYLE_CONDITIONS,
         },
     ]

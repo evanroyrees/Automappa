@@ -2,7 +2,7 @@
 import logging
 import pandas as pd
 from pydantic import BaseModel
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from sqlmodel import Session, and_, select, func
 from automappa.data.database import engine
@@ -17,7 +17,7 @@ MARKER_SET_SIZE = 139
 class SummaryDataSource(BaseModel):
     def compute_completeness_purity_metrics(
         self, metagenome_id: int, refinement_id: int
-    ) -> Tuple[int, float, float]:
+    ) -> Tuple[float, float]:
         marker_count_stmt = (
             select(func.count(Marker.id))
             .join(Contig)
@@ -55,7 +55,7 @@ class SummaryDataSource(BaseModel):
         purity = (
             round(unique_marker_count / markers_count * 100, 2) if markers_count else 0
         )
-        return (refinement_id, completeness, purity)
+        return completeness, purity
 
     def get_completeness_purity_boxplot_records(
         self, metagenome_id: int
@@ -69,7 +69,6 @@ class SummaryDataSource(BaseModel):
             refinement_ids = session.exec(stmt).all()
         for refinement_id in refinement_ids:
             (
-                refinement_id,
                 completeness,
                 purity,
             ) = self.compute_completeness_purity_metrics(metagenome_id, refinement_id)
@@ -132,16 +131,43 @@ class SummaryDataSource(BaseModel):
         return [(ContigSchema.COVERAGE.title(), results)]
 
     def get_metrics_barplot_records(
-        self, metagenome_id: int, refinement_id: Optional[int] = 0
+        self, metagenome_id: int, refinement_id: int
     ) -> Tuple[str, List[float], List[float]]:
-        refinement_id, completeness, purity = self.compute_completeness_purity_metrics(
+        completeness, purity = self.compute_completeness_purity_metrics(
             metagenome_id=metagenome_id, refinement_id=refinement_id
         )
-
         name = f"bin_{refinement_id} Metrics"
         x = [ContigSchema.COMPLETENESS.title(), ContigSchema.PURITY.title()]
         y = [completeness, purity]
         return name, x, y
+
+    def get_mag_stats_summary_row_data(
+        self, metagenome_id: int
+    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+        stmt = select(Refinement).where(
+            Refinement.metagenome_id == metagenome_id,
+            Refinement.outdated == False,
+        )
+        row_data = {}
+        with Session(engine) as session:
+            refinements = session.exec(stmt).all()
+            for refinement in refinements:
+                contig_count = len(refinement.contigs)
+                row_data[refinement.id] = {
+                    "refinement_id": refinement.id,
+                    "contig_count": contig_count,
+                }
+            for refinement_id in row_data.keys():
+                completeness, purity = self.compute_completeness_purity_metrics(
+                    metagenome_id, refinement_id
+                )
+                row_data[refinement_id].update(
+                    {
+                        "completeness": completeness,
+                        "purity": purity,
+                    }
+                )
+            return list(row_data.values())
 
     def get_refinement_selection_dropdown_options(
         self, metagenome_id: int

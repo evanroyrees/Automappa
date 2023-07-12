@@ -18,6 +18,7 @@ def render(app: DashProxy, source: ClusterTaxonomySankeyDataSource) -> html.Div:
         Output(ids.MAG_TAXONOMY_SANKEY, "figure"),
         Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
+        prevent_initial_call=True,
     )
     def mag_taxonomy_sankey_callback(
         metagenome_id: int, refinement_id: int
