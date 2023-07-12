@@ -54,7 +54,7 @@
 - [x] Determine construction of `Refinement(SQLModel)`
 - [x] Allow save MAG refinement after scatterplot selections
 - [x] Allow table generation from saved refinements
-- [ ] Allow data download
+- [x] Allow data download
 - [ ] re-implement cytoscape contig connection graph callbacks
 - [x] Connect `Input(ids.COVERAGE_RANGE_SLIDER, "value")` to 2D scatterplots 
   > (End-user ? --> should 3D scatterplot also be updated?)
@@ -65,12 +65,12 @@ Component protocols:
 
 - [x] `class Scatterplot2dDataSource(Protocol)`
 - [x] `class MarkerSymbolsLegendDataSource(Protocol)`
-- [ ] `class SaveSelectionsButtonDataSource(Protocol)`
+- [x] `class SaveSelectionsButtonDataSource(Protocol)`
 - [ ] `class SettingsOffcanvasDataSource(Protocol)`
   - [x] `class Scatterplot2dAxesOptionsDataSource(Protocol)`
   - [x] `class ColorByColumnOptionsDataSource(Protocol)`
-  - [ ] `class KmerNormMethodDropdownOptionsDataSource`
-  - [ ] `class KmerEmbedMethodDropdownOptionsDataSource`
+  - [ ] ~`class KmerNormMethodDropdownOptionsDataSource`~
+  - [ ] ~`class KmerEmbedMethodDropdownOptionsDataSource`~
 - [x] `class MagMetricsDataSource(Protocol)`
 - [x] `class TaxonomyDistributionDataSource(Protocol)`
   - [ ] :fire: remove use of pandas in source method
@@ -80,7 +80,7 @@ Component protocols:
 - [x] `class GcPercentBoxplotDataSource(Protocol)`
 - [x] `class LengthBoxplotDataSource(Protocol)`
 - [ ] `class ContigCytoscapeDataSource(Protocol)`
-- [ ] `class RefinementsTableDataSource(Protocol)`
+- [x] `class RefinementsTableDataSource(Protocol)`
 
 #### MAG Summary components
 
