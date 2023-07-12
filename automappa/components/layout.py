@@ -7,8 +7,8 @@ import dash_mantine_components as dmc
 
 
 from automappa.components import (
+    metagenome_id_store,
     pages_navbar,
-    sample_id_store,
 )
 
 from automappa.pages.home.source import HomeDataSource
@@ -84,7 +84,7 @@ def render(
         dmc.NotificationsProvider(
             dmc.Container(
                 [
-                    sample_id_store.render(app, storage_type, clear_data),
+                    metagenome_id_store.render(app, storage_type, clear_data),
                     pages_navbar.render(),
                     dash.page_container,
                 ],
