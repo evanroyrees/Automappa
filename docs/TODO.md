@@ -56,7 +56,7 @@
 - [x] Allow table generation from saved refinements
 - [x] Allow data download
 - [ ] re-implement cytoscape contig connection graph callbacks
-- [x] Connect `Input(ids.COVERAGE_RANGE_SLIDER, "value")` to 2D scatterplots 
+- [x] Connect `Input(ids.COVERAGE_RANGE_SLIDER, "value")` to 2D scatterplots
   > (End-user ? --> should 3D scatterplot also be updated?)
 
 Component protocols:
@@ -95,11 +95,11 @@ Component protocols:
 - [x] `class CoverageBoxplotDataSource(Protocol)`
 - [x] `class GcPercentBoxplotDataSource(Protocol)`
 - [x] `class LengthBoxplotDataSource(Protocol)`
-- [ ] `class ClusterMetricsBarplotDataSource(Protocol)`
-- [ ] `class ClusterDropdownDataSource(Protocol)`
-- [ ] `class ClusterMetricsBoxplotDataSource(Protocol)`
-- [ ] `class ClusterStatsTableDataSource(Protocol)`
-- [ ] `class ClusterTaxonomyDistributionDataSource(Protocol)`
+- [x] `class ClusterMetricsBarplotDataSource(Protocol)`
+- [x] `class ClusterDropdownDataSource(Protocol)`
+- [x] `class ClusterMetricsBoxplotDataSource(Protocol)`
+- [x] `class ClusterStatsTableDataSource(Protocol)`
+- [x] `class ClusterTaxonomyDistributionDataSource(Protocol)`
 
 -----------------------------------------------------
 
