@@ -13,7 +13,7 @@ from automappa.data import loader
 
 
 from automappa.data.database import engine
-from automappa.data.loader import (
+from automappa.data.models import (
     Metagenome,
     Contig,
     Marker,

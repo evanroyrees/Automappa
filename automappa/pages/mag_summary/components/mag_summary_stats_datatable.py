@@ -61,6 +61,11 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
 
     column_defs = [
         {"field": "refinement_id", "headerName": "Refinement Id", "resizable": True},
+        {
+            "field": "refinement_label",
+            "headerName": "Refinement Label",
+            "resizable": True,
+        },
         {"field": "completeness", "headerName": "Completeness (%)", "resizable": True},
         {"field": "purity", "headerName": "Purity (%)", "resizable": True},
         {

@@ -3,7 +3,6 @@
 
 from typing import Dict, List, Optional, Protocol, Tuple
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
-import pandas as pd
 from plotly import graph_objects as go
 
 from automappa.utils.figures import metric_boxplot
@@ -14,7 +13,7 @@ from automappa.components import ids
 class RefinementCoverageBoxplotDataSource(Protocol):
     def get_coverage_boxplot_records(
         self, metagenome_id: int, headers: Optional[List[str]]
-    ) -> List[Tuple[str, pd.Series]]:
+    ) -> List[Tuple[str, List[float]]]:
         ...
 
 
@@ -30,8 +29,6 @@ def render(app: DashProxy, source: RefinementCoverageBoxplotDataSource) -> html.
         metagenome_id: int,
         selected_data: Dict[str, List[Dict[str, str]]],
     ) -> go.Figure:
-        # if not selected_data:
-        #     raise PreventUpdate
         headers = (
             {point["text"] for point in selected_data["points"]}
             if selected_data

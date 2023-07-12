@@ -3,7 +3,6 @@
 
 from typing import Dict, List, Optional, Protocol, Tuple
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
-import pandas as pd
 from plotly import graph_objects as go
 
 from automappa.utils.figures import metric_boxplot
@@ -14,7 +13,7 @@ from automappa.components import ids
 class RefinementGcContentBoxplotDataSource(Protocol):
     def get_gc_content_boxplot_records(
         self, metagenome_id: int, headers: Optional[List[str]]
-    ) -> List[Tuple[str, pd.Series]]:
+    ) -> List[Tuple[str, List[float]]]:
         ...
 
 

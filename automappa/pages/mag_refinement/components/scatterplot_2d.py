@@ -32,7 +32,7 @@ class Scatterplot2dDataSource(Protocol):
     ) -> Set[str]:
         ...
 
-    def get_refinement_contig_headers(self, metagenome_id: int) -> Set[str]:
+    def get_user_refinements_contig_headers(self, metagenome_id: int) -> Set[str]:
         ...
 
 

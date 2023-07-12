@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 
+from functools import partial
 import itertools
 import logging
 import pandas as pd
@@ -10,13 +11,20 @@ from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 from sqlmodel import Session, and_, or_, select, func, case
 
 from automappa.data.database import engine
-from automappa.data.loader import Metagenome, Contig, Marker
-from automappa.data.models import CytoscapeConnection, Refinement
+from automappa.data.models import (
+    Metagenome,
+    Contig,
+    Marker,
+    CytoscapeConnection,
+    Refinement,
+)
 from automappa.data.schemas import ContigSchema
 from automappa.data.source import sqlmodel_to_df
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+MARKER_SET_SIZE = 139
 
 
 class RefinementDataSource(BaseModel):
@@ -82,16 +90,6 @@ class RefinementDataSource(BaseModel):
 
         return df
 
-    def get_coverage_boxplot_records(
-        self, metagenome_id: int, headers: List[str]
-    ) -> pd.DataFrame:
-        with Session(engine) as session:
-            statement = select(Contig).where(Contig.metagenome_id == metagenome_id)
-            if headers:
-                statement = statement.where(Contig.header.in_(headers))
-            results = session.exec(statement).all()
-        return sqlmodel_to_df(results)
-
     def get_coverage_min_max_values(self, metagenome_id: int) -> Tuple[float, float]:
         with Session(engine) as session:
             statement = select(
@@ -114,7 +112,7 @@ class RefinementDataSource(BaseModel):
             ).all()
         return set(headers)
 
-    def get_refinement_contig_headers(self, metagenome_id: int) -> Set[str]:
+    def get_user_refinements_contig_headers(self, metagenome_id: int) -> Set[str]:
         stmt = select(Contig.header).where(
             Contig.metagenome_id == metagenome_id,
             Contig.refinements.any(
@@ -426,7 +424,6 @@ class RefinementDataSource(BaseModel):
     def get_marker_overview(
         self, metagenome_id: int
     ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
-        MARKER_SET_SIZE = 139
         marker_count_stmt = (
             select(func.count(Marker.id))
             .join(Contig)
@@ -445,7 +442,6 @@ class RefinementDataSource(BaseModel):
     def get_mag_metrics(
         self, metagenome_id: int, headers: Optional[List[str]]
     ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
-        MARKER_SET_SIZE = 139
         contig_count_stmt = select(func.count(Contig.id)).where(
             Contig.metagenome_id == metagenome_id
         )
@@ -531,11 +527,11 @@ class RefinementDataSource(BaseModel):
             },
             {
                 "metric": "Multi-Marker Contigs",
-                "metric_value": multi_copy_contig_count,  # Forcepia sp. should be 968
+                "metric_value": multi_copy_contig_count,
             },
             {
                 "metric": "Single-Marker Contigs",
-                "metric_value": single_copy_contig_count,  # Forcepia sp. should be 1321
+                "metric_value": single_copy_contig_count,
             },
             {"metric": "Markers Count", "metric_value": markers_count},
             {
@@ -556,22 +552,19 @@ class RefinementDataSource(BaseModel):
 
     def get_coverage_boxplot_records(
         self, metagenome_id: int, headers: Optional[List[str]]
-    ) -> List[Tuple[str, pd.Series]]:
+    ) -> List[Tuple[str, List[float]]]:
         with Session(engine) as session:
             stmt = select(Contig.coverage).where(Contig.metagenome_id == metagenome_id)
             if headers:
                 stmt = stmt.where(Contig.header.in_(headers))
             coverages = session.exec(stmt).all()
-        return [
-            (
-                ContigSchema.COVERAGE.title(),
-                pd.Series(coverages, name=ContigSchema.COVERAGE).round(2),
-            )
-        ]
+        rounder = partial(round, 2)
+        coverages = map(rounder, coverages)
+        return [(ContigSchema.COVERAGE.title(), coverages)]
 
     def get_gc_content_boxplot_records(
         self, metagenome_id: int, headers: Optional[List[str]]
-    ) -> List[Tuple[str, pd.Series]]:
+    ) -> List[Tuple[str, List[float]]]:
         with Session(engine) as session:
             stmt = select(Contig.gc_content).where(
                 Contig.metagenome_id == metagenome_id
@@ -580,22 +573,19 @@ class RefinementDataSource(BaseModel):
                 stmt = stmt.where(Contig.header.in_(headers))
             gc_contents = session.exec(stmt).all()
 
-        return [
-            (
-                "GC Content",
-                pd.Series(gc_contents, name=ContigSchema.GC_CONTENT).round(2),
-            )
-        ]
+        rounder = partial(round, 2)
+        gc_contents = map(rounder, gc_contents)
+        return [("GC Content", gc_contents)]
 
     def get_length_boxplot_records(
         self, metagenome_id: int, headers: Optional[List[str]]
-    ) -> List[Tuple[str, pd.Series]]:
+    ) -> List[Tuple[str, List[int]]]:
         with Session(engine) as session:
             stmt = select(Contig.length).where(Contig.metagenome_id == metagenome_id)
             if headers:
                 stmt = stmt.where(Contig.header.in_(headers))
             lengths = session.exec(stmt).all()
-        return [(ContigSchema.LENGTH.title(), pd.Series(lengths))]
+        return [(ContigSchema.LENGTH.title(), lengths)]
 
     def get_cytoscape_elements(
         self, metagenome_id: int, headers: Optional[List[str]] = []

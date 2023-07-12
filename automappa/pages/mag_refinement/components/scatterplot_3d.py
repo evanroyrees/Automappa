@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from typing import Dict, List, Literal, Optional, Protocol, Union
+from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
 
@@ -61,17 +62,6 @@ def get_traces(
 
 
 def render(app: DashProxy, source: Scatterplot3dDataSource) -> html.Div:
-    # @app.callback(
-    #     Output(ids.SCATTERPLOT_3D, "figure", allow_duplicate=True),
-    #     Input(ids.SCATTERPLOT_3D_LEGEND_TOGGLE, "checked"),
-    #     prevent_initial_call=True,
-    # )
-    # def toggle_legend(legend_switch_checked: bool) -> go.Figure:
-    #     fig = Patch()
-    #     fig.layout.showlegend = legend_switch_checked
-    #     # fig["data"][0]["showlegend"] = legend_switch_checked
-    #     return fig
-
     @app.callback(
         Output(ids.SCATTERPLOT_3D, "figure"),
         [
@@ -96,6 +86,8 @@ def render(app: DashProxy, source: Scatterplot3dDataSource) -> html.Div:
             if selected_contigs
             else None
         )
+        if headers and len(headers) == 1:
+            raise PreventUpdate
         x_axis, y_axis = axes_columns.split("|")
         traces_data = source.get_scaterplot3d_records(
             metagenome_id=metagenome_id,

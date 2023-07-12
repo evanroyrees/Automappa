@@ -6,7 +6,7 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 
 from sqlmodel import Session, and_, select, func
 from automappa.data.database import engine
-from automappa.data.models import ContigRefinementLink, Refinement, Contig, Marker
+from automappa.data.models import Refinement, Contig, Marker
 from automappa.data.schemas import ContigSchema
 
 logger = logging.getLogger(__name__)
@@ -155,6 +155,7 @@ class SummaryDataSource(BaseModel):
                 contig_count = len(refinement.contigs)
                 row_data[refinement.id] = {
                     "refinement_id": refinement.id,
+                    "refinement_label": f"bin_{refinement.id}",
                     "contig_count": contig_count,
                 }
             for refinement_id in row_data.keys():

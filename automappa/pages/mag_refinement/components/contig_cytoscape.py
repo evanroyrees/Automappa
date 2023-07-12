@@ -1,5 +1,4 @@
 from typing import Dict, List, Literal, Optional, Protocol, Union
-from dash.exceptions import PreventUpdate
 import dash_cytoscape as cyto
 from dash_extensions.enrich import DashProxy, html, Output, Input, dcc
 
@@ -38,6 +37,7 @@ def render(app: DashProxy, source: ContigCytoscapeDataSource) -> html.Div:
             Input(ids.METAGENOME_ID_STORE, "data"),
             Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
         ],
+        prevent_initial_call=True,
     )
     def highlight_selected_contigs(
         metagenome_id: int,
@@ -48,8 +48,6 @@ def render(app: DashProxy, source: ContigCytoscapeDataSource) -> html.Div:
             Union[Literal["node", "edge"], Dict[str, Union[str, int, float]]],
         ]
     ]:
-        if not selected_contigs:
-            raise PreventUpdate
         headers = {point["text"] for point in selected_contigs["points"]}
         stylesheet = source.get_cytoscape_stylesheet(metagenome_id, headers)
 
@@ -86,6 +84,7 @@ def render(app: DashProxy, source: ContigCytoscapeDataSource) -> html.Div:
             Input(ids.METAGENOME_ID_STORE, "data"),
             Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
         ],
+        prevent_initial_call=True,
     )
     def update_cytoscape_elements(
         metagenome_id: int,
@@ -99,8 +98,6 @@ def render(app: DashProxy, source: ContigCytoscapeDataSource) -> html.Div:
             ],
         ]
     ]:
-        if not selected_contigs:
-            raise PreventUpdate
         headers = {point["text"] for point in selected_contigs["points"]}
         records = source.get_cytoscape_elements(metagenome_id, headers)
         return records

@@ -12,7 +12,7 @@ from typing import Callable, List, Literal, Optional
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
-from sqlmodel import Session, select
+from sqlmodel import Session, select, SQLModel
 
 from autometa.common.utilities import calc_checksum
 
@@ -31,7 +31,6 @@ from automappa.data.models import (
     Metagenome,
     CytoscapeConnection,
     Refinement,
-    SQLModel,
 )
 
 logging.basicConfig(level=logging.DEBUG)
