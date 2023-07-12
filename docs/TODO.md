@@ -39,7 +39,7 @@
 - [ ] loader "new sample" button disable during db ingestion
 - [ ] Loader (or notification or overlay? on sample submit button click)
   - [ ] User notified on submit button click (will require task-queue)
-  - [ ] Notification dismissed when database injestion finished (will require task-queue)
+  - [ ] Notification dismissed when database ingestion finished (will require task-queue)
   
   Supposedly background callbacks here are not supported with notifications.
 - [ ] :bug: new sample card rendered upon stepper sample submit button click

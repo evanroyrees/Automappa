@@ -22,6 +22,8 @@ from automappa.data.models import (
 
 logger = logging.getLogger(__name__)
 
+MARKER_SET_SIZE = 139
+
 
 class HomeDataSource(BaseModel):
     async def markers_getter(self, fpath: str) -> List[Marker]:
@@ -93,6 +95,17 @@ class HomeDataSource(BaseModel):
             )
             marker_count = session.exec(statement).one()
         return marker_count
+
+    def get_approximate_marker_sets(self, metagenome_id: int) -> int:
+        marker_count_stmt = (
+            select(func.count(Marker.id))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        with Session(engine) as session:
+            total_markers = session.exec(marker_count_stmt).first()
+
+        return total_markers // MARKER_SET_SIZE
 
     def contig_count(self, metagenome_id: int) -> int:
         with Session(engine) as session:

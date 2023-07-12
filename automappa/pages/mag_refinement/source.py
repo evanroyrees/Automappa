@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-
-from functools import partial
 import itertools
 import logging
 import pandas as pd
@@ -558,8 +556,7 @@ class RefinementDataSource(BaseModel):
             if headers:
                 stmt = stmt.where(Contig.header.in_(headers))
             coverages = session.exec(stmt).all()
-        rounder = partial(round, 2)
-        coverages = map(rounder, coverages)
+        coverages = [round(coverage, 2) for coverage in coverages]
         return [(ContigSchema.COVERAGE.title(), coverages)]
 
     def get_gc_content_boxplot_records(
@@ -573,8 +570,7 @@ class RefinementDataSource(BaseModel):
                 stmt = stmt.where(Contig.header.in_(headers))
             gc_contents = session.exec(stmt).all()
 
-        rounder = partial(round, 2)
-        gc_contents = map(rounder, gc_contents)
+        gc_contents = [round(gc_content, 2) for gc_content in gc_contents]
         return [("GC Content", gc_contents)]
 
     def get_length_boxplot_records(

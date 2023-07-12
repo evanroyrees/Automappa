@@ -88,10 +88,11 @@ def render(source: RefinementDataSource) -> DashBlueprint:
                     dbc.Col(mag_refinement_length_boxplot.render(app, source), width=4),
                 ]
             ),
-            dbc.Row(
-                [dbc.Col(contig_cytoscape.render(app, source), width=12)],
-                justify="center",
-            ),
+            # TODO Uncomment when cytoscape functionality implemented
+            # dbc.Row(
+            #     [dbc.Col(contig_cytoscape.render(app, source), width=12)],
+            #     justify="center",
+            # ),
             dbc.Row(dbc.Col(refinements_table.render(app, source), width=12)),
         ],
         fluid=True,

@@ -96,6 +96,9 @@ class SampleCardsDataSource(Protocol):
         """
         ...
 
+    def get_approximate_marker_sets(self, metagenome_id: int) -> int:
+        ...
+
 
 def get_badge(label: str, id: str, color: str) -> dmc.Badge:
     return dmc.Badge(label, id=id, color=color, variant="dot", size="sm")
@@ -122,7 +125,7 @@ def render(app: DashProxy, source: SampleCardsDataSource) -> html.Div:
                 color="lime",
             ),
             get_badge(
-                label=f"{ids.SAMPLE_CARD_MARKERS_BADGE_LABEL}: {source.marker_count(metagenome_id):,}",
+                label=f"{ids.SAMPLE_CARD_MARKERS_BADGE_LABEL}: {source.marker_count(metagenome_id):,} (approx. {source.get_approximate_marker_sets(metagenome_id)} sets)",
                 id={
                     ids.SAMPLE_CARD_INDEX: metagenome_id,
                     "type": ids.SAMPLE_CARD_MARKERS_BADGE_TYPE,
