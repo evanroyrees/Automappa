@@ -9,7 +9,7 @@ from automappa.components import ids
 
 
 class ClusterTaxonomySankeyDataSource(Protocol):
-    def get_taxonomy_sankey_records(self, metagenome_id: int, cluster: str):
+    def get_taxonomy_sankey_records(self, metagenome_id: int, refinement_id: int):
         ...
 
 
@@ -19,8 +19,12 @@ def render(app: DashProxy, source: ClusterTaxonomySankeyDataSource) -> html.Div:
         Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
-    def mag_taxonomy_sankey_callback(metagenome_id: int, cluster: str) -> go.Figure:
-        data = source.get_taxonomy_sankey_records(metagenome_id, cluster=cluster)
+    def mag_taxonomy_sankey_callback(
+        metagenome_id: int, refinement_id: int
+    ) -> go.Figure:
+        data = source.get_taxonomy_sankey_records(
+            metagenome_id, refinement_id=refinement_id
+        )
         fig = taxonomy_sankey(data)
         return fig
 

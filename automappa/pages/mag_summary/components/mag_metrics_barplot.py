@@ -12,7 +12,7 @@ from automappa.components import ids
 
 class ClusterMetricsBarplotDataSource(Protocol):
     def get_metrics_barplot_records(
-        self, metagenome_id: int, cluster: Optional[str]
+        self, metagenome_id: int, refinement_id: Optional[int]
     ) -> Tuple[str, List[float], List[float]]:
         ...
 
@@ -23,10 +23,12 @@ def render(app: DashProxy, source: ClusterMetricsBarplotDataSource) -> html.Div:
         Input(ids.METAGENOME_ID_STORE, "data"),
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
-    def mag_metrics_callback(metagenome_id: int, cluster: str) -> go.Figure:
-        if not cluster:
+    def mag_metrics_callback(metagenome_id: int, refinement_id: int) -> go.Figure:
+        if not refinement_id:
             raise PreventUpdate
-        data = source.get_metrics_barplot_records(metagenome_id, cluster=cluster)
+        data = source.get_metrics_barplot_records(
+            metagenome_id, refinement_id=refinement_id
+        )
         fig = metric_barplot(data)
         return fig
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from typing import List, Protocol, Tuple
-from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 from plotly import graph_objects as go

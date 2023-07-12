@@ -11,7 +11,7 @@ from automappa.components import ids
 
 class ClusterCoverageBoxplotDataSource(Protocol):
     def get_coverage_boxplot_records(
-        self, metagenome_id: int, cluster: Optional[str]
+        self, metagenome_id: int, refinement_id: Optional[int]
     ) -> List[Tuple[str, List[float]]]:
         ...
 
@@ -23,11 +23,13 @@ def render(app: DashProxy, source: ClusterCoverageBoxplotDataSource) -> html.Div
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
     def mag_summary_coverage_boxplot_callback(
-        metagenome_id: int, cluster: str
+        metagenome_id: int, refinement_id: int
     ) -> go.Figure:
-        if not cluster:
+        if not refinement_id:
             raise PreventUpdate
-        data = source.get_coverage_boxplot_records(metagenome_id, cluster=cluster)
+        data = source.get_coverage_boxplot_records(
+            metagenome_id, refinement_id=refinement_id
+        )
         fig = metric_boxplot(data)
         return fig
 

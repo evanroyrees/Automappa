@@ -7,7 +7,7 @@ from automappa.components import ids
 
 
 class ClusterSelectionDropdownOptionsDataSource(Protocol):
-    def get_cluster_selection_dropdown_options(
+    def get_refinement_selection_dropdown_options(
         self, metagenome_id: int
     ) -> List[Dict[Literal["label", "value"], str]]:
         ...
@@ -23,7 +23,7 @@ def render(
     def mag_selection_dropdown_options_callback(
         metagenome_id: int,
     ) -> List[Dict[Literal["label", "value"], str]]:
-        options = source.get_cluster_selection_dropdown_options(metagenome_id)
+        options = source.get_refinement_selection_dropdown_options(metagenome_id)
         return options
 
     return html.Div(

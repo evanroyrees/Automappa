@@ -11,7 +11,6 @@ from automappa.pages.mag_summary.components import (
     mag_overview_gc_content_boxplot,
     mag_overview_metrics_boxplot,
     mag_selection_dropdown,
-    mag_summary_cluster_col_dropdown,
     mag_summary_stats_datatable,
     mag_taxonomy_sankey,
     mag_metrics_barplot,
@@ -39,7 +38,6 @@ def render(source: SummaryDataSource) -> DashBlueprint:
                     dbc.Col(mag_overview_coverage_boxplot.render(app, source), width=3),
                 ]
             ),
-            # dbc.Row(dbc.Col(mag_summary_cluster_col_dropdown.render(app))),
             dbc.Row(dbc.Col(mag_summary_stats_datatable.render(app, source))),
             dbc.Row(dbc.Col(mag_selection_dropdown.render(app, source))),
             dbc.Row(dbc.Col(mag_taxonomy_sankey.render(app, source))),

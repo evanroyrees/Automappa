@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 
 from plotly import graph_objects as go
@@ -11,7 +12,7 @@ from automappa.components import ids
 
 class GcContentBoxplotDataSource(Protocol):
     def get_gc_content_boxplot_records(
-        self, metagenome_id: int, cluster: Optional[str]
+        self, metagenome_id: int, refinement_id: Optional[int]
     ) -> List[Tuple[str, List[float]]]:
         ...
 
@@ -23,9 +24,13 @@ def render(app: DashProxy, source: GcContentBoxplotDataSource) -> html.Div:
         Input(ids.MAG_SELECTION_DROPDOWN, "value"),
     )
     def mag_summary_gc_content_boxplot_callback(
-        metagenome_id: int, cluster: str
+        metagenome_id: int, refinement_id: int
     ) -> go.Figure:
-        data = source.get_gc_content_boxplot_records(metagenome_id, cluster=cluster)
+        if not refinement_id:
+            raise PreventUpdate
+        data = source.get_gc_content_boxplot_records(
+            metagenome_id, refinement_id=refinement_id
+        )
         fig = metric_boxplot(data)
         return fig
 
