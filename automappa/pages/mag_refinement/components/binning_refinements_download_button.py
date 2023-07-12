@@ -17,6 +17,9 @@ class RefinementsDownloadButtonDataSource(Protocol):
     def get_refinements_dataframe(self, metagenome_id: int) -> pd.DataFrame:
         ...
 
+    def has_user_refinements(self, metagenome_id: int) -> bool:
+        ...
+
 
 def render(app: DashProxy, source: RefinementsDownloadButtonDataSource) -> html.Div:
     @app.callback(
@@ -34,6 +37,17 @@ def render(app: DashProxy, source: RefinementsDownloadButtonDataSource) -> html.
             raise PreventUpdate
         df = source.get_refinements_dataframe(metagenome_id)
         return dcc.send_data_frame(df.to_csv, "refinements.csv", index=False)
+
+    @app.callback(
+        Output(ids.REFINEMENTS_DOWNLOAD_BUTTON, "disabled"),
+        Input(ids.METAGENOME_ID_STORE, "data"),
+        Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
+        Input(ids.REFINEMENTS_CLEARED_NOTIFICATION, "children"),
+    )
+    def disable_download_button(
+        metagenome_id: int, save_btn: int, clear_btn_notification
+    ) -> bool:
+        return not source.has_user_refinements(metagenome_id)
 
     # Download Refinements Button
     return html.Div(

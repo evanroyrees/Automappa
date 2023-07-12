@@ -1,8 +1,14 @@
 from dash_extensions.enrich import DashBlueprint, LogTransform
 import dash_mantine_components as dmc
 from automappa.components import ids
-from automappa.pages.home.components import sample_cards, upload_modal_button
+from automappa.pages.home.components import (
+    sample_cards,
+    upload_modal_button,
+    # task_badge,
+)
 from automappa.pages.home.source import HomeDataSource
+
+# from automappa.pages.home.tasks import background_callback_manager
 
 
 HEIGHT_MARGIN = 10
@@ -20,6 +26,7 @@ def render(source: HomeDataSource) -> DashBlueprint:
             [
                 dmc.Space(h=HEIGHT_MARGIN, w=WIDTH_MARGIN),
                 sample_cards.render(app, source),
+                # task_badge.render(app, source, background_callback_manager),
                 dmc.Affix(
                     upload_modal_button.render(app, source),
                     position={"bottom": HEIGHT_MARGIN, "left": WIDTH_MARGIN},

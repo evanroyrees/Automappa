@@ -11,7 +11,7 @@ from automappa.pages.mag_refinement.components import (
     color_by_col_dropdown,
     scatterplot_2d_legend_toggle,
     scatterplot_2d_axes_dropdown,
-    # binning_refinements_summary_button,
+    binning_refinements_clear_button,
     kmer_size_dropdown,
     norm_method_dropdown,
     scatterplot_3d_zaxis_dropdown,
@@ -84,6 +84,16 @@ def render(app: DashProxy, source) -> dbc.Offcanvas:
             dbc.Row(
                 dbc.Col(
                     binning_refinements_download_button.render(app, source),
+                    align="stretch",
+                ),
+                justify="center",
+            ),
+            html.Br(),
+            dmc.Divider(label="Danger zone", labelPosition="center"),
+            html.Br(),
+            dbc.Row(
+                dbc.Col(
+                    binning_refinements_clear_button.render(app, source),
                     align="stretch",
                 ),
                 justify="center",

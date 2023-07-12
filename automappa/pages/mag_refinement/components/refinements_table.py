@@ -28,11 +28,11 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
         [
             Input(ids.METAGENOME_ID_STORE, "data"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
+            Input(ids.REFINEMENTS_CLEARED_NOTIFICATION, "children"),
         ],
     )
     def refinements_table_callback(
-        metagenome_id: int,
-        btn_clicks: int,
+        metagenome_id: int, save_btn: int, notification
     ) -> List[
         Dict[
             Literal["refinement_id", "timestamp", "contigs"],
@@ -40,7 +40,6 @@ def render(app: DashProxy, source: RefinementsTableDataSource) -> html.Div:
         ]
     ]:
         row_data = source.get_refinements_row_data(metagenome_id)
-
         return row_data
 
     column_defs = [

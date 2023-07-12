@@ -19,22 +19,28 @@ def render(app: DashProxy, source: SaveSelectionButtonDataSource) -> html.Div:
         Output(ids.MAG_REFINEMENTS_SAVE_BUTTON, "disabled"),
         Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
     )
-    def toggle_disabled(
+    def disable_save_button(
         selected_data: Dict[str, List[Dict[str, str]]],
     ) -> bool:
-        return not selected_data
+        if (
+            selected_data
+            and len({point["text"] for point in selected_data["points"]}) > 0
+        ):
+            return False
+        return True
 
     @app.callback(
         Output(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
         [
-            Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
             Input(ids.METAGENOME_ID_STORE, "data"),
+            Input(ids.SCATTERPLOT_2D_FIGURE, "selectedData"),
             Input(ids.MAG_REFINEMENTS_SAVE_BUTTON, "n_clicks"),
         ],
+        prevent_initial_call=True,
     )
     def store_binning_refinement_selections(
-        selected_data: Dict[str, List[Dict[str, str]]],
         metagenome_id: int,
+        selected_data: Dict[str, List[Dict[str, str]]],
         n_clicks: int,
     ) -> int:
         # Initial load...

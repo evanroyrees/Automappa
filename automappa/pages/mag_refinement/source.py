@@ -697,6 +697,20 @@ class RefinementDataSource(BaseModel):
             return True
         return False
 
+    def clear_refinements(self, metagenome_id: int) -> int:
+        with Session(engine) as session:
+            refinements = session.exec(
+                select(Refinement).where(
+                    Refinement.metagenome_id == metagenome_id,
+                    Refinement.initial_refinement == False,
+                )
+            ).all()
+            n_refinements = len(refinements)
+            for refinement in refinements:
+                session.delete(refinement)
+            session.commit()
+        return n_refinements
+
     def get_refinements_row_data(
         self, metagenome_id: int
     ) -> List[
