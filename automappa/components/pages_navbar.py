@@ -12,31 +12,25 @@ def render() -> html.Div:
     #     ...
 
     logo = html.Img(src=dash.get_asset_url("favicon.ico"), height="30px")
-    brand = dmc.Group(
-        dmc.Anchor(
-            [logo, "  Automappa"],
-            href="https://github.com/WiscEvan/Automappa",
-            target="_blank",
-            underline=False,
-            color="dark",
-            size="xl",
-            transform="capitalize",
-            weight=600,
-        ),
-        spacing="xl",
-        position="center",
-        style={"textAlign": "center"},
+    brand = dmc.Anchor(
+        [logo, "  Automappa"],
+        href="https://github.com/WiscEvan/Automappa",
+        target="_blank",
+        underline=False,
+        color="dark",
+        size="md",
+        transform="capitalize",
+        weight=550,
     )
     link_group = dmc.Group(
         [
             dmc.NavLink(
                 label=dmc.Text(page["name"], align="center", weight=500),
                 href=page["path"],
-                icon=DashIconify(icon=page["icon"], height=30),
+                icon=DashIconify(icon=page["icon"], height=25),
                 variant="subtle",
                 color="gray",
                 id=page["name"],
-                # style={"textAlign": "center"},
             )
             for page in dash.page_registry.values()
             if page["module"] != "not_found_404"
@@ -52,12 +46,11 @@ def render() -> html.Div:
                 dmc.Col(brand, span=2, style={"textAlign": "center"}),
                 dmc.Col(link_group, span=10),
             ],
-            justify="center",
+            justify="space-around",
             align="center",
-            gutter="xs",
+            gutter="xl",
         ),
-        height=50,
-        # style={"backgroundColor": "#adb5bd"},
+        height=55,
         style={"backgroundColor": "#FFFFFF"},
         zIndex=99999999,
     )
