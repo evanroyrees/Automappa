@@ -18,7 +18,7 @@ from automappa.pages.mag_refinement.components import (
     mag_refinement_coverage_boxplot,
     mag_refinement_gc_content_boxplot,
     mag_refinement_length_boxplot,
-    contig_cytoscape,
+    # contig_cytoscape, # TODO
     coverage_range_slider,
 )
 

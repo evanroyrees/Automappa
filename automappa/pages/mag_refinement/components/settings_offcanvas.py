@@ -2,7 +2,7 @@
 
 import dash_bootstrap_components as dbc
 
-from dash_extensions.enrich import DashProxy, Input, Output, State, html
+from dash_extensions.enrich import DashProxy, Input, Output, State
 import dash_mantine_components as dmc
 
 from automappa.components import ids
@@ -12,8 +12,6 @@ from automappa.pages.mag_refinement.components import (
     scatterplot_2d_legend_toggle,
     scatterplot_2d_axes_dropdown,
     binning_refinements_clear_button,
-    kmer_size_dropdown,
-    norm_method_dropdown,
     scatterplot_3d_zaxis_dropdown,
     scatterplot_3d_legend_toggle,
     taxa_rank_dropdown,
@@ -22,55 +20,50 @@ from automappa.pages.mag_refinement.components import (
 
 def render(app: DashProxy, source) -> dbc.Offcanvas:
     @app.callback(
-        Output(ids.SETTINGS_OFFCANVAS, "is_open"),
+        Output(ids.SETTINGS_OFFCANVAS, "opened"),
         Input(ids.SETTINGS_BUTTON, "n_clicks"),
-        [State(ids.SETTINGS_OFFCANVAS, "is_open")],
+        [State(ids.SETTINGS_OFFCANVAS, "opened")],
     )
-    def toggle_offcanvas(n1: int, is_open: bool) -> bool:
+    def toggle_offcanvas(n1: int, opened: bool) -> bool:
         if n1:
-            return not is_open
-        return is_open
+            return not opened
+        return opened
 
-    return dbc.Offcanvas(
+    return dmc.Drawer(
         [
             dbc.Accordion(
                 [
                     dbc.AccordionItem(
-                        [
-                            dbc.Row(
-                                [
-                                    dbc.Col(color_by_col_dropdown.render(app, source)),
-                                    dbc.Col(scatterplot_2d_legend_toggle.render()),
-                                ]
-                            ),
-                            dbc.Row(dbc.Col(kmer_size_dropdown.render())),
-                            dbc.Row(dbc.Col(norm_method_dropdown.render())),
-                            dbc.Row(
-                                dbc.Col(
-                                    scatterplot_2d_axes_dropdown.render(app, source)
-                                )
-                            ),
-                        ],
+                        dmc.Stack(
+                            [
+                                dmc.Group(
+                                    [
+                                        scatterplot_2d_axes_dropdown.render(
+                                            app, source
+                                        ),
+                                        scatterplot_2d_legend_toggle.render(),
+                                    ],
+                                    spacing="xl",
+                                ),
+                                color_by_col_dropdown.render(app, source),
+                            ]
+                        ),
                         title="Figure 1: 2D Metagenome Overview",
                     ),
                     dbc.AccordionItem(
-                        [
-                            dbc.Row(
-                                [
-                                    dbc.Col(
-                                        scatterplot_3d_zaxis_dropdown.render(
-                                            app, source
-                                        )
-                                    ),
-                                    dbc.Col(scatterplot_3d_legend_toggle.render()),
-                                ]
-                            ),
-                        ],
+                        dmc.Group(
+                            [
+                                scatterplot_3d_zaxis_dropdown.render(app, source),
+                                scatterplot_3d_legend_toggle.render(),
+                            ],
+                            position="left",
+                            spacing="xl",
+                        ),
                         title="Figure 2: 3D Metagenome Overview",
                     ),
                     dbc.AccordionItem(
                         [
-                            dbc.Col(taxa_rank_dropdown.render(app, source)),
+                            dmc.Stack(taxa_rank_dropdown.render(app, source)),
                         ],
                         title="Figure 3: Taxonomic Distribution",
                     ),
@@ -78,30 +71,33 @@ def render(app: DashProxy, source) -> dbc.Offcanvas:
                 start_collapsed=True,
                 flush=True,
             ),
-            html.Br(),
-            dmc.Divider(label="Get MAG refinements data", labelPosition="center"),
-            html.Br(),
-            dbc.Row(
-                dbc.Col(
-                    binning_refinements_download_button.render(app, source),
-                    align="stretch",
-                ),
-                justify="center",
+            dmc.Space(h=15),
+            dmc.Divider(
+                label="Get MAG refinements data",
+                labelPosition="center",
             ),
-            html.Br(),
-            dmc.Divider(label="Danger zone", labelPosition="center"),
-            html.Br(),
-            dbc.Row(
-                dbc.Col(
-                    binning_refinements_clear_button.render(app, source),
-                    align="stretch",
-                ),
-                justify="center",
+            dmc.Space(h=10),
+            dmc.Group(
+                [
+                    dmc.Space(w=10),
+                    binning_refinements_download_button.render(app, source),
+                ]
+            ),
+            dmc.Space(h=15),
+            dmc.Divider(
+                label=dmc.Text("Danger zone", weight=700),
+                labelPosition="center",
+                color="red",
+                size="md",
+            ),
+            dmc.Space(h=10),
+            dmc.Group(
+                [dmc.Space(w=10), binning_refinements_clear_button.render(app, source)]
             ),
         ],
         id=ids.SETTINGS_OFFCANVAS,
         title="Settings",
-        is_open=False,
-        placement="end",
-        scrollable=True,
+        opened=False,
+        position="right",
+        size=420,
     )

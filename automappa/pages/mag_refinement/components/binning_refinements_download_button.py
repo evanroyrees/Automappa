@@ -55,11 +55,11 @@ def render(app: DashProxy, source: RefinementsDownloadButtonDataSource) -> html.
             dmc.Button(
                 "Download Refinements",
                 id=ids.REFINEMENTS_DOWNLOAD_BUTTON,
-                leftIcon=[DashIconify(icon="line-md:download-loop", height=30)],
+                leftIcon=[DashIconify(icon="line-md:download-loop", height=25)],
                 n_clicks=0,
                 color="dark",
                 variant="outline",
-                fullWidth=True,
+                fullWidth=False,
             ),
             dcc.Download(id=ids.REFINEMENTS_DOWNLOAD),
         ]

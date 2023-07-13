@@ -351,16 +351,12 @@ class RefinementDataSource(BaseModel):
     def get_scatterplot_2d_axes_options(
         self,
     ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
-        axes = {
-            ContigSchema.LENGTH,
-            ContigSchema.COVERAGE,
-            ContigSchema.GC_CONTENT,
-            ContigSchema.X_1,
-            ContigSchema.X_2,
-        }
-        axes_permutations = itertools.permutations(axes, 2)
         options = []
-        for x_axis, y_axis in axes_permutations:
+        axes_combinations = [
+            (ContigSchema.X_1, ContigSchema.X_2),
+            (ContigSchema.COVERAGE, ContigSchema.GC_CONTENT),
+        ]
+        for x_axis, y_axis in axes_combinations:
             x_axis_label = (
                 "GC content" if ContigSchema.GC_CONTENT in x_axis else x_axis.title()
             )
@@ -369,8 +365,7 @@ class RefinementDataSource(BaseModel):
             )
             label = f"{x_axis_label} vs. {y_axis_label}"
             value = "|".join([x_axis, y_axis])
-            options.append({"label": label, "value": value})
-
+            options.append(dict(label=label, value=value))
         return options
 
     def get_scatterplot_3d_zaxis_dropdown_options(

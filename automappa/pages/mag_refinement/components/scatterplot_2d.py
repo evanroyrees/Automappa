@@ -33,6 +33,7 @@ class Scatterplot2dDataSource(Protocol):
         ...
 
     def get_user_refinements_contig_headers(self, metagenome_id: int) -> Set[str]:
+        """Retrieve all contig headers for Refinements that are not outdated and that were not initially uploaded by the user"""
         ...
 
 
@@ -97,8 +98,6 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         Output(ids.SCATTERPLOT_2D_FIGURE, "figure"),
         [
             Input(ids.METAGENOME_ID_STORE, "data"),
-            Input(ids.KMER_SIZE_DROPDOWN, "value"),
-            Input(ids.NORM_METHOD_DROPDOWN, "value"),
             Input(ids.AXES_2D_DROPDOWN, "value"),
             Input(ids.SCATTERPLOT_2D_LEGEND_TOGGLE, "checked"),
             Input(ids.COLOR_BY_COLUMN_DROPDOWN, "value"),
@@ -109,8 +108,6 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
     )
     def scatterplot_2d_figure_callback(
         metagenome_id: int,
-        kmer_size_dropdown_value: int,
-        norm_method_dropdown_value: str,
         axes_columns: str,
         show_legend: bool,
         color_by_col: str,
@@ -136,7 +133,9 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         )
 
         if hide_selection_toggle:
-            refinements_headers = source.get_refinement_contig_headers(metagenome_id)
+            refinements_headers = source.get_user_refinements_contig_headers(
+                metagenome_id
+            )
             headers = headers.difference(refinements_headers)
 
         records = source.get_scatterplot2d_records(
