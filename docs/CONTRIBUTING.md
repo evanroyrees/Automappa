@@ -1116,6 +1116,8 @@ Automappa services (`redis`, `flower`, `web`, `celery`, `rabbitmq`)
 as tasks are registered with celery at instantiation and will not be
 'hot-reloaded' like other parts of the app.
 
+For more information on implementing new tasks see the [task docs](../automappa/pages/home/tasks/README.md)
+
 <details>
 
 <summary>What to see at startup</summary>

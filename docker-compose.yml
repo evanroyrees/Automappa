@@ -1,6 +1,6 @@
 version: '3.8'
 
-services:  
+services:
 
   postgres:
     image: postgres
@@ -29,13 +29,15 @@ services:
       - .env
     volumes:
       - ./automappa/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-    
-  celery:
+
+  queue:
     build:
       context: .
       dockerfile: Dockerfile
     restart: always
     command: celery --app=automappa.tasks.queue worker --loglevel INFO --uid automappa -E
+    env_file:
+      - .env
     volumes:
       - .:/usr/src/app
     depends_on:
@@ -55,7 +57,7 @@ services:
     env_file:
       - .env
     depends_on:
-      - celery
+      - queue
       - rabbitmq
 
   web:
@@ -64,9 +66,6 @@ services:
       dockerfile: Dockerfile
     restart: always
     mem_limit: 4GB
-    # Not sure which is more appropriate for production :shrug:
-    # The current command allows live-reloading for dev
-    # command: automappa
     command: python -m automappa.__main__
     volumes:
       # /usr/src/app is location of install in Dockerfile
@@ -75,7 +74,7 @@ services:
       - "8050:8050"
     depends_on:
       - postgres
-      - celery
+      - queue
 
   # prometheus:
   #   image: prom/prometheus:latest

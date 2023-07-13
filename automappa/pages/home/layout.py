@@ -1,21 +1,20 @@
+from celery import Celery
 from dash_extensions.enrich import DashBlueprint, LogTransform
 import dash_mantine_components as dmc
 from automappa.components import ids
 from automappa.pages.home.components import (
     sample_cards,
+    task_status_badge,
     upload_modal_button,
-    # task_badge,
 )
 from automappa.pages.home.source import HomeDataSource
-
-# from automappa.pages.home.tasks import background_callback_manager
 
 
 HEIGHT_MARGIN = 10
 WIDTH_MARGIN = 10
 
 
-def render(source: HomeDataSource) -> DashBlueprint:
+def render(source: HomeDataSource, queue: Celery) -> DashBlueprint:
     app = DashBlueprint(transforms=[LogTransform()])
     app.name = ids.HOME_TAB_ID
     app.icon = "line-md:home"
@@ -26,7 +25,8 @@ def render(source: HomeDataSource) -> DashBlueprint:
             [
                 dmc.Space(h=HEIGHT_MARGIN, w=WIDTH_MARGIN),
                 sample_cards.render(app, source),
-                # task_badge.render(app, source, background_callback_manager),
+                dmc.Space(h=HEIGHT_MARGIN, w=WIDTH_MARGIN),
+                task_status_badge.render(app, source, queue),
                 dmc.Affix(
                     upload_modal_button.render(app, source),
                     position={"bottom": HEIGHT_MARGIN, "left": WIDTH_MARGIN},
