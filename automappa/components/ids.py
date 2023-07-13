@@ -47,6 +47,8 @@ SAMPLE_CARD_CONNECTIONS_BADGE_TYPE = "sample-card-connections-badge-type"
 SAMPLE_CARD_CONNECTIONS_BADGE_LABEL = "cytoscape connections"
 BACKGROUND_TASK_BADGE = "background-task-badge"
 BACKGROUND_TASK_BUTTON = "background-task-button"
+BADGE_TASK_STORE = "badge-task-store"
+BADGE_STATUS_INTERVAL = "badge-status-interval"
 # MAG_REFINEMENT
 MAG_REFINEMENT_TAB_ID = "MAG-refinement"
 COLOR_BY_COLUMN_DROPDOWN = "color-by-column"
