@@ -35,7 +35,7 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    command: celery --app=automappa.tasks.queue worker --loglevel INFO --uid automappa -E
+    command: celery --app=automappa.tasks.queue worker --loglevel=INFO --uid=automappa -E
     env_file:
       - .env
     volumes:
