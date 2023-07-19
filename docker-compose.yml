@@ -35,7 +35,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    command: celery --app=automappa.tasks.queue worker --loglevel=INFO --uid=automappa -E
+    command: celery --app=automappa.tasks.queue worker --loglevel=INFO -E
+    user: automappa
     env_file:
       - .env
     volumes:
@@ -50,6 +51,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     command: celery --app=automappa.tasks.queue flower --port=5555
+    user: automappa
     volumes:
       - .:/usr/src/app
     ports:
@@ -67,6 +69,7 @@ services:
     restart: always
     mem_limit: 4GB
     command: python -m automappa.__main__
+    user: automappa
     volumes:
       # /usr/src/app is location of install in Dockerfile
       - .:/usr/src/app

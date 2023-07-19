@@ -16,13 +16,12 @@ class UploadModalButtonDataSource(Protocol):
 
 
 def render(app: DashProxy, source: UploadModalButtonDataSource) -> html.Div:
-    # @app.callback(
-    #     Output(ids.OPEN_MODAL_BUTTON, "disabled"),
-    #     Input(ids.SAMPLE_CARDS_CONTAINER, "children")
-    # )
-    # def disable_during_db_ingest(sample_card: List[dmc.Card]):
-    #     # TODO Determine how to get loading state of most recent sample card
-    #     return
+    @app.callback(
+        Output(ids.OPEN_MODAL_BUTTON, "disabled"),
+        Input(ids.TASK_ID_STORE, "data"),
+    )
+    def disable_task_button(task_ids: List[str]) -> bool:
+        return True if task_ids and task_ids is not None else False
 
     return html.Div(
         [

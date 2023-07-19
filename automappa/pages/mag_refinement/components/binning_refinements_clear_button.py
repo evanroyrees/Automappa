@@ -33,7 +33,7 @@ def render(app: DashProxy, source: RefinementsClearButtonDataSource) -> html.Div
         )
         message += " refinement" if deleted_refinements_count == 1 else " refinements"
         return dmc.Notification(
-            id="simple-notify",
+            id=ids.REFINEMENTS_NOTIFICATION,
             action="show",
             message=message,
             title=title,

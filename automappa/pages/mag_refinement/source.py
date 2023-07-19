@@ -17,7 +17,6 @@ from automappa.data.models import (
     Refinement,
 )
 from automappa.data.schemas import ContigSchema
-from automappa.data.source import sqlmodel_to_df
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -157,63 +156,17 @@ class RefinementDataSource(BaseModel):
         name_select = categoricals[color_by_col]
         x_select = axes[x_axis]
         y_select = axes[y_axis]
-
-        marker_symbols_subquery = (
-            select(
-                [
-                    Contig.id,
-                    case(
-                        [
-                            (func.count(Marker.id) == 0, "circle"),
-                            (func.count(Marker.id) == 1, "square"),
-                            (func.count(Marker.id) == 2, "diamond"),
-                            (func.count(Marker.id) == 3, "triangle-up"),
-                            (func.count(Marker.id) == 4, "x"),
-                            (func.count(Marker.id) == 5, "pentagon"),
-                            (func.count(Marker.id) == 6, "hexagon2"),
-                            (func.count(Marker.id) >= 7, "hexagram"),
-                        ],
-                        else_="circle",
-                    ).label("symbol"),
-                    case(
-                        [
-                            (func.count(Marker.id) == 0, 7),
-                            (func.count(Marker.id) == 1, 8),
-                            (func.count(Marker.id) == 2, 9),
-                            (func.count(Marker.id) == 3, 10),
-                            (func.count(Marker.id) == 4, 11),
-                            (func.count(Marker.id) == 5, 12),
-                            (func.count(Marker.id) == 6, 13),
-                            (func.count(Marker.id) >= 7, 14),
-                        ],
-                        else_=7,
-                    ).label("size"),
-                ]
-            )
-            .select_from(Contig)
-            .join(Marker, isouter=True)
-            .group_by(Contig.id)
-            .subquery()
-        )
-
-        stmt = (
-            select(
-                x_select,
-                y_select,
-                marker_symbols_subquery.c.size,
-                marker_symbols_subquery.c.symbol,
-                Contig.coverage,
-                Contig.gc_content,
-                Contig.length,
-                Contig.header,
-                name_select,
-            )
-            .select_from(Contig)
-            .join(
-                marker_symbols_subquery,
-                marker_symbols_subquery.c.id == Contig.id,
-            )
-        )
+        stmt = select(
+            x_select,
+            y_select,
+            Contig.marker_size,
+            Contig.marker_symbol,
+            Contig.coverage,
+            Contig.gc_content,
+            Contig.length,
+            Contig.header,
+            name_select,
+        ).select_from(Contig)
 
         if headers:
             stmt = stmt.where(Contig.header.in_(headers))
@@ -394,25 +347,6 @@ class RefinementDataSource(BaseModel):
             ContigSchema.SPECIES,
         ]
         return [{"label": rank.title(), "value": rank} for rank in ranks]
-
-    def update_refinements(self, metagenome_id: int, headers: List[str]) -> None:
-        with Session(engine) as session:
-            results = session.exec(
-                select(Contig)
-                .where(Contig.metagenome_id == metagenome_id)
-                .where(Contig.header.in_(headers))
-            ).all()
-        bin_df = sqlmodel_to_df(results, set_index=False).drop(columns=["id"])
-        # TODO Add Refinement model associated with metagenome
-        # FIXME
-        # Allow arbitrary updates to Contig binning where initial data is not touched
-        refinement_cols = [col for col in bin_df.columns if "refinement" in col]
-        refinement_num = len(refinement_cols) + 1
-        refinement_name = f"refinement_{refinement_num}"
-        bin_df.loc[headers, refinement_name] = refinement_name
-        bin_df = bin_df.fillna(axis="columns", method="ffill")
-        bin_df.reset_index(inplace=True)
-        # table_to_db(df=bin_df, name=sample.refinements.id)
 
     def get_marker_overview(
         self, metagenome_id: int

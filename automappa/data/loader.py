@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 # DataLoader for Autometa results ingestion
-from datetime import datetime
 import logging
 from pathlib import Path
 import uuid
 import pandas as pd
 
 from functools import partial, reduce
-from typing import Callable, List, Literal, Optional
+from typing import Callable, List, Optional, Union
 
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 from sqlmodel import Session, select, SQLModel
 
-from autometa.common.utilities import calc_checksum
-
-from autometa.common.markers import load as autometa_markers_loader
 from automappa.data.schemas import ContigSchema, CytoscapeConnectionSchema, MarkerSchema
 
 from automappa.settings import server
@@ -50,287 +44,29 @@ def compose(*functions: Preprocessor) -> Preprocessor:
     return reduce(lambda f, g: lambda x: g(f(x)), functions)
 
 
-def convert_bytes(size: int, unit: str = "MB", ndigits: int = 2) -> float:
-    """Convert bytes from os.path.getsize(...) to provided `unit`
-    choices include: 'KB', 'MB' or 'GB'
+def sqlmodel_to_df(objects: List[SQLModel], set_index: bool = True) -> pd.DataFrame:
+    """Converts SQLModel objects into a Pandas DataFrame.
 
+    From https://github.com/tiangolo/sqlmodel/issues/215#issuecomment-1092348993
+
+    Usage
+    ----------
+    df = sqlmodel_to_df(list_of_sqlmodels)
     Parameters
     ----------
-    size : int
-        bytes returned from `os.path.getsize(...)`
-    unit : str, optional
-        size to convert from bytes, by default MB
-
-    Returns
-    -------
-    float
-        Converted bytes value
+    :param objects: List[SQLModel]: List of SQLModel objects to be converted.
+    :param set_index: bool: Sets the first column, usually the primary key, to dataframe index.
     """
-    # Yoinked from
-    # https://amiradata.com/python-get-file-size-in-kb-mb-or-gb/#Get_file_size_in_KiloBytes_MegaBytes_or_GigaBytes
-    digit_rounder = partial(round, ndigits=ndigits)
-    if unit == "KB":
-        return digit_rounder(size / 1024)
-    elif unit == "MB":
-        return digit_rounder(size / (1024**2))
-    elif unit == "GB":
-        return digit_rounder(size / (1024**3))
-    else:
-        return size
 
-
-def get_metagenome_seqrecords(table_name: str) -> List[SeqRecord]:
-    df = get_table(table_name)
-    return [
-        SeqRecord(seq=Seq(record[1]), id=record[0], name=record[0])
-        for record in df.to_records(index=False)
-    ]
-
-
-def store_markers(filepath: Path, if_exists: str = "replace") -> str:
-    """Parse `filepath` into `MarkersData` and save to the `markers` table in the PostgreSQL database.
-
-    `table_id` is composed of 2 pieces:
-        1. md5 checksum of 'filepath'
-        2. markers
-
-    Parameters
-    ----------
-    filepath : Path
-        Path to markers.tsv Autometa results
-    if_exists : str, optional
-        {'fail', 'replace', 'append'}, by default 'replace'
-        How to behave if the table already exists.
-
-    Returns
-    -------
-    str
-        table_id = PostgreSQL table id for retrieving stored data (AKA name of SQL table)
-        e.g. `'{checksum}-markers'`
-    """
-    # Construct table name
-    checksum = calc_checksum(str(filepath)).split()[0]
-    table_name = f"{checksum}-markers"
-    # Read filepath contents and create MarkersData entries
-    df = autometa_markers_loader(filepath)
-    df.to_sql(table_name, engine, if_exists=if_exists)
-    logger.debug(
-        f"Saved {df.shape[0]:,} contigs containing markers to the markers table: {table_name}"
-    )
-    return table_name
-
-
-def store_binning_main(filepath: Path, if_exists: str = "replace") -> str:
-    """Parse `filepath` into `pd.DataFrame` then save to postgres table
-
-    `table_id` is composed of 2 pieces:
-
-        1. md5 checksum of 'filepath'
-        2. binning
-
-        e.g. `'{checksum}-binning'`
-
-    Parameters
-    ----------
-    filepath : Path
-        Path to binning.main.tsv Autometa results
-    if_exists : str
-        {'fail', 'replace', 'append'}, by default 'replace'
-        How to behave if the table already exists.
-
-    Returns
-    -------
-    str
-        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
-        e.g. `'{checksum}-binning'`
-    """
-    # Construct table name
-    checksum = calc_checksum(str(filepath)).split()[0]
-    table_name = f"{checksum}-binning"
-    # Read filepath contents
-    df = pd.read_csv(filepath, sep="\t")
-    # NOTE: table_name must not exceed maximum length of 63 characters
-    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
-    # MAG Refinement Data Store
-    # TODO: Refactor this to move it out of store_binning(...)
-    # Should be another celery task...
-    # NOTE: MAG refinement columns are enumerated (1-indexed) and prepended with 'refinement_'
-    if "cluster" not in df.columns:
-        df["cluster"] = "unclustered"
-    else:
-        df["cluster"].fillna("unclustered", inplace=True)
-
-    refine_cols = [
-        col
-        for col in df.columns
-        if "refinement_" in col or "cluster" in col or "contig" in col
-    ]
-    refinement_table_name = table_name.replace("-binning", "-refinement")
-    df[refine_cols].to_sql(
-        refinement_table_name, engine, if_exists=if_exists, index=False
-    )
-    logger.debug(
-        f"Saved refinements (shape={df[refine_cols].shape}) to postgres table: {refinement_table_name}"
-    )
-    return table_name
-
-
-def store_metagenome(filepath: Path, if_exists: str = "replace") -> str:
-    """Parse `filepath` into `pd.DataFrame` then save to postgres table
-
-    `table_id` is composed of 2 pieces:
-
-        1. md5 checksum of 'filepath'
-        2. metagenome
-
-        e.g. `'{checksum}-metagenome'`
-
-    Parameters
-    ----------
-    filepath : Path
-        Path to metagenome.main.tsv Autometa results
-    if_exists : str
-        {'fail', 'replace', 'append'}, by default 'replace'
-        How to behave if the table already exists.
-
-    Returns
-    -------
-    str
-        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
-        e.g. `'{checksum}-metagenome'`
-    """
-    # Read filepath contents
-    logger.debug(f"{filepath} uploaded... converting for datatable...")
-    metagenome = Metagenome(assembly=filepath)
-    df = pd.DataFrame(
-        [
-            {"contig": seqrecord.id, "sequence": str(seqrecord.seq)}
-            for seqrecord in metagenome.seqrecords
-        ]
-    )
-    logger.debug(f"converted... saving to datatable...")
-    # NOTE: table_name must not exceed maximum length of 63 characters
-    # Construct table name
-    checksum = calc_checksum(str(filepath)).split()[0]
-    table_name = f"{checksum}-metagenome"
-    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
-    return table_name
-
-
-def store_cytoscape(filepath: Path, if_exists: str = "replace") -> str:
-    """Parse `filepath` into `pd.DataFrame` then save to postgres table
-
-    `table_id` is composed of 2 pieces:
-
-        1. md5 checksum of 'filepath'
-        2. cytoscape connections table
-
-        e.g. `'{checksum}-cytoscape'`
-
-    Parameters
-    ----------
-    filepath : Path
-        Path to cytoscape connections table
-    if_exists : str
-        {'fail', 'replace', 'append'}, by default 'replace'
-        How to behave if the table already exists.
-
-    Returns
-    -------
-    str
-        table_id = postgres table id for retrieving stored data (AKA name of SQL table)
-        e.g. `'{checksum}-cytoscape'`
-    """
-    # Read filepath contents
-    logger.debug(f"{filepath} uploaded... reading to datatable...")
-    df = pd.read_table(
-        filepath,
-        dtype={"node1": str, "interaction": int, "node2": str, "connections": int},
-    )
-    logger.debug(f"saving {filepath} to datatable...")
-    # NOTE: table_name must not exceed maximum length of 63 characters
-    # Construct table name
-    checksum = calc_checksum(str(filepath)).split()[0]
-    table_name = f"{checksum}-cytoscape"
-    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {df.shape[0]:,} contigs to postgres table: {table_name}")
-    return table_name
-
-
-def file_to_db(
-    filepath: Path,
-    filetype: Literal["markers", "metagenome", "binning", "cytoscape"],
-    if_exists: str = "replace",
-) -> pd.DataFrame:
-    """Store `filepath` to db table based on `filetype`
-
-    Parameters
-    ----------
-    filepath : Path
-        Path to uploaded file to be stored in db table
-    filetype : str
-        type of file to be stored
-        choices include 'markers', 'metagenome', 'binning', "cytoscape"
-
-    Returns
-    -------
-    pd.DataFrame
-        cols=[filetype, filename, filesize (MB), table_id, uploaded, timestamp]
-
-    Raises
-    ------
-    ValueError
-        `filetype` not in filetype store methods
-    """
-    logger.debug(f"Saving {filepath} to db")
-    bytes_size = filepath.stat().st_size
-    filesize = convert_bytes(bytes_size, "MB")
-    timestamp = filepath.stat().st_mtime
-    last_modified = datetime.fromtimestamp(timestamp).strftime("%Y-%b-%d, %H:%M:%S")
-    create_methods = {
-        "markers": create_markers,
-        "metagenome": create_metagenome,
-        "binning": create_contigs,
-        "cytoscape": create_cytoscape_connections,
-    }
-    if filetype not in create_methods:
-        raise ValueError(
-            f"{filetype} not in filetype create methods {','.join(create_methods.keys())}"
-        )
-    create_method = create_methods[filetype]
-    try:
-        create_method(filepath)
-    except Exception as err:
-        logger.error(err)
-        return pd.DataFrame()
-    finally:
-        logger.debug(f"Removed upload: {filepath.name} from server")
-        filepath.unlink(missing_ok=True)
-    df = pd.DataFrame(
-        [
-            {
-                "filename": filepath.name,
-                "filetype": filetype,
-                "filesize (MB)": filesize,
-                # "table_id": table_id,
-                "uploaded": last_modified,
-                # "timestamp": timestamp,
-            }
-        ]
-    )
-    # Create table_name specific to uploaded file with the upload file metadata...
-    # This should contain mapping to where the file contents are stored (i.e. table_id)
-    table_name = f"{uuid.uuid4()}-fileupload"
-    df.to_sql(table_name, engine, if_exists=if_exists, index=False)
-    logger.debug(f"Saved {table_name} to db")
-    return df
+    records = [obj.dict() for obj in objects]
+    columns = list(objects[0].schema()["properties"].keys())
+    df = pd.DataFrame.from_records(records, columns=columns)
+    return df.set_index(columns[0]) if set_index else df
 
 
 def validate_uploader(
     is_completed: bool, filenames: List[str], upload_id: uuid.UUID
-) -> Path:
+) -> Union[Path, None]:
     """Ensure only one file was uploaded and create Path to uploaded file
 
     Parameters
@@ -370,61 +106,6 @@ def validate_uploader(
     return uploaded_files[0]
 
 
-def get_uploaded_files_table() -> pd.DataFrame:
-    df = pd.DataFrame()
-    table_names = [name for name in get_table_names() if "fileupload" in name]
-    if table_names:
-        df = pd.DataFrame(
-            [pd.read_sql(table_name, engine) for table_name in table_names]
-        )
-    return df
-
-
-def in_table_names(table_name: str) -> bool:
-    return table_name in get_table_names()
-
-
-def get_table(table_name: str, index_col: Optional[str] = None) -> pd.DataFrame:
-    if not in_table_names(table_name):
-        raise ValueError(f"{table_name} not in database!")
-    df = pd.read_sql(table_name, engine)
-    if index_col:
-        df = df.set_index(index_col)
-    logger.debug(f"retrieved {table_name} datatable, shape: {df.shape}")
-    return df
-
-
-def table_to_db(
-    df: pd.DataFrame, name: str, if_exists: str = "replace", index: bool = False
-) -> None:
-    """Write `df` to `table_name` in database.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        Dataframe of data to write
-    name : str
-        Name of data table to store in database
-    if_exists : str, optional
-        What to do if `name` exists.
-        Choices include: 'fail', 'replace', 'append', by default "replace"
-    index : bool, optional
-        Whether to write the index to the database, by default False
-
-    Returns
-    -------
-    NoneType
-        Nothing is returned...
-    """
-    return df.to_sql(name=name, con=engine, if_exists=if_exists, index=index)
-
-
-def df_to_sqlmodel(df: pd.DataFrame, model: SQLModel) -> List[SQLModel]:
-    """Convert a pandas DataFrame into a a list of SQLModel objects."""
-    objs = [model(**row) for row in df.to_dict("records")]
-    return objs
-
-
 def create_metagenome(
     name: str, fpath: Optional[str], contigs: Optional[List[Contig]]
 ) -> Metagenome:
@@ -435,8 +116,15 @@ def create_metagenome(
             for record in SeqIO.parse(fpath, "fasta")
         ]
     else:
+        pass
         # Need to ensure Seq column is in contigs otherwise add them
-        merge_seq_column = partial(add_seq_column, seqrecord_df=contig_seq_df)
+        # contig_seq_df = pd.DataFrame(
+        #     [
+        #         dict(header=record.id, seq=str(record.seq))
+        #         for record in SeqIO.parse(metagenome_fpath, "fasta")
+        #     ]
+        # )
+        # merge_seq_column = partial(add_seq_column, seqrecord_df=contig_seq_df)
     metagenome = Metagenome(name=name, contigs=contigs)
     with Session(engine) as session:
         session.add(metagenome)
@@ -447,23 +135,15 @@ def create_metagenome(
 
 def read_metagenome(metagenome_id: int) -> Metagenome:
     with Session(engine) as session:
-        metagenomes = (
-            session.exec(select(Metagenome))
-            .where(Metagenome.id == metagenome_id)
-            .first()
-        )
+        metagenomes = session.exec(
+            select(Metagenome).where(Metagenome.id == metagenome_id)
+        ).first()
     return metagenomes
 
 
 def read_metagenomes() -> List[Metagenome]:
     with Session(engine) as session:
         metagenomes = session.exec(select(Metagenome)).all()
-    return metagenomes
-
-
-def read_metagenome_seqrecords() -> List[str]:
-    with Session(engine) as session:
-        metagenomes = session.exec(select(Metagenome.contigs)).all()
     return metagenomes
 
 
@@ -618,7 +298,7 @@ async def create_markers(fpath: str) -> List[Marker]:
     raw_data = load_markers(fpath)
     preprocessor = compose(rename_qname_column_to_orf, drop_contig_column)
     data = preprocessor(raw_data)
-    markers = df_to_sqlmodel(data, Marker)
+    markers = [Marker(**row) for row in data.to_dict("records")]
     with Session(engine) as session:
         session.add_all(markers)
         session.commit()
@@ -674,7 +354,9 @@ def load_cytoscape_connections(fpath: str) -> pd.DataFrame:
 def create_cytoscape_connections(fpath: str) -> None:
     logger.info(f"Adding cytoscape connections from {fpath} to db")
     cyto_df = load_cytoscape_connections(fpath)
-    cytoscape_connections = df_to_sqlmodel(cyto_df, CytoscapeConnection)
+    cytoscape_connections = [
+        CytoscapeConnection(**record) for record in cyto_df.to_dict("records")
+    ]
     with Session(engine) as session:
         session.add_all(cytoscape_connections)
         session.commit()
@@ -711,7 +393,6 @@ def create_sample_metagenome(
     )
     contig_markers_df = marker_preprocessor(raw_markers)
 
-    raw_binning = load_contigs(binning_fpath)
     contig_seq_df = pd.DataFrame(
         [
             dict(header=record.id, seq=str(record.seq))
@@ -728,17 +409,27 @@ def create_sample_metagenome(
         merge_seq_column,
         merge_markers_column,
     )
+    raw_binning = load_contigs(binning_fpath)
     contig_df = contig_preprocessor(raw_binning)
     nonmarker_contigs_mask = contig_df.markers.isna()
-    nonmarker_contigs = df_to_sqlmodel(
-        contig_df.loc[nonmarker_contigs_mask].drop(columns=["markers"]), Contig
-    )
-    marker_contigs = df_to_sqlmodel(contig_df.loc[~nonmarker_contigs_mask], Contig)
+    nonmarker_contigs = [
+        Contig(**record)
+        for record in contig_df.loc[nonmarker_contigs_mask]
+        .drop(columns=["markers"])
+        .to_dict("records")
+    ]
+    marker_contigs = [
+        Contig(**record)
+        for record in contig_df.loc[~nonmarker_contigs_mask].to_dict("records")
+    ]
     contigs = nonmarker_contigs + marker_contigs
     # Add cytoscape connection mapping if available
     if connections_fpath:
         connections_df = load_cytoscape_connections(connections_fpath)
-        connections = df_to_sqlmodel(connections_df, CytoscapeConnection)
+        connections = [
+            CytoscapeConnection(**record)
+            for record in connections_df.to_dict("records")
+        ]
     else:
         connections = []
 
@@ -773,12 +464,11 @@ def create_initial_refinements(metagenome_id: int) -> None:
         clusters = session.exec(clusters_stmt).all()
 
         for cluster in clusters:
-            contigs_in_cluster = session.exec(
-                select(Contig).where(Contig.cluster == cluster)
-            ).all()
+            contigs_stmt = select(Contig).where(Contig.cluster == cluster)
+            contigs = session.exec(contigs_stmt).all()
 
             refinement = Refinement(
-                contigs=contigs_in_cluster,
+                contigs=contigs,
                 outdated=False,
                 initial_refinement=True,
                 metagenome_id=metagenome_id,

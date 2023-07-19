@@ -176,7 +176,7 @@ def render(app: DashProxy, source: UploadStepperDataSource) -> html.Div:
                 "Upload your sample's metagenome assembly fasta file",
                 align="center",
             ),
-            metagenome_upload.render(app),
+            metagenome_upload.render(app, source),
         ],
     )
     upload_binning_step = dmc.StepperStep(
@@ -215,7 +215,7 @@ def render(app: DashProxy, source: UploadStepperDataSource) -> html.Div:
                 ],
                 spacing="xs",
             ),
-            binning_upload.render(app),
+            binning_upload.render(app, source),
         ],
     )
 
@@ -254,7 +254,7 @@ def render(app: DashProxy, source: UploadStepperDataSource) -> html.Div:
                     ),
                 ],
             ),
-            markers_upload.render(app),
+            markers_upload.render(app, source),
         ],
     )
 
@@ -304,7 +304,7 @@ def render(app: DashProxy, source: UploadStepperDataSource) -> html.Div:
                 ],
                 spacing="xs",
             ),
-            cytoscape_connections_upload.render(app),
+            cytoscape_connections_upload.render(app, source),
         ],
     )
 

@@ -1,5 +1,4 @@
 import logging
-from celery import Celery
 import dash
 
 from typing import Literal
@@ -8,6 +7,7 @@ import dash_mantine_components as dmc
 
 from automappa.components import (
     metagenome_id_store,
+    tasks_store,
     pages_navbar,
 )
 
@@ -25,12 +25,11 @@ logger = logging.getLogger(__name__)
 
 def render(
     app: DashProxy,
-    queue: Celery,
     storage_type: Literal["memory", "session", "local"] = "session",
     clear_data: bool = False,
 ) -> html.Div:
     home_data_source = HomeDataSource()
-    home_page = render_home_layout(source=home_data_source, queue=queue)
+    home_page = render_home_layout(source=home_data_source)
     home_page.register(
         app=app,
         module=home_page.name,
@@ -85,6 +84,7 @@ def render(
             dmc.Container(
                 [
                     metagenome_id_store.render(app, storage_type, clear_data),
+                    tasks_store.render(app, storage_type, clear_data),
                     pages_navbar.render(),
                     dash.page_container,
                 ],
