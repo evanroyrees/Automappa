@@ -39,10 +39,10 @@ class SampleCardDataSource(Protocol):
         """Get Refinement count where Refinement.metagenome_id == metagenome_id
 
         Providing `initial` will add where(Refinement.initial_refinement == True)
-        otherwise will omit this filter and retrieve all.
+        otherwise will omit this filter
 
         Providing `outdated` will add where(Refinement.outdated == outdated)
-        otherwise will omit this filter and retrieve all.
+        otherwise will omit this filter
         """
         ...
 
@@ -144,6 +144,7 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
                 source.get_approximate_marker_sets(metagenome_id),
                 size="xs",
                 variant="outline",
+                color="gray",
             ),
         ],
         position="apart",
@@ -155,6 +156,7 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
                 source.get_refinements_count(metagenome_id, initial=True),
                 size="xs",
                 variant="outline",
+                color="gray",
             ),
         ],
         position="apart",
@@ -168,6 +170,7 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
                 ),
                 size="xs",
                 variant="outline",
+                color="gray",
             ),
         ],
         position="apart",
