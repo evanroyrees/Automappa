@@ -57,6 +57,21 @@ class SummaryDataSource(BaseModel):
         )
         return completeness, purity
 
+    def compute_length_sum_kbp(self, metagenome_id: int, refinement_id: int) -> float:
+        contig_length_stmt = select(func.sum(Contig.length)).where(
+            Contig.metagenome_id == metagenome_id,
+            Contig.refinements.any(
+                and_(
+                    Refinement.outdated == False,
+                    Refinement.id == refinement_id,
+                )
+            ),
+        )
+        with Session(engine) as session:
+            length_sum = session.exec(contig_length_stmt).first() or 0
+        length_sum_kbp = round(length_sum / 1000, 2)
+        return length_sum_kbp
+
     def get_completeness_purity_boxplot_records(
         self, metagenome_id: int
     ) -> List[Tuple[str, List[float]]]:
@@ -143,7 +158,19 @@ class SummaryDataSource(BaseModel):
 
     def get_mag_stats_summary_row_data(
         self, metagenome_id: int
-    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+    ) -> List[
+        Dict[
+            Literal[
+                "refinement_id",
+                "refinement_label",
+                "length_sum_kbp",
+                "completeness",
+                "purity",
+                "contig_count",
+            ],
+            Union[str, int, float],
+        ]
+    ]:
         stmt = select(Refinement).where(
             Refinement.metagenome_id == metagenome_id,
             Refinement.outdated == False,
@@ -158,17 +185,21 @@ class SummaryDataSource(BaseModel):
                     "refinement_label": f"bin_{refinement.id}",
                     "contig_count": contig_count,
                 }
-            for refinement_id in row_data.keys():
+            for refinement_id in row_data:
                 completeness, purity = self.compute_completeness_purity_metrics(
+                    metagenome_id, refinement_id
+                )
+                length_sum_kbp = self.compute_length_sum_kbp(
                     metagenome_id, refinement_id
                 )
                 row_data[refinement_id].update(
                     {
                         "completeness": completeness,
                         "purity": purity,
+                        "length_sum_kbp": length_sum_kbp,
                     }
                 )
-            return list(row_data.values())
+        return list(row_data.values())
 
     def get_refinement_selection_dropdown_options(
         self, metagenome_id: int

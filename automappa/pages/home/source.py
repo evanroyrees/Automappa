@@ -6,9 +6,7 @@ import logging
 from pydantic import BaseModel
 from typing import List, Optional, Tuple, Union
 
-from dash_extensions.enrich import Serverside
-
-from sqlmodel import Session, select, func
+from sqlmodel import Session, and_, select, func
 
 from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 
@@ -17,12 +15,13 @@ from celery.result import GroupResult, AsyncResult
 from automappa.data import loader
 
 
-from automappa.data.database import engine, redis_backend
+from automappa.data.database import engine
 from automappa.data.models import (
     Metagenome,
     Contig,
     Marker,
     CytoscapeConnection,
+    Refinement,
 )
 from automappa.pages.home.tasks.sample_cards import (
     assign_contigs_marker_size,
@@ -34,32 +33,16 @@ from automappa.pages.home.tasks.sample_cards import (
 logger = logging.getLogger(__name__)
 
 MARKER_SET_SIZE = 139
+HIGH_QUALITY_COMPLETENESS = 90  # gt
+HIGH_QUALITY_PURITY = 95  # gt
+MEDIUM_QUALITY_COMPLETENESS = 50  # gte
+MEDIUM_QUALITY_PURITY = 90  # gt
+# lt
+LOW_QUALITY_COMPLETENESS = 50
+LOW_QUALITY_PURITY = 90
 
 
 class HomeDataSource(BaseModel):
-    async def markers_getter(self, fpath: str) -> List[Marker]:
-        await loader.create_markers(fpath)
-
-    async def contigs_getter(
-        self, fpath: str, markers: Optional[List[Marker]]
-    ) -> List[Contig]:
-        await loader.create_contigs(fpath, markers)
-
-    async def metagenome_getter(
-        self, fpath: str, contigs: Optional[List[Contig]]
-    ) -> Metagenome:
-        await loader.create_metagenome(fpath, contigs)
-
-    async def create_sample(
-        self, mg_fpath: str, mag_fpath: str, marker_fpath: str
-    ) -> int:
-        marker_getter = partial(loader.create_markers, marker_fpath)
-        contig_getter = partial(loader.create_contigs, mag_fpath)
-        contig_getter = partial(contig_getter, markers=await marker_getter())
-        metagenome_getter = partial(loader.create_metagenome, mg_fpath)
-        metagenome_getter = partial(metagenome_getter, contigs=await contig_getter())
-        metagenome = await metagenome_getter()
-
     def name_is_unique(self, name: str) -> bool:
         """Determine whether metagenome name is unique in the database
 
@@ -102,48 +85,6 @@ class HomeDataSource(BaseModel):
             metagenome_ids = session.exec(select(Metagenome.id)).all()
         return metagenome_ids
 
-    def marker_count(self, metagenome_id: int) -> int:
-        with Session(engine) as session:
-            statement = (
-                select([func.count(Marker.id)])
-                .join(Contig)
-                .join(Metagenome)
-                .where(Metagenome.id == metagenome_id)
-            )
-            marker_count = session.exec(statement).one()
-        return marker_count
-
-    def get_approximate_marker_sets(self, metagenome_id: int) -> int:
-        marker_count_stmt = (
-            select(func.count(Marker.id))
-            .join(Contig)
-            .where(Contig.metagenome_id == metagenome_id)
-        )
-        with Session(engine) as session:
-            total_markers = session.exec(marker_count_stmt).first()
-
-        return total_markers // MARKER_SET_SIZE
-
-    def contig_count(self, metagenome_id: int) -> int:
-        with Session(engine) as session:
-            statement = (
-                select([func.count(Metagenome.contigs)])
-                .join(Contig)
-                .where(Metagenome.id == metagenome_id)
-            )
-            contig_count = session.exec(statement).one()
-        return contig_count
-
-    def connections_count(self, metagenome_id: int) -> int:
-        with Session(engine) as session:
-            statement = (
-                select([func.count(Metagenome.connections)])
-                .join(CytoscapeConnection)
-                .where(Metagenome.id == metagenome_id)
-            )
-            connection_count = session.exec(statement).first()
-        return connection_count
-
     def validate_uploader_path(
         self,
         is_completed: bool,
@@ -158,21 +99,6 @@ class HomeDataSource(BaseModel):
         if fpath:
             fpath = str(fpath)
         return fpath
-
-    def create_metagenome(
-        self,
-        name: str,
-        metagenome_fpath: str,
-        binning_fpath: str,
-        markers_fpath: str,
-        connections_fpath: Optional[str] = None,
-    ) -> Tuple[str, int]:
-        logger.info(f"Creating sample {name=}")
-        metagenome = loader.create_sample_metagenome(
-            name, metagenome_fpath, binning_fpath, markers_fpath, connections_fpath
-        )
-        loader.create_initial_refinements(metagenome.id)
-        return metagenome.name, metagenome.id
 
     def preprocess_metagenome(
         self,
@@ -222,3 +148,153 @@ class HomeDataSource(BaseModel):
             ("pre-computing marker symbols", marker_symbol_task),
             ("initializing user refinements", refinement_task),
         )
+
+    def marker_count(self, metagenome_id: int) -> int:
+        with Session(engine) as session:
+            statement = (
+                select([func.count(Marker.id)])
+                .join(Contig)
+                .join(Metagenome)
+                .where(Metagenome.id == metagenome_id)
+            )
+            marker_count = session.exec(statement).one()
+        return marker_count
+
+    def get_approximate_marker_sets(self, metagenome_id: int) -> int:
+        marker_count_stmt = (
+            select(func.count(Marker.id))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+        with Session(engine) as session:
+            total_markers = session.exec(marker_count_stmt).first()
+
+        return total_markers // MARKER_SET_SIZE
+
+    def contig_count(self, metagenome_id: int) -> int:
+        with Session(engine) as session:
+            statement = (
+                select([func.count(Metagenome.contigs)])
+                .join(Contig)
+                .where(Metagenome.id == metagenome_id)
+            )
+            contig_count = session.exec(statement).one()
+        return contig_count
+
+    def connections_count(self, metagenome_id: int) -> int:
+        with Session(engine) as session:
+            statement = (
+                select([func.count(Metagenome.connections)])
+                .join(CytoscapeConnection)
+                .where(Metagenome.id == metagenome_id)
+            )
+            connection_count = session.exec(statement).first()
+        return connection_count
+
+    def get_refined_contig_count(self, metagenome_id: int) -> int:
+        stmt = (
+            select(func.count(Contig.id))
+            .where(Contig.metagenome_id == metagenome_id)
+            .where(Contig.refinements.any(Refinement.outdated == False))
+        )
+        with Session(engine) as session:
+            count = session.exec(stmt).first() or 0
+        return count
+
+    def get_refinements_count(
+        self, metagenome_id: int, initial: Optional[bool] = None
+    ) -> int:
+        """Get Refinement count where Refinement.metagenome_id == metagenome_id
+
+        Providing `initial` will add where(Refinement.initial_refinement == True)
+        otherwise will omit this filter and retrieve all.
+        """
+        stmt = select(func.count(Refinement.id)).where(
+            Refinement.metagenome_id == metagenome_id,
+            Refinement.outdated == False,
+        )
+        if isinstance(initial, bool):
+            stmt = stmt.where(Refinement.initial_refinement == initial)
+        with Session(engine) as session:
+            count = session.exec(stmt).first() or 0
+        return count
+
+    def compute_completeness_purity_metrics(
+        self, metagenome_id: int, refinement_id: int
+    ) -> Tuple[float, float]:
+        marker_count_stmt = (
+            select(func.count(Marker.id))
+            .join(Contig)
+            .where(
+                Contig.metagenome_id == metagenome_id,
+                Contig.refinements.any(
+                    and_(
+                        Refinement.outdated == False,
+                        Refinement.id == refinement_id,
+                    )
+                ),
+            )
+        )
+        unique_marker_stmt = (
+            select(Marker.sacc)
+            .join(Contig)
+            .distinct()
+            .where(
+                Contig.metagenome_id == metagenome_id,
+                Contig.refinements.any(
+                    and_(
+                        Refinement.outdated == False,
+                        Refinement.id == refinement_id,
+                    )
+                ),
+            )
+        )
+        with Session(engine) as session:
+            markers_count = session.exec(marker_count_stmt).first() or 0
+            unique_marker_count = session.exec(
+                select(func.count()).select_from(unique_marker_stmt)
+            ).first()
+
+        completeness = round(unique_marker_count / MARKER_SET_SIZE * 100, 2)
+        purity = (
+            round(unique_marker_count / markers_count * 100, 2) if markers_count else 0
+        )
+        return completeness, purity
+
+    def get_mimag_counts(self, metagenome_id: int) -> Tuple[int, int, int]:
+        """Retrieve counts of clusters following MIMAG standards.
+
+        standards:
+
+        - High-quality >90% complete > 95% pure
+        - Medium-quality >=50% complete > 90% pure
+        - Low-quality <50% complete < 90% pure
+
+        """
+        stmt = select(Refinement.id).where(
+            Refinement.metagenome_id == metagenome_id,
+            Refinement.outdated == False,
+        )
+        high_quality_count = 0
+        medium_quality_count = 0
+        low_quality_count = 0
+        with Session(engine) as session:
+            refinement_ids = session.exec(stmt).all()
+            for refinement_id in refinement_ids:
+                completeness, purity = self.compute_completeness_purity_metrics(
+                    metagenome_id, refinement_id
+                )
+                if (
+                    completeness > HIGH_QUALITY_COMPLETENESS
+                    and purity > HIGH_QUALITY_PURITY
+                ):
+                    high_quality_count += 1
+                elif (
+                    completeness >= MEDIUM_QUALITY_COMPLETENESS
+                    and purity > MEDIUM_QUALITY_PURITY
+                ):
+                    medium_quality_count += 1
+                else:
+                    # completeness < LOW_QUALITY_COMPLETENESS and purity < LOW_QUALITY_PURITY:
+                    low_quality_count += 1
+        return high_quality_count, medium_quality_count, low_quality_count

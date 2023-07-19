@@ -9,7 +9,19 @@ from automappa.components import ids
 class SummaryStatsTableDataSource(Protocol):
     def get_mag_stats_summary_row_data(
         self, metagenome_id: int
-    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+    ) -> List[
+        Dict[
+            Literal[
+                "refinement_id",
+                "refinement_label",
+                "length_sum_kbp",
+                "completeness",
+                "purity",
+                "contig_count",
+            ],
+            Union[str, int, float],
+        ]
+    ]:
         ...
 
 
@@ -20,7 +32,19 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
     )
     def mag_summary_stats_datatable_callback(
         metagenome_id: int,
-    ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
+    ) -> List[
+        Dict[
+            Literal[
+                "refinement_id",
+                "refinement_label",
+                "length_sum_kbp",
+                "completeness",
+                "purity",
+                "contig_count",
+            ],
+            Union[str, int, float],
+        ]
+    ]:
         row_data = source.get_mag_stats_summary_row_data(metagenome_id)
         return row_data
 
@@ -64,6 +88,11 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
         {
             "field": "refinement_label",
             "headerName": "Refinement Label",
+            "resizable": True,
+        },
+        {
+            "field": "length_sum_kbp",
+            "headerName": "Length Sum (kbp)",
             "resizable": True,
         },
         {"field": "completeness", "headerName": "Completeness (%)", "resizable": True},

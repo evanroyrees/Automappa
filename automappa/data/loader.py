@@ -163,6 +163,10 @@ def rename_contig_column_to_header(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns={ContigSchema.CONTIG: ContigSchema.HEADER})
 
 
+def replace_cluster_na_values_with_unclustered(df: pd.DataFrame) -> pd.DataFrame:
+    return df.fillna(value={ContigSchema.CLUSTER: "unclustered"})
+
+
 def add_seq_column(df: pd.DataFrame, seqrecord_df: pd.DataFrame) -> pd.DataFrame:
     return pd.merge(df, seqrecord_df, on=ContigSchema.HEADER, how="left")
 
@@ -213,6 +217,7 @@ async def create_contigs(fpath: str, markers: Optional[List[Marker]]) -> None:
         preprocessor = compose(
             rename_class_column_to_klass,
             rename_contig_column_to_header,
+            replace_cluster_na_values_with_unclustered,
             merge_markers_column,
         )
     data = preprocessor(raw_data)
@@ -406,6 +411,7 @@ def create_sample_metagenome(
     contig_preprocessor = compose(
         rename_class_column_to_klass,
         rename_contig_column_to_header,
+        replace_cluster_na_values_with_unclustered,
         merge_seq_column,
         merge_markers_column,
     )
@@ -457,6 +463,7 @@ def create_initial_refinements(metagenome_id: int) -> None:
             Contig.metagenome_id == metagenome_id,
             Contig.cluster != None,
             Contig.cluster != "nan",
+            Contig.cluster != "unclustered",
         )
         .distinct()
     )

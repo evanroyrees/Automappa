@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import itertools
 import logging
 import pandas as pd
 from pydantic import BaseModel
 from typing import Dict, List, Literal, Optional, Set, Tuple, Union
 
-from sqlmodel import Session, and_, or_, select, func, case
+from sqlmodel import Session, and_, or_, select, func
 
 from automappa.data.database import engine
 from automappa.data.models import (
@@ -356,20 +355,31 @@ class RefinementDataSource(BaseModel):
             .join(Contig)
             .where(Contig.metagenome_id == metagenome_id)
         )
+        marker_contig_count_stmt = (
+            select(func.count(func.distinct(Marker.contig_id)))
+            .join(Contig)
+            .where(Contig.metagenome_id == metagenome_id)
+        )
+
         with Session(engine) as session:
             total_markers = session.exec(marker_count_stmt).first()
+            marker_contigs_count = session.exec(marker_contig_count_stmt).first() or 0
 
         markers_sets = total_markers // MARKER_SET_SIZE
         return [
             {"metric": "Total Markers", "metric_value": total_markers},
             {"metric": "Marker Set Size", "metric_value": MARKER_SET_SIZE},
             {"metric": "Approx. Marker Sets", "metric_value": markers_sets},
+            {"metric": "Marker Contigs", "metric_value": marker_contigs_count},
         ]
 
-    def get_mag_metrics(
+    def get_mag_metrics_row_data(
         self, metagenome_id: int, headers: Optional[List[str]]
     ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
         contig_count_stmt = select(func.count(Contig.id)).where(
+            Contig.metagenome_id == metagenome_id
+        )
+        contig_length_stmt = select(func.sum(Contig.length)).where(
             Contig.metagenome_id == metagenome_id
         )
         marker_contig_count_stmt = (
@@ -413,6 +423,7 @@ class RefinementDataSource(BaseModel):
         )
         if headers:
             contig_count_stmt = contig_count_stmt.where(Contig.header.in_(headers))
+            contig_length_stmt = contig_length_stmt.where(Contig.header.in_(headers))
             marker_contig_count_stmt = marker_contig_count_stmt.where(
                 Contig.header.in_(headers)
             )
@@ -426,6 +437,7 @@ class RefinementDataSource(BaseModel):
 
         with Session(engine) as session:
             contig_count = session.exec(contig_count_stmt).first() or 0
+            length_sum = session.exec(contig_length_stmt).first() or 0
             marker_contigs_count = session.exec(marker_contig_count_stmt).first() or 0
             single_copy_contig_count = (
                 session.exec(select(func.count()).select_from(single_copy_stmt)).first()
@@ -445,9 +457,11 @@ class RefinementDataSource(BaseModel):
         purity = (
             round(unique_marker_count / markers_count * 100, 2) if markers_count else 0
         )
+        length_sum_kbp = round(length_sum / 1000, 2)
 
         row_data = [
             {"metric": "Contigs", "metric_value": contig_count},
+            {"metric": "Length Sum (kbp)", "metric_value": length_sum_kbp},
             {
                 "metric": "Marker Contigs",
                 "metric_value": marker_contigs_count,

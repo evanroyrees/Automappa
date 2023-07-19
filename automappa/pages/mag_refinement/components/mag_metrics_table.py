@@ -14,7 +14,7 @@ class MagMetricsTableDataSource(Protocol):
     ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
         ...
 
-    def get_mag_metrics(
+    def get_mag_metrics_row_data(
         self, metagenome_id: int, headers: Optional[List[str]]
     ) -> List[Dict[Literal["metric", "metric_value"], Union[str, int, float]]]:
         ...
@@ -38,7 +38,9 @@ def render(app: DashProxy, source: MagMetricsTableDataSource) -> html.Div:
             if selected_contigs
             else None
         )
-        row_data = source.get_mag_metrics(metagenome_id=metagenome_id, headers=headers)
+        row_data = source.get_mag_metrics_row_data(
+            metagenome_id=metagenome_id, headers=headers
+        )
         return row_data
 
     @app.callback(

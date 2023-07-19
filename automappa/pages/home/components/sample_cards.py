@@ -1,5 +1,4 @@
 from typing import List, Optional, Protocol, Tuple, Union
-import uuid
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
     DashProxy,
@@ -10,7 +9,6 @@ from dash_extensions.enrich import (
     dcc,
     ctx,
     MATCH,
-    ALL,
 )
 from dash_iconify import DashIconify
 import dash_mantine_components as dmc
@@ -18,36 +16,10 @@ import dash_mantine_components as dmc
 from celery.result import GroupResult, AsyncResult
 
 from automappa.components import ids
-
-
-LOADER_COLORS = [
-    "pink",
-    "violet",
-    "indigo",
-    "blue",
-    "lime",
-    "orange",
-]
+from automappa.pages.home.components import sample_card
 
 
 class SampleCardsDataSource(Protocol):
-    def create_metagenome(
-        self,
-        name: str,
-        metagenome_fpath: str,
-        binning_fpath: str,
-        markers_fpath: str,
-        connections_fpath: Optional[str] = None,
-    ) -> Tuple[str, int]:
-        """Create Metagenome object in db
-
-        Returns
-        -------
-        int
-            Metagenome primary key (e.g. Metagenome.id)
-        """
-        ...
-
     def preprocess_metagenome(
         self,
         name: str,
@@ -73,123 +45,8 @@ class SampleCardsDataSource(Protocol):
     def get_metagenome_ids(self) -> List[int]:
         ...
 
-    def contig_count(self, metagenome_id: int) -> int:
-        ...
-
-    def marker_count(self, metagenome_id: int) -> int:
-        ...
-
-    def get_metagenome_name(self, metagenome_id: int) -> str:
-        """Get Metagenome.name where Metagenome.id == metagenome_id"""
-        ...
-
-    def get_approximate_marker_sets(self, metagenome_id: int) -> int:
-        ...
-
-    def get_mimag_counts(self, metagenome_id: int) -> Tuple[int, int, int]:
-        ...
-
-    def get_refinements_count(self, metagenome_id: int, initial: bool = False) -> int:
-        """Get Refinement count where Refinement.metagenome_id == metagenome_id
-
-        Providing `initial` will add where(Refinement.initial_refinement == True)
-        otherwise will omit this filter and retrieve all.
-        """
-        ...
-
-    def get_refined_contig_count(self, metagenome_id: int) -> int:
-        ...
-
-    def connections_count(self, metagenome_id: int) -> int:
-        ...
-
-
-def get_badge(label: str, id: dict[str, Union[str, int]], color: str) -> dmc.Badge:
-    return dmc.Badge(label, id=id, color=color, variant="dot", size="sm")
-
 
 def render(app: DashProxy, source: SampleCardsDataSource) -> html.Div:
-    def new_card(metagenome_id: int) -> dmc.Card:
-        connections_count = source.connections_count(metagenome_id)
-        metagenome_badge = get_badge(
-            label=ids.SAMPLE_CARD_METAGENOME_BADGE_LABEL,
-            id={
-                ids.SAMPLE_CARD_INDEX: metagenome_id,
-                "type": ids.SAMPLE_CARD_METAGENOME_BADGE_TYPE,
-            },
-            color="lime",
-        )
-        binning_badge = get_badge(
-            label=f"{ids.SAMPLE_CARD_BINNING_BADGE_LABEL}: {source.contig_count(metagenome_id):,}",
-            id={
-                ids.SAMPLE_CARD_INDEX: metagenome_id,
-                "type": ids.SAMPLE_CARD_BINNING_BADGE_TYPE,
-            },
-            color="lime",
-        )
-        marker_badge = get_badge(
-            label=f"{ids.SAMPLE_CARD_MARKERS_BADGE_LABEL}: {source.marker_count(metagenome_id):,} (approx. {source.get_approximate_marker_sets(metagenome_id)} sets)",
-            id={
-                ids.SAMPLE_CARD_INDEX: metagenome_id,
-                "type": ids.SAMPLE_CARD_MARKERS_BADGE_TYPE,
-            },
-            color="lime",
-        )
-        connections_badge = get_badge(
-            label=ids.SAMPLE_CARD_CONNECTIONS_BADGE_LABEL
-            if connections_count == 0
-            else f"{ids.SAMPLE_CARD_CONNECTIONS_BADGE_LABEL}: {connections_count:,}",
-            id={
-                ids.SAMPLE_CARD_INDEX: metagenome_id,
-                "type": ids.SAMPLE_CARD_CONNECTIONS_BADGE_TYPE,
-            },
-            color="lime" if connections_count > 0 else "red",
-        )
-        badges = [
-            metagenome_badge,
-            binning_badge,
-            marker_badge,
-            connections_badge,
-        ]
-        return dmc.Card(
-            id={ids.SAMPLE_CARD_INDEX: metagenome_id, "type": ids.SAMPLE_CARD_TYPE},
-            children=[
-                dmc.CardSection(
-                    dmc.Group(
-                        dmc.Text(
-                            source.get_metagenome_name(metagenome_id)
-                            .replace("_", " ")
-                            .title(),
-                            weight=500,
-                        ),
-                    ),
-                    withBorder=True,
-                    inheritPadding=True,
-                    py="xs",
-                ),
-                dmc.Space(h=10),
-                dmc.SimpleGrid(cols=1, children=badges),
-                dmc.Space(h=10),
-                dmc.CardSection(dmc.Divider(variant="dashed"), withBorder=False),
-                dmc.Space(h=10),
-                dmc.Chip(
-                    "Selected",
-                    id={
-                        ids.SAMPLE_CARD_INDEX: metagenome_id,
-                        "type": ids.SAMPLE_CARD_CHIP_TYPE,
-                    },
-                    size="sm",
-                    variant="outline",
-                    radius="xl",
-                    checked=False,
-                ),
-            ],
-            withBorder=False,
-            shadow="sm",
-            radius="md",
-            styles=dict(color="lime"),
-        )
-
     @app.callback(
         Output(
             {ids.SAMPLE_CARD_INDEX: MATCH, "type": ids.SAMPLE_CARD_TYPE},
@@ -317,7 +174,10 @@ def render(app: DashProxy, source: SampleCardsDataSource) -> html.Div:
     def get_sample_cards(task_ids: List[str]) -> List[dmc.Card]:
         if task_ids:
             raise PreventUpdate
-        return [new_card(metagenome_id=mg_id) for mg_id in source.get_metagenome_ids()]
+        return [
+            sample_card.render(source, metagenome_id=mg_id)
+            for mg_id in source.get_metagenome_ids()
+        ]
 
     @app.callback(
         Output(ids.SAMPLE_CARDS_CONTAINER, "children", allow_duplicate=True),
@@ -325,7 +185,10 @@ def render(app: DashProxy, source: SampleCardsDataSource) -> html.Div:
         prevent_initial_call="initial_duplicate",
     )
     def get_sample_cards(submit_btn: int) -> List[dmc.Card]:
-        return [new_card(metagenome_id=mg_id) for mg_id in source.get_metagenome_ids()]
+        return [
+            sample_card.render(source, metagenome_id=mg_id)
+            for mg_id in source.get_metagenome_ids()
+        ]
 
     # TODO Callback to delete sample card
     return html.Div(
