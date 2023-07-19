@@ -33,10 +33,15 @@ class SampleCardDataSource(Protocol):
         """
         ...
 
-    def get_refinements_count(self, metagenome_id: int, initial: Optional[bool]) -> int:
+    def get_refinements_count(
+        self, metagenome_id: int, initial: Optional[bool], outdated: Optional[bool]
+    ) -> int:
         """Get Refinement count where Refinement.metagenome_id == metagenome_id
 
         Providing `initial` will add where(Refinement.initial_refinement == True)
+        otherwise will omit this filter and retrieve all.
+
+        Providing `outdated` will add where(Refinement.outdated == outdated)
         otherwise will omit this filter and retrieve all.
         """
         ...
@@ -156,9 +161,22 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
     )
     user_refinements = dmc.Group(
         [
-            dmc.Text(f"Refinements:", size="xs"),
+            dmc.Text(f"User Refinements:", size="xs"),
             dmc.Badge(
-                source.get_refinements_count(metagenome_id, initial=False),
+                source.get_refinements_count(
+                    metagenome_id, initial=False, outdated=False
+                ),
+                size="xs",
+                variant="outline",
+            ),
+        ],
+        position="apart",
+    )
+    current_refinements = dmc.Group(
+        [
+            dmc.Text(f"Current Refinements:", size="xs"),
+            dmc.Badge(
+                source.get_refinements_count(metagenome_id, outdated=False),
                 size="xs",
                 variant="outline",
             ),
@@ -202,6 +220,7 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
             approx_markers,
             uploaded_clusters,
             user_refinements,
+            current_refinements,
             percent_clustered_text,
             dmc.Space(h=10),
             dmc.CardSection(dmc.Divider(variant="dashed"), withBorder=False),

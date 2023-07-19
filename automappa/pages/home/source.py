@@ -202,7 +202,10 @@ class HomeDataSource(BaseModel):
         return count
 
     def get_refinements_count(
-        self, metagenome_id: int, initial: Optional[bool] = None
+        self,
+        metagenome_id: int,
+        initial: Optional[bool] = None,
+        outdated: Optional[bool] = None,
     ) -> int:
         """Get Refinement count where Refinement.metagenome_id == metagenome_id
 
@@ -210,11 +213,12 @@ class HomeDataSource(BaseModel):
         otherwise will omit this filter and retrieve all.
         """
         stmt = select(func.count(Refinement.id)).where(
-            Refinement.metagenome_id == metagenome_id,
-            Refinement.outdated == False,
+            Refinement.metagenome_id == metagenome_id
         )
         if isinstance(initial, bool):
             stmt = stmt.where(Refinement.initial_refinement == initial)
+        if isinstance(outdated, bool):
+            stmt = stmt.where(Refinement.outdated == outdated)
         with Session(engine) as session:
             count = session.exec(stmt).first() or 0
         return count
