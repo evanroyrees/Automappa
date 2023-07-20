@@ -53,15 +53,21 @@ def render(app: DashProxy, source: SaveSelectionButtonDataSource) -> html.Div:
         return 0
 
     return html.Div(
-        dmc.Button(
-            "Save selection to MAG refinement",
-            id=ids.MAG_REFINEMENTS_SAVE_BUTTON,
-            n_clicks=0,
-            size="md",
-            leftIcon=[DashIconify(icon="carbon:clean")],
-            variant="gradient",
-            gradient={"from": "#642E8D", "to": "#1f58a6", "deg": 150},
-            disabled=True,
-            fullWidth=True,
+        dmc.Tooltip(
+            dmc.Button(
+                "Save MAG",
+                id=ids.MAG_REFINEMENTS_SAVE_BUTTON,
+                n_clicks=0,
+                size="md",
+                leftIcon=[DashIconify(icon="carbon:clean")],
+                variant="gradient",
+                gradient={"from": "#642E8D", "to": "#1f58a6", "deg": 150},
+                disabled=True,
+                fullWidth=True,
+            ),
+            label="Save selection to MAG refinement",
+            transitionDuration=500,
+            openDelay=1500,
+            transition="fade",
         )
     )

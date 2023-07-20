@@ -35,22 +35,12 @@ def render(source: RefinementDataSource) -> DashBlueprint:
     app.layout = dbc.Container(
         children=[
             dmc.Space(h=10),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        save_selection_button.render(app, source),
-                        width=6,
-                        align="center",
-                    ),
-                    dbc.Col(
-                        hide_selections_switch.render(app, source),
-                        width=3,
-                        align="center",
-                    ),
-                    dbc.Col(
-                        settings_button.render(app, source), width=3, align="center"
-                    ),
-                ]
+            dmc.Affix(
+                settings_button.render(app, source), position=dict(bottom=10, left=10)
+            ),
+            dmc.Affix(
+                save_selection_button.render(app, source),
+                position=dict(bottom=10, left=145),
             ),
             dbc.Row(
                 [
@@ -68,7 +58,11 @@ def render(source: RefinementDataSource) -> DashBlueprint:
             dbc.Row(
                 [
                     dbc.Col(coverage_range_slider.render(app, source), width=9),
-                    dbc.Col(width=3),
+                    dbc.Col(
+                        hide_selections_switch.render(app, source),
+                        width=3,
+                        align="center",
+                    ),
                 ]
             ),
             dbc.Row(

@@ -29,7 +29,7 @@ def render(app: DashProxy, source: HideRefinementsSwitchDataSource) -> html.Div:
             dmc.Switch(
                 id=ids.HIDE_SELECTIONS_TOGGLE,
                 checked=ids.HIDE_SELECTIONS_TOGGLE_VALUE_DEFAULT,
-                size="xl",
+                size="lg",
                 radius="md",
                 color="indigo",
                 label="Hide MAG Refinements",
