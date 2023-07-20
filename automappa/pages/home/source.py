@@ -149,6 +149,14 @@ class HomeDataSource(BaseModel):
             ("initializing user refinements", refinement_task),
         )
 
+    def remove_metagenome(self, metagenome_id: int) -> None:
+        with Session(engine) as session:
+            metagenome = session.exec(
+                select(Metagenome).where(Metagenome.id == metagenome_id)
+            ).one()
+            session.delete(metagenome)
+            session.commit()
+
     def marker_count(self, metagenome_id: int) -> int:
         with Session(engine) as session:
             statement = (

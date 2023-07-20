@@ -57,7 +57,7 @@ class SummaryDataSource(BaseModel):
         )
         return completeness, purity
 
-    def compute_length_sum_kbp(self, metagenome_id: int, refinement_id: int) -> float:
+    def compute_length_sum_mbp(self, metagenome_id: int, refinement_id: int) -> float:
         contig_length_stmt = select(func.sum(Contig.length)).where(
             Contig.metagenome_id == metagenome_id,
             Contig.refinements.any(
@@ -69,8 +69,8 @@ class SummaryDataSource(BaseModel):
         )
         with Session(engine) as session:
             length_sum = session.exec(contig_length_stmt).first() or 0
-        length_sum_kbp = round(length_sum / 1000, 2)
-        return length_sum_kbp
+        length_sum_mbp = round(length_sum / 1_000_000, 3)
+        return length_sum_mbp
 
     def get_completeness_purity_boxplot_records(
         self, metagenome_id: int
@@ -163,7 +163,7 @@ class SummaryDataSource(BaseModel):
             Literal[
                 "refinement_id",
                 "refinement_label",
-                "length_sum_kbp",
+                "length_sum_mbp",
                 "completeness",
                 "purity",
                 "contig_count",
@@ -189,14 +189,14 @@ class SummaryDataSource(BaseModel):
                 completeness, purity = self.compute_completeness_purity_metrics(
                     metagenome_id, refinement_id
                 )
-                length_sum_kbp = self.compute_length_sum_kbp(
+                length_sum_mbp = self.compute_length_sum_mbp(
                     metagenome_id, refinement_id
                 )
                 row_data[refinement_id].update(
                     {
                         "completeness": completeness,
                         "purity": purity,
-                        "length_sum_kbp": length_sum_kbp,
+                        "length_sum_mbp": length_sum_mbp,
                     }
                 )
         return list(row_data.values())

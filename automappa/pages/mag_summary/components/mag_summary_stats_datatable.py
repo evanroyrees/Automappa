@@ -14,7 +14,7 @@ class SummaryStatsTableDataSource(Protocol):
             Literal[
                 "refinement_id",
                 "refinement_label",
-                "length_sum_kbp",
+                "length_sum_mbp",
                 "completeness",
                 "purity",
                 "contig_count",
@@ -37,7 +37,7 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
             Literal[
                 "refinement_id",
                 "refinement_label",
-                "length_sum_kbp",
+                "length_sum_mbp",
                 "completeness",
                 "purity",
                 "contig_count",
@@ -91,8 +91,8 @@ def render(app: DashProxy, source: SummaryStatsTableDataSource) -> html.Div:
             "resizable": True,
         },
         {
-            "field": "length_sum_kbp",
-            "headerName": "Length Sum (kbp)",
+            "field": "length_sum_mbp",
+            "headerName": "Length Sum (Mbp)",
             "resizable": True,
         },
         {"field": "completeness", "headerName": "Completeness (%)", "resizable": True},

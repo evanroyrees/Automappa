@@ -1,4 +1,4 @@
-from typing import List, Optional, Protocol, Tuple, Union
+from typing import Dict, List, Literal, Optional, Protocol, Tuple, Union
 from dash.exceptions import PreventUpdate
 from dash_extensions.enrich import (
     DashProxy,
@@ -9,6 +9,7 @@ from dash_extensions.enrich import (
     dcc,
     ctx,
     MATCH,
+    ALL,
 )
 from dash_iconify import DashIconify
 import dash_mantine_components as dmc
@@ -40,6 +41,9 @@ class SampleCardsDataSource(Protocol):
     def get_preprocess_metagenome_tasks(
         self, task_ids: List[str]
     ) -> List[Tuple[str, AsyncResult]]:
+        ...
+
+    def remove_metagenome(self, metagenome_id: int) -> None:
         ...
 
     def get_metagenome_ids(self) -> List[int]:
@@ -174,6 +178,30 @@ def render(app: DashProxy, source: SampleCardsDataSource) -> html.Div:
     def get_sample_cards(task_ids: List[str]) -> List[dmc.Card]:
         if task_ids:
             raise PreventUpdate
+        return [
+            sample_card.render(source, metagenome_id=mg_id)
+            for mg_id in source.get_metagenome_ids()
+        ]
+
+    @app.callback(
+        Output(ids.SAMPLE_CARDS_CONTAINER, "children", allow_duplicate=True),
+        Input(
+            {ids.SAMPLE_CARD_INDEX: ALL, "type": ids.SAMPLE_CARD_REMOVE_BTN},
+            "n_clicks",
+        ),
+        State({ids.SAMPLE_CARD_INDEX: ALL, "type": ids.SAMPLE_CARD_REMOVE_BTN}, "id"),
+        prevent_initial_call=True,
+    )
+    def remove_button_clicked(
+        remove_btns_clicks: List[int], remove_btn_ids: Dict[str, str]
+    ) -> List[dmc.Card]:
+        if not any(remove_btns_clicks):
+            raise PreventUpdate
+        sample_card_index = [
+            i for i, n_clicks in enumerate(remove_btns_clicks) if n_clicks > 0
+        ][0]
+        metagenome_id = remove_btn_ids[sample_card_index].get(ids.SAMPLE_CARD_INDEX)
+        source.remove_metagenome(metagenome_id)
         return [
             sample_card.render(source, metagenome_id=mg_id)
             for mg_id in source.get_metagenome_ids()

@@ -457,11 +457,11 @@ class RefinementDataSource(BaseModel):
         purity = (
             round(unique_marker_count / markers_count * 100, 2) if markers_count else 0
         )
-        length_sum_kbp = round(length_sum / 1000, 2)
+        length_sum_mbp = round(length_sum / 1_000_000, 3)
 
         row_data = [
             {"metric": "Contigs", "metric_value": contig_count},
-            {"metric": "Length Sum (kbp)", "metric_value": length_sum_kbp},
+            {"metric": "Length Sum (Mbp)", "metric_value": length_sum_mbp},
             {
                 "metric": "Marker Contigs",
                 "metric_value": marker_contigs_count,

@@ -1,3 +1,4 @@
+from dash_iconify import DashIconify
 import dash_mantine_components as dmc
 
 from automappa.components import ids
@@ -200,12 +201,34 @@ def render(source: SampleCardDataSource, metagenome_id: int) -> dmc.Card:
         children=[
             dmc.CardSection(
                 dmc.Group(
-                    dmc.Text(
-                        source.get_metagenome_name(metagenome_id)
-                        .replace("_", " ")
-                        .title(),
-                        weight=500,
-                    ),
+                    [
+                        dmc.Text(
+                            source.get_metagenome_name(metagenome_id)
+                            .replace("_", " ")
+                            .title(),
+                            weight=500,
+                        ),
+                        dmc.Tooltip(
+                            dmc.ActionIcon(
+                                DashIconify(icon="tabler:trash-x", width=18),
+                                id={
+                                    ids.SAMPLE_CARD_INDEX: metagenome_id,
+                                    "type": ids.SAMPLE_CARD_REMOVE_BTN,
+                                },
+                                variant="filled",
+                                n_clicks=0,
+                                size="md",
+                                radius="md",
+                                color="red",
+                            ),
+                            label="Delete Sample",
+                            position="top",
+                            color="red",
+                            radius="xl",
+                            offset=3,
+                        ),
+                    ],
+                    position="apart",
                 ),
                 withBorder=True,
                 inheritPadding=True,
