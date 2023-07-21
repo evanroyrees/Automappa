@@ -1,20 +1,17 @@
-FROM condaforge/miniforge3:latest
+FROM condaforge/mambaforge:latest
 
-RUN conda install --prune --name base mamba --yes
-
-COPY environment.yml ./environment.yml
-
-RUN mamba env update --name base --file=./environment.yml \
-    && mamba clean --all --force-pkgs-dirs --yes
+COPY environment.yml /tmp/environment.yml
+RUN mamba env update -n base -f /tmp/environment.yml && \
+    mamba clean --all --force-pkgs-dirs --yes
 
 COPY . /usr/src/app
 WORKDIR /usr/src/app
+
 RUN python -m pip install . --ignore-installed --no-deps -vvv
-# Test command is functional
-RUN automappa -h
 
-# Create an unprivileged user for running our Python code.
+# Create an unprivileged user for automappa celery worker
 RUN adduser --disabled-password --gecos '' automappa
+RUN mkdir -p /usr/src/app/uploads && \
+    chown -R automappa:automappa /usr/src/app
 
-# CMD [ "-h" ]
-# ENTRYPOINT [ "automappa" ]
+# CMD ["automappa", "-h"]

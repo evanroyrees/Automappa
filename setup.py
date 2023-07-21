@@ -1,4 +1,4 @@
-"""Setup for installation of Autometa."""
+"""Setup for installation of Automappa."""
 
 
 import os

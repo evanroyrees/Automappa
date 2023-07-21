@@ -6,23 +6,29 @@ channels:
   - defaults
 dependencies:
   - autometa
-  - dash
+  - dash==2.10.2
   - dash-bootstrap-components
-  - dash-daq
+  - dash_cytoscape==0.2.0
   - flask
   - flower
   - msgpack-python
-  - numpy
+  - numpy==1.20.0
   - pandas
   - plotly
   - psycopg2
   - python-dotenv
+  - python==3.9.*
   - pydantic
-  - scipy==1.8.*
-  - sqlalchemy
+  - scipy
+  - scikit-learn==0.24
+  - sqlalchemy==1.4.41
+  - sqlmodel==0.0.8
   - pip
   - pip:
-    - dash-extensions
+    - dash-extensions==1.*
+    - dash-mantine-components==0.12
+    - dash-ag-grid>=2.2
+    - dash-iconify
     - celery[redis]
     - geom-median
-    - dash-uploader
+    - dash-uploader==0.6

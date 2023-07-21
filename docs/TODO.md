@@ -1,40 +1,130 @@
 # TODO (WIP)
 
-1. [x] :art:::racehorse: Pass postgres datatable `table_name` back from `dash-uploader` callback
-2. [x] :racehorse::art: `dcc.Store(...)` datatable id in `dcc.Store(...)`
-3. [x] :racehorse::art: Save uploaded file metadata to postgres datatable
-4. [x] :racehorse::art: Populate `dcc.Store(...)` with user's existing datatables
-5. [ ] ~:racehorse::art: Populate `data_table.DataTable` with clickable `dcc.Link` that navigates user to `mag_refinement.py` (will load data relevant to link, e.g. metagenome annotations, markers, etc.)~
-6. [x] :racehorse: Retrieve datatable within `mag_refinement.py`
-    - [x] (`home.py`) binning, markers, metagenome dropdowns for selecting data available in database
-    - [x] (`home.py`) dropdown values correspond to `table_id` and are sent to `mag_refinement.py` callbacks, replacing `pd.read_json(...)`
-    - [x] (`home.py`/`index.py`) dropdowns should have a "NA" or placeholder disabling navigation to other layouts when data for the particular filetype is unavailable
-7. [x] :art::bug: Finish addition of other embeddings within 2D scatterplot in `mag_refinement.py`
-8. [x] :carrot::racehorse: Add celery task-queue
-9. [x] :carrot::racehorse: Add celery-monitoring services
-10. [ ] :carrot::racehorse: Add uploaded data ingestion to task-queue
-11. [x] :carrot::racehorse: Add k-mer embedding tasks to task-queue
-12. [x] :fire: Remove parser args for data inputs (i.e. not relevant to running automappa server)
-13. [x] :art: Refactor `on_{binning,markers,metagenome}_upload` callbacks to one function that takes in the filetype to determine storage method
-14. [x] :racehorse: Retrieve datatable within `mag_summary.py`
-15. [x] :whale::elephant::sunflower: Grafana provision from within `docker-compose.yml`
-16. [ ] :art::fire: Refactor `store_binning_main(...)` s.t. refinement-data is stored in a separate async process.
-17. [ ] :art::carrot: Add selections/dropdowns/progress updates for metagenome embeddings
-18. [x] :art: Add embeddings selection dropdown in settings for 2d scatterplot axes (place task queueing from these selections)
-19. [ ] :art: Show some type of progress for metagenome ingestion to postgres DB
-20. [x] :art: Dynamically Format scatterplot 2-d axes (i.e. Gc_Content to GC Content, etc.)
-21. [ ] :racehorse: Reduce queries to postgres DB
-22. [x] :bug::wrench: Fix scatterplot-2d.figure callback (LINENO#685) `ValueError: columns overlap but no suffix specified: Index(['5mers-ilr-umap_x_1', '5mers-ilr-umap_x_2'], dtype='object')`
-23. [ ] :bug::wrench: Add `dcc.Interval`? or `interval` argument? to Scatterplot 2D Axes dropdown s.t. disabled is updated appropriately (poll availability of embeddings in pg DB)
+## TODOs lists
 
---------------------------------------------------------------------------------------------------
+### 🐰:carrot: task-queue
 
-## Misc. Resources
+- [ ] Determine minimal task-queue case for setup/testing
+- [ ] simple time.sleep(10) and generation of tasks table displaying progress
+- [ ] pre-processing step for marker symbols and marker sizes based on marker counts in `Contig`
+- [ ] k-mer freq. analysis steps
 
+#### Data ingestion, CRUD Operations and UI
+
+- [ ] create metagenome
+- [ ] create contigs
+- [ ] create markers
+- [ ] create connections
+- [ ] update each created to metagenome with sample name
+
+#### 🐎 Component data pre-processing
+
+- [ ] component to inform user of currently processing tasks (i.e. [Dash AG Grid](https://dash.plotly.com/dash-ag-grid/ "Dash AG grid component"), [notification](https://www.dash-mantine-components.com/components/notification "Dash mantine notification component"), etc.)
+- [ ] marker symbol
+- [ ] kmer embedding
+- [ ] geometric medians
+- [ ] MAG summary
+
+### Pages
+
+#### base Layout components
+
+- [x] `metagenome_id_store = dcc.Store(ids.METAGENOME_ID_STORE, "data")`
+  - [x] Pattern matching callback to get `metagenome_id` (or `Metagenome.name`) for
+  selected sample card
+  - [ ] Pattern matching callback to uncheck any other cards when a sample is selected
+
+#### Home components
+
+- [ ] loader "new sample" button disable during db ingestion
+- [ ] Loader (or notification or overlay? on sample submit button click)
+  - [ ] User notified on submit button click (will require task-queue)
+  - [ ] Notification dismissed when database ingestion finished (will require task-queue)
+  
+  Supposedly background callbacks here are not supported with notifications.
+- [ ] :bug: new sample card rendered upon stepper sample submit button click
+- [x] Synchronize pages using `metagenome_id` in a `dcc.Store(ids.METAGENOME_ID_STORE)`
+  - [x] 🔗 Add callbacks for sample cards
+  - [x] :fire: Remove button ~refine button navigates to `MAG-refinement`~
+  - [x] :fire: Remove button ~summarize button navigates to `MAG-summary`~
+  - [x] :link: "Card selected" option for storage in `ids.METAGENOME_ID_STORE`
+
+#### MAG refinement components
+
+- [x] Determine construction of `Refinement(SQLModel)`
+- [x] Allow save MAG refinement after scatterplot selections
+- [x] Allow table generation from saved refinements
+- [x] Allow data download
+- [ ] re-implement cytoscape contig connection graph callbacks
+- [x] Connect `Input(ids.COVERAGE_RANGE_SLIDER, "value")` to 2D scatterplots
+  > (End-user ? --> should 3D scatterplot also be updated?)
+
+Component protocols:
+
+> Following syntax: `class ComponentDataSource(Protocol)`
+
+- [x] `class Scatterplot2dDataSource(Protocol)`
+- [x] `class MarkerSymbolsLegendDataSource(Protocol)`
+- [x] `class SaveSelectionsButtonDataSource(Protocol)`
+- [ ] `class SettingsOffcanvasDataSource(Protocol)`
+  - [x] `class Scatterplot2dAxesOptionsDataSource(Protocol)`
+  - [x] `class ColorByColumnOptionsDataSource(Protocol)`
+  - [ ] ~`class KmerNormMethodDropdownOptionsDataSource`~
+  - [ ] ~`class KmerEmbedMethodDropdownOptionsDataSource`~
+- [x] `class MagMetricsDataSource(Protocol)`
+- [x] `class TaxonomyDistributionDataSource(Protocol)`
+  - [ ] :fire: remove use of pandas in source method
+- [x] `class Scatterplot3dDataSource(Protocol)`
+- [x] `class CoverageRangeSliderDataSource(Protocol)`
+- [x] `class CoverageBoxplotDataSource(Protocol)`
+- [x] `class GcPercentBoxplotDataSource(Protocol)`
+- [x] `class LengthBoxplotDataSource(Protocol)`
+- [ ] `class ContigCytoscapeDataSource(Protocol)`
+- [x] `class RefinementsTableDataSource(Protocol)`
+
+#### MAG Summary components
+
+Passed `DataSource` object:
+
+- [ ] `class SummaryDataSource(BaseModel)`
+
+Component protocols:
+
+> Following syntax: `class ComponentDataSource(Protocol)`
+
+- [x] `class CoverageBoxplotDataSource(Protocol)`
+- [x] `class GcPercentBoxplotDataSource(Protocol)`
+- [x] `class LengthBoxplotDataSource(Protocol)`
+- [x] `class ClusterMetricsBarplotDataSource(Protocol)`
+- [x] `class ClusterDropdownDataSource(Protocol)`
+- [x] `class ClusterMetricsBoxplotDataSource(Protocol)`
+- [x] `class ClusterStatsTableDataSource(Protocol)`
+- [x] `class ClusterTaxonomyDistributionDataSource(Protocol)`
+
+-----------------------------------------------------
+
+## Development resources
+
+### Libraries
+
+- [dash-extensions docs](https://www.dash-extensions.com/ "dash-extensions documentation")
 - [Dash Extensions Enrich Module](https://www.dash-extensions.com/getting-started/enrich)
+- [dash-extensions GitHub](https://github.com/thedirtyfew/dash-extensions "dash-extensions GitHub repository")
+- [dash-mantine-components docs](https://www.dash-mantine-components.com/ "dash-mantine-components documentation")
+- [dash-iconify icons browser](<https://icon-sets.iconify.design/> "Iconify icon sets")
+- [dash-bootstrap-components docs](http://dash-bootstrap-components.opensource.faculty.ai/ "dash-bootstrap-components documentation")
+- [plotly Dash docs](https://dash.plotly.com/ "plotly Dash documentation")
+
+### Services
+
+#### Networking, backend and task management
+
 - [docker-compose networking docs](<https://docs.docker.com/compose/networking/#links>)
 - [live mongoDB dash example](<https://github.com/Coding-with-Adam/Dash-by-Plotly/blob/master/Dash_and_Databases/MongoDB/live-mongodb-dash.py>)
 - [plotly dash `dcc.Store` docs](<https://dash.plotly.com/dash-core-components/store#store-clicks-example>)
-- [dash bootstrap components docs](https://dash-bootstrap-components.opensource.faculty.ai/docs/components/layout/)
 - [how to access rabbitmq publicly](<https://stackoverflow.com/questions/23020908/how-to-access-rabbitmq-publicly> "how to access RabbitMQ publicly")
 - [StackOverflow: how to access rabbitmq publicly](https://stackoverflow.com/a/57612615 "StackOverflow: how to access RabbitMQ publicly")
+
+### Miscellaneous
+
+dash logger is not supported with pattern matching callbacks

@@ -16,11 +16,23 @@ from pydantic import (
 
 class DatabaseSettings(BaseSettings):
     url: PostgresDsn
-    pool_size: Optional[int] = 3
+    pool_size: Optional[int] = 4
     pool_pre_ping: Optional[bool] = False
 
     class Config:
         env_prefix: str = "POSTGRES_"
+        env_file: str = ".env"
+        env_file_encoding: str = "utf-8"
+
+
+class RedisSettings(BaseSettings):
+    host: str
+    port: int
+    db: int
+    password: str
+
+    class Config:
+        env_prefix: str = "REDIS_BACKEND_"
         env_file: str = ".env"
         env_file_encoding: str = "utf-8"
 
@@ -68,6 +80,7 @@ class ServerSettings(BaseSettings):
 
 server = ServerSettings()
 db = DatabaseSettings()
+redis = RedisSettings()
 database = DatabaseSettings()
 rabbitmq = RabbitmqSettings()
 celery = CelerySettings()

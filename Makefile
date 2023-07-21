@@ -45,25 +45,31 @@ endif
 image: Dockerfile
 	docker build . -f $< -t evanrees/automappa:`git branch --show-current`
 
+## Remove automappa-{web,flower,queue} docker images
+rm-images: Dockerfile
+	docker rmi -f `docker images -q automappa-web`
+	docker rmi -f `docker images -q automappa-queue`
+	docker rmi -f `docker images -q automappa-flower`
+
 ## Install automappa entrypoint into current environment
 install: 
 	$(PYTHON_INTERPRETER) -m pip install . --ignore-installed --no-deps -vvv
 
 ## docker compose build from docker-compose.yml
 build: docker-compose.yml
-	docker-compose build
+	docker compose build
 
 ## alias for docker-compose up --always-recreate-deps --remove-orphans --force-recreate
 up: docker-compose.yml
-	docker-compose up --always-recreate-deps --remove-orphans --force-recreate
+	docker compose up --always-recreate-deps --remove-orphans --force-recreate
 
 ## alias for docker-compose down --remove-orphans
 down: docker-compose.yml
-	docker-compose down --remove-orphans
+	docker compose down --remove-orphans
 
 ## alias for docker-compose down --remove-orphans --volumes
 down-v: docker-compose.yml
-	docker-compose down --remove-orphans -v
+	docker compose down --remove-orphans -v
 
 # Run Automappa on test data
 # test: test_data

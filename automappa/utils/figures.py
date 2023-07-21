@@ -7,25 +7,17 @@ from dash.exceptions import PreventUpdate
 from plotly import graph_objects as go
 
 
-def taxonomy_sankey(df: pd.DataFrame, selected_rank: str = "species") -> go.Figure:
-    ranks = ["superkingdom", "phylum", "class", "order", "family", "genus", "species"]
-    n_ranks = len(ranks[: ranks.index(selected_rank)])
-    dff = df[[col for col in df.columns if col in ranks]].fillna("unclassified")
-    for rank in ranks:
-        if rank in dff:
-            dff[rank] = dff[rank].map(
-                lambda taxon: f"{rank[0]}_{taxon}"
-                if rank != "superkingdom"
-                else f"d_{taxon}"
-            )
+def taxonomy_sankey(df: pd.DataFrame) -> go.Figure:
+    ranks = df.columns.tolist()
+    n_ranks = len(ranks)
     label = []
-    for rank in ranks[:n_ranks]:
-        label.extend(dff[rank].unique().tolist())
+    for rank in ranks:
+        label.extend(df[rank].unique().tolist())
     source = []
     target = []
     value = []
-    for rank in ranks[:n_ranks]:
-        for rank_name, rank_df in dff.groupby(rank):
+    for rank in ranks:
+        for rank_name, rank_df in df.groupby(rank):
             source_index = label.index(rank_name)
             next_rank_i = ranks.index(rank) + 1
             if next_rank_i >= len(ranks[:n_ranks]):
@@ -40,27 +32,24 @@ def taxonomy_sankey(df: pd.DataFrame, selected_rank: str = "species") -> go.Figu
                 target.append(target_index)
                 value.append(value_count)
     return go.Figure(
-        data=[
-            go.Sankey(
-                node=dict(
-                    pad=8,
-                    thickness=13,
-                    line=dict(width=0.3),
-                    label=label,
-                ),
-                link=dict(
-                    source=source,
-                    target=target,
-                    value=value,
-                ),
-            )
-        ]
+        go.Sankey(
+            node=dict(
+                pad=8,
+                thickness=13,
+                line=dict(width=0.3),
+                label=label,
+            ),
+            link=dict(
+                source=source,
+                target=target,
+                value=value,
+            ),
+        ),
     )
 
 
 def metric_boxplot(
-    df: pd.DataFrame,
-    metrics: List[str] = [],
+    data: List[Tuple[str, pd.Series]],
     horizontal: bool = False,
     boxmean: Union[bool, str] = True,
 ) -> go.Figure:
@@ -68,10 +57,8 @@ def metric_boxplot(
 
     Parameters
     ----------
-    df : pd.DataFrame
+    data : List[Tuple[str,pd.Series]]
         MAG annotations dataframe
-    metrics : List[str], optional
-        MAG metrics to use for generating traces
     horizontal : bool, optional
         Whether to generate horizontal or vertical boxplot traces in the figure.
     boxmean : Union[bool,str], optional
@@ -88,45 +75,28 @@ def metric_boxplot(
     PreventUpdate
         No metrics were provided to generate traces.
     """
-    fig = go.Figure()
-    if not metrics:
+    if not data:
         raise PreventUpdate
-    for metric in metrics:
-        name = metric.replace("_", " ").title()
+    traces = []
+    for metric, series in data:
         if horizontal:
-            trace = go.Box(x=df[metric], name=name, boxmean=boxmean)
+            trace = go.Box(x=series, name=metric, boxmean=boxmean)
         else:
-            trace = go.Box(y=df[metric], name=name, boxmean=boxmean)
-        # TODO: round to two decimal places
-        # Perhaps a hovertemplate formatting issue?
-        fig.add_trace(trace)
-    return fig
+            trace = go.Box(y=series, name=metric, boxmean=boxmean)
+        traces.append(trace)
+    return go.Figure(data=traces)
 
 
 def metric_barplot(
-    df: pd.DataFrame,
-    metrics: List[str] = [],
+    data: Tuple[str, List[float], List[float]],
     horizontal: bool = False,
-    name: str = None,
 ) -> go.Figure:
-    if not metrics:
+    if not data:
         raise PreventUpdate
-    x = [metric.replace("_", " ").title() for metric in metrics]
-    y = [df[metric].iat[0] for metric in metrics]
+    name, x, y = data
     orientation = "h" if horizontal else "v"
-    return go.Figure([go.Bar(x=x, y=y, orientation=orientation, name=name)])
-
-
-def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
-    x_min_scaler = x[scale_by] - x[scale_by].min()
-    x_max_scaler = x[scale_by].max() - x[scale_by].min()
-    if not x_max_scaler:
-        # Protect Division by 0
-        x_ceil = np.ceil(x_min_scaler / x_max_scaler + 1)
-    else:
-        x_ceil = np.ceil(x_min_scaler / x_max_scaler)
-    x_scaled = x_ceil * 2 + 4
-    return x_scaled
+    trace = go.Bar(x=x, y=y, orientation=orientation, name=name)
+    return go.Figure([trace])
 
 
 def format_axis_title(axis_title: str) -> str:
@@ -305,6 +275,8 @@ def get_scatterplot_2d(
         margin=dict(r=50, b=50, l=50, t=50),
         hovermode="closest",
         clickmode="event+select",
+        height=600,
+        width="100%",
     )
     fig = go.Figure(layout=layout)
     traces_df = get_scattergl_traces(
@@ -321,10 +293,10 @@ def get_scatterplot_2d(
 
 def get_scatterplot_3d(
     df: pd.DataFrame,
-    x_axis: str = "x_1",
-    y_axis: str = "x_2",
-    z_axis: str = "coverage",
-    color_by_col: str = "cluster",
+    x_axis: str,
+    y_axis: str,
+    z_axis: str,
+    color_by_col: str,
 ) -> go.Figure:
     """Create go.Figure from `df`
 
@@ -332,20 +304,32 @@ def get_scatterplot_3d(
     ----------
     df : pd.DataFrame
         index_col=[contig], cols=[`x_axis`, `y_axis`, `z_axis`]
-    x_axis : str, optional
-        _description_, by default "x_1"
-    y_axis : str, optional
-        _description_, by default "x_2"
-    z_axis : str, optional
-        _description_, by default "coverage"
-    color_by_col : str, optional
-        _description_, by default "cluster"
+    x_axis : str
+        continuous column for x-axis
+    y_axis : str
+        continuous column for y-axis
+    z_axis : str
+        continuous column for z-axis
+    color_by_col : str
+        categorical column for color-by-col
 
     Returns
     -------
     go.Figure
         _description_
     """
+
+    def marker_size_scaler(x: pd.DataFrame, scale_by: str = "length") -> int:
+        x_min_scaler = x[scale_by] - x[scale_by].min()
+        x_max_scaler = x[scale_by].max() - x[scale_by].min()
+        if not x_max_scaler:
+            # Protect Division by 0
+            x_ceil = np.ceil(x_min_scaler / x_max_scaler + 1)
+        else:
+            x_ceil = np.ceil(x_min_scaler / x_max_scaler)
+        x_scaled = x_ceil * 2 + 4
+        return x_scaled
+
     x_axis_title = format_axis_title(x_axis)
     y_axis_title = format_axis_title(y_axis)
     z_axis_title = format_axis_title(z_axis)
