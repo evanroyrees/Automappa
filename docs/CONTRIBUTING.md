@@ -22,6 +22,7 @@
   - [Postgres](#postgres)
   - [RabbitMQ](#rabbitmq)
   - [Celery](#celery-task-queue)
+    - [task-queue docs](task-queue.md)
   - [Redis](#redis)
   - [Flower](#flower)
 - [Dev Resources](#development-resources)
@@ -1117,7 +1118,7 @@ Automappa services (`redis`, `flower`, `web`, `celery`, `rabbitmq`)
 as tasks are registered with celery at instantiation and will not be
 'hot-reloaded' like other parts of the app.
 
-For more information on implementing new tasks see the [task docs](../automappa/pages/home/tasks/README.md)
+For more information on implementing new tasks see the [task-queue docs](task-queue.md)
 
 <details>
 

@@ -1,4 +1,4 @@
-from .task_status_badge import set_badge_color
+from .status_badge import set_badge_color
 from .sample_cards import (
     create_metagenome_model,
     initialize_refinement,
