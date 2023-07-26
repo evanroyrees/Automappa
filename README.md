@@ -1,21 +1,20 @@
 # Automappa: An interactive interface for exploration of metagenomes
 
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/WiscEvan/Automappa?label=latest)
-[![Anaconda-Server Install Badge](https://anaconda.org/bioconda/automappa/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
-[![Anaconda-Server Platforms Badge](https://anaconda.org/bioconda/automappa/badges/platforms.svg)](https://anaconda.org/bioconda/automappa)
-[![Anaconda-Server Downloads Badge](https://anaconda.org/bioconda/automappa/badges/downloads.svg)](https://anaconda.org/bioconda/automappa)
 
 | Image Name           | Image Tag       | Status                                                                                                                                                                                                                |
 |----------------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main "evanrees/automappa:main")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
 | `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
-![automappa_demo_920](https://user-images.githubusercontent.com/25933122/158899748-bf21c1fc-6f67-4fd8-af89-4e732fa2edcd.gif)
+<!-- ![Automappa demo](docs/static/automappa-demo.mov) -->
+
+> You may also [see each page as a static view](docs/page-overview.md)
 
 ## :deciduous_tree: Automappa testing setup/run commands
 
-- [Clone the Automappa Repo](#clone-the-repository)
-- [Run `make build` using Makefile](#build-images-for-automappa-services)
+- [Clone the Automappa Repo](#clone-the-automappa-repository)
+- [Run `make build` using Makefile](#build-images-for-services-used-by-automappa)
 - [Run `make up` using Makefile](#build-and-run-automappa-services)
 - [Open the Automappa url](#navigate-to-automappa-page)
 - [Download test data](#download-test-data)
@@ -23,10 +22,10 @@
 ### clone the Automappa Repository
 
 ```bash
-git clone -b develop https://github.com/WiscEvan/Automappa
+git clone https://github.com/WiscEvan/Automappa
 ```
 
-### build images for automappa services
+### build images for services used by Automappa
 
 ```bash
 make build
@@ -49,8 +48,16 @@ Once you see `automappa_web_1` running from the terminal logs, you should be abl
 
 ### Download Test Data
 
-Test data to try out Automappa may be downloaded from here: <https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing>
+Test data to try out Automappa may be downloaded from the google drive in the [Automappa test data folder](<https://drive.google.com/drive/folders/1nBk0AZC3EJV4t-9KdJBShGCfWbdP2kOp?usp=sharing>)
 
-This data is not yet binned, so you can easily try out different settings and perform your own refinements on some example data.
+Try out different settings and perform your own refinements on some of this sponge data!
+
+>NOTE: This dataset was retrieved from:
+>
+> Uppal, Siddharth, Jackie L. Metz, René K. M. Xavier, Keshav Kumar Nepal, Dongbo Xu, Guojun Wang, and Jason C. Kwan. 2022. “Uncovering Lasonolide A Biosynthesis Using Genome-Resolved Metagenomics.” mBio 13 (5): e0152422.
 
 Happy binning!
+
+## Contributors
+
+![Automappa's Contributors](https://contrib.rocks/image?repo=WiscEvan/Automappa)

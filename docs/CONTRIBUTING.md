@@ -24,8 +24,9 @@
   - [Celery](#celery-task-queue)
   - [Redis](#redis)
   - [Flower](#flower)
-- [dev resources](#development-resources)
-  - [component libraries](#libraries)
+- [Dev Resources](#development-resources)
+  - [Component libraries](#libraries)
+  - [Monitoring services](#monitoring-and-task-queue-services)
 
 ## Getting started with development
 
@@ -1234,5 +1235,55 @@ WARNING:flower.inspector:Inspect method revoked failed
 - [dash-bootstrap-components docs](http://dash-bootstrap-components.opensource.faculty.ai/ "dash-bootstrap-components documentation")
 - [dash-mantine-components docs](https://www.dash-mantine-components.com/ "dash-mantine-components documentation")
 - [dash-iconify icons browser](<https://icon-sets.iconify.design/> "Iconify icon sets")
+
+### Monitoring and Task-queue Services
+
+#### Networking, backend and task management
+
+- [docker-compose networking docs](<https://docs.docker.com/compose/networking/#links>)
+- [live mongoDB dash example](<https://github.com/Coding-with-Adam/Dash-by-Plotly/blob/master/Dash_and_Databases/MongoDB/live-mongodb-dash.py>)
+- [plotly dash `dcc.Store` docs](<https://dash.plotly.com/dash-core-components/store#store-clicks-example>)
+- [how to access rabbitmq publicly](<https://stackoverflow.com/questions/23020908/how-to-access-rabbitmq-publicly> "how to access RabbitMQ publicly")
+- [StackOverflow: how to access rabbitmq publicly](https://stackoverflow.com/a/57612615 "StackOverflow: how to access RabbitMQ publicly")
+- [celery rabbitmq tutorial](https://suzannewang.com/celery-rabbitmq-tutorial/)
+
+### Miscellaneous
+
+dash logger is not supported with pattern matching callbacks
+
+
+#### docker-compose services configuration
+
+>NOTE: The Prometheus and Grafana services are disabled by default. You may enable them by removing the comments in the docker compose
+file.
+
+***NOTE: All of this assumes you have all docker services running via `make up` or `docker-compose up`***
+
+> ~Provision grafana from `docker-compose.yml`. See: [Grafana provisioning example data source config file](https://grafana.com/docs/grafana/latest/administration/provisioning/#example-data-source-config-file)~
+> Found a nice blog post and accompanying GitHub repo to follow:
+>
+> - [Medium blog post](https://medium.com/swlh/easy-grafana-and-docker-compose-setup-d0f6f9fcec13)
+> - [github.com/annea-ai/grafana-infrastructure](<https://github.com/annea-ai/grafana-infrastructure>)
+> - [Grafana docs on Provisioning](https://grafana.com/docs/grafana/latest/administration/provisioning/)
+
+- RabbitMQ management - [http://localhost:15672](http://localhost:15672)
+- Flower link - [http://localhost:5555](http://localhost:5555)
+- Prometheus link - [http://localhost:9090](http://localhost:9090)
+- Grafana link - [http://localhost:3000](http://localhost:3000)
+
+#### Grafana configuration
+
+
+- flower+prometheus+grafana [add prometheus as a data source in grafana](<https://flower.readthedocs.io/en/latest/prometheus-integration.html#add-prometheus-as-a-data-source-in-grafana> "flower+prometheus+grafana add prometheus as a data source in grafana")
+- grafana link - [http://localhost:3000](http://localhost:3000)
+
+Add the prometheus url as:
+
+```bash
+http://prometheus:9090
+```
+
+Notice the tutorial mentions `http://localhost:9090`, but since this is running as a service using `docker-compose` the hostname changes to the
+`prometheus` alias (this is the name of the service in the `docker-compose.yml` file)
 
 [Back to top](#contributing)
