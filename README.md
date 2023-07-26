@@ -7,7 +7,7 @@
 | `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main "evanrees/automappa:main")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
 | `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
-<!-- ![Automappa demo](docs/static/automappa-demo.mov) -->
+![automappa-demo-hq](https://github.com/WiscEvan/Automappa/assets/25933122/84f3e15c-2759-42ed-b305-5aa22155e1ac)
 
 > You may also [see each page as a static view](docs/page-overview.md)
 
