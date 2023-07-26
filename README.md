@@ -7,7 +7,7 @@
 | `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main "evanrees/automappa:main")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml)                                       |
 | `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) |
 
-![automappa-demo-hq](https://github.com/WiscEvan/Automappa/assets/25933122/84f3e15c-2759-42ed-b305-5aa22155e1ac)
+https://github.com/WiscEvan/Automappa/assets/25933122/4de76297-f5a2-42d4-bf5e-8d695c3ef4fe
 
 > You may also [see each page as a static view](docs/page-overview.md)
 
@@ -33,7 +33,7 @@ make build
 
 ### build and run automappa services
 
-NOTE: you can skip `make build` if you’d like, as this command will build and pull any images not available.
+> You can skip `make build` if you’d like, as this command will build and pull any images not available.
 
 ```bash
 make up
