@@ -1,1 +1,2 @@
-web: gunicorn index:server
+web: gunicorn app:server --workers 4
+queue: celery --concurrency=2 --app=automappa.tasks.queue worker --loglevel=INFO --uid automappa -E

@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3.10.1-management-alpine
+    restart: always
+    ports:
+      # AMQP protocol port
+      - "5672:5672"
+      # HTTP management UI
+      - "15672:15672"
+    env_file:
+      - .env
+    volumes:
+      - ./automappa/conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command: celery --app=automappa.tasks.queue worker --loglevel=INFO -E
+    user: automappa
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+    depends_on:
+      - redis
+      - rabbitmq
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command: celery --app=automappa.tasks.queue flower --port=5555
+    user: automappa
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    depends_on:
+      - queue
+      - rabbitmq
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    mem_limit: 4GB
+    command: python -m automappa.__main__
+    user: automappa
+    volumes:
+      # /usr/src/app is location of install in Dockerfile
+      - .:/usr/src/app
+    ports:
+      - "8050:8050"
+    depends_on:
+      - postgres
+      - queue
+
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - prometheus-data:/prometheus
+  #     # - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #   depends_on:
+  #     - flower
+  
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   ports:
+  #     - "3000:3000"
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
+  #     - ./docker/grafana/provisioning:/etc/grafana/provisioning
+  #     - ./docker/grafana/grafana.ini:/etc/grafana/grafana.ini
+  #     - ./docker/grafana/dashboards:/etc/grafana/dashboards
+  #   depends_on:
+  #     - prometheus
+
+volumes:
+  postgres-data:
+  # grafana-storage:
+  #   driver: local
+  # prometheus-data:
+  #   driver: local
+  

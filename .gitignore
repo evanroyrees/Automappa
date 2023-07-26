@@ -9,3 +9,10 @@ app/__pycache__
 dist
 build
 Automappa.egg-info
+.env
+data
+!automappa/data
+db-data
+file_system_backend
+*.db
+uploads
