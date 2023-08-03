@@ -16,3 +16,5 @@ db-data
 file_system_backend
 *.db
 uploads
+*.mp4
+*.mov
