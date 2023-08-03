@@ -1,10 +1,11 @@
 # Contributing
 
+## Index
+
 - [Getting started](#getting-started-with-development)
   1. [Clone Automappa](#1-retrieve-repository)
   2. [Start Automappa services](#2-create-services-using-docker-compose)
   3. [Navigate to browser url](#3-navigate-to-the-automappa-page-in-your-browser)
-
 - [Creating a component](#adding-a-new-component)
   
   0. [Before you begin](#0-before-your-begin)
@@ -16,7 +17,6 @@
      - [The `source` argument](#the-source-argument)
   5. [Add component to the page's layout](#5-import-and-render-your-component-into-the-page-layout)
   6. [Component `Input` to existing components](#6-using-your_component-as-an-input-to-existing-components)
-
 - [Adding a page](#pages)
 - [Services and dependencies](#automappa-services-and-dependencies)
   - [Postgres](#postgres)
@@ -28,6 +28,10 @@
 - [Dev Resources](#development-resources)
   - [Component libraries](#libraries)
   - [Monitoring services](#monitoring-and-task-queue-services)
+- [🧭 roadmap](#roadmap)
+  - [UI/UX enhancements](#uiux-enhancements)
+  - [Pre-processing](#pre-processing)
+  - [Post-processing](#post-processing)
 
 ## Getting started with development
 
@@ -1252,7 +1256,6 @@ WARNING:flower.inspector:Inspect method revoked failed
 
 dash logger is not supported with pattern matching callbacks
 
-
 #### docker-compose services configuration
 
 >NOTE: The Prometheus and Grafana services are disabled by default. You may enable them by removing the comments in the docker compose
@@ -1274,7 +1277,6 @@ file.
 
 #### Grafana configuration
 
-
 - flower+prometheus+grafana [add prometheus as a data source in grafana](<https://flower.readthedocs.io/en/latest/prometheus-integration.html#add-prometheus-as-a-data-source-in-grafana> "flower+prometheus+grafana add prometheus as a data source in grafana")
 - grafana link - [http://localhost:3000](http://localhost:3000)
 
@@ -1288,3 +1290,27 @@ Notice the tutorial mentions `http://localhost:9090`, but since this is running 
 `prometheus` alias (this is the name of the service in the `docker-compose.yml` file)
 
 [Back to top](#contributing)
+
+## Roadmap
+
+### UI/UX enhancements
+
+- [ ] Cytoscape intra/inter-MAG connection mapping
+- [ ] Overplotting reduction toggle with MAG geometric medians
+
+### Data processing
+
+#### Pre-processing
+
+- [ ] k-mer frequency analysis workflow
+  - [ ] Parameter selection (submission to task-queue, progress monitoring & results retrieval)
+- [ ] BGC annotation (some tools: [`gecco`](gecco url), [`AntiSMASH`](antismash url), etc.)
+
+#### Post-processing
+
+- [ ] [GTDB](GTDB url) taxon assignment
+- [ ] [METABOLIC](METABOLIC url) functional assignment
+- [ ] [CheckM](CheckM url) completeness/purity QA
+- [ ] KEGG ortholog assignment (using [`kofamscan`](kofamscan url))
+
+###### [Back to top](#contributing)

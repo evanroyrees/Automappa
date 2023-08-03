@@ -110,17 +110,7 @@ Voilá, now celery will recognize the task on startup. It should look like this:
   . automappa.tasks.normalize_kmer
   . automappa.tasks.preprocess_clusters_geom_medians
   . automappa.tasks.preprocess_marker_symbols
-[2023-07-13 18:24:16,413: WARNING/MainProcess] /opt/conda/lib/python3.9/site-packages/celery/worker/consumer/consumer.py:498: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
-whether broker connection retries are made during startup in Celery 6.0 and above.
-If you wish to retain the existing behavior for retrying connections on startup,
-you should set broker_connection_retry_on_startup to True.
-  warnings.warn(
 [2023-07-13 18:24:16,437: INFO/MainProcess] Connected to amqp://user:**@rabbitmq:5672//
-[2023-07-13 18:24:16,439: WARNING/MainProcess] /opt/conda/lib/python3.9/site-packages/celery/worker/consumer/consumer.py:498: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
-whether broker connection retries are made during startup in Celery 6.0 and above.
-If you wish to retain the existing behavior for retrying connections on startup,
-you should set broker_connection_retry_on_startup to True.
-  warnings.warn(
 [2023-07-13 18:24:16,455: INFO/MainProcess] mingle: searching for neighbors
 [2023-07-13 18:24:17,569: INFO/MainProcess] mingle: all alone
 [2023-07-13 18:24:17,627: INFO/MainProcess] celery@4bbb963e90ec ready.
