@@ -18,7 +18,7 @@ you first need to login to the remote server with a tunnel, e.g. `ssh -L localpo
 ```bash
 #ssh -L localport:127.0.0.1:serverport user@kwan-bioinformatics.pharmacy.wisc.edu
 #example
-ssh -L 8888:127.0.0.1:8050 sam@kwan-bioinformatics.pharmacy.wisc.edu
+ssh -L 8855:127.0.0.1:8050 sam@kwan-bioinformatics.pharmacy.wisc.edu
 ```
 
 ## Configure server host and port
@@ -100,9 +100,9 @@ Here is an illustration of the network communication.
 
 ```mermaid
 graph LR
-    LocalMachine<-- localport:remoteport -->RemoteServer
-    RemoteServer<-- remoteport:exposeport -->DockerContainer
-    DockerContainer<-- `exposeport:SERVER_PORT` -->AutomappaServer
+    A[LocalMachine]<-- localport:remoteport -->B(RemoteServer)
+    B(RemoteServer)<-. remoteport:exposeport .->C(DockerContainer)
+    C(DockerContainer)<-- `exposeport:SERVER_PORT` -->D[AutomappaServer]
 ```
 
 ### Example network communication illustration
@@ -111,9 +111,9 @@ I've numbered the ports here to help illustrate an example network configuration
 
 ```mermaid
 graph LR
-    LocalMachine<-- 8855:8050 -->RemoteServer
-    RemoteServer<-- 8050:8050 -->DockerContainer
-    DockerContainer<-- 8050:8050 -->AutomappaServer
+    A[LocalMachine]<-- 8855:8050 -->B(RemoteServer)
+    B(RemoteServer)<-. 8050:8050 .->C(DockerContainer)
+    C(DockerContainer)<-- 8050:8050 -->D[AutomappaServer]
 ```
 
 > Note
