@@ -19,6 +19,10 @@ https://github.com/WiscEvan/Automappa/assets/25933122/4de76297-f5a2-42d4-bf5e-8d
 - [Open the Automappa url](#navigate-to-automappa-page)
 - [Download test data](#download-test-data)
 
+## Miscellaneous
+
+- [Using Automappa on a remote server](docs/remote-server.md)
+
 ### clone the Automappa Repository
 
 ```bash
@@ -57,6 +61,7 @@ Try out different settings and perform your own refinements on some of this spon
 > Uppal, Siddharth, Jackie L. Metz, René K. M. Xavier, Keshav Kumar Nepal, Dongbo Xu, Guojun Wang, and Jason C. Kwan. 2022. “Uncovering Lasonolide A Biosynthesis Using Genome-Resolved Metagenomics.” mBio 13 (5): e0152422.
 
 Happy binning!
+
 
 ## Contributors
 
