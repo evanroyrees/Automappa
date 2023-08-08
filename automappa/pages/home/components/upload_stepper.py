@@ -26,7 +26,7 @@ from automappa.pages.home.components import (
 # 2. Upload binning (will eventually link to metagenome)
 # 3. Upload markers (will eventually link to binning contigs)
 # 4. Upload cytoscape connections (optional will eventually link to metagenome)
-# 5. Finish upload (unique sample name required as text input to act as link b/w uploaded data)
+# 5. Finish upload (metagenome_id generated with successful upload)
 # On completion (adds metagenome card to home page)
 
 
@@ -199,9 +199,14 @@ def render(app: DashProxy, source: UploadStepperDataSource) -> html.Div:
                                 "material-symbols:info-outline",
                                 height=15,
                             ),
-                            label=dmc.Code(
-                                "autometa-binning --output-main <this-output-file>"
-                            ),
+                            label=[
+                                dmc.Text(
+                                    "Autometa will typically write this file with a '*.main.tsv' suffix"
+                                ),
+                                dmc.Code(
+                                    "autometa-binning --output-main <this-output-file>"
+                                ),
+                            ],
                             color="gray",
                             withArrow=True,
                             position="right",
