@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 from pydantic import BaseModel
 from typing import Dict, List, Literal, Optional, Set, Tuple, Union
+from dash import html
 
 from sqlmodel import Session, and_, or_, select, func
 
@@ -286,7 +287,7 @@ class RefinementDataSource(BaseModel):
         return data
 
     def get_color_by_column_options(self) -> List[Dict[Literal["label", "value"], str]]:
-        categoricals = [
+        categories = [
             ContigSchema.CLUSTER,
             ContigSchema.SUPERKINGDOM,
             ContigSchema.PHYLUM,
@@ -296,44 +297,31 @@ class RefinementDataSource(BaseModel):
             ContigSchema.GENUS,
             ContigSchema.SPECIES,
         ]
-        return [
-            {"label": category.title(), "value": category} for category in categoricals
-        ]
+        return [dict(label=category.title(), value=category) for category in categories]
 
     def get_scatterplot_2d_axes_options(
         self,
     ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
-        options = []
-        axes_combinations = [
-            (ContigSchema.X_1, ContigSchema.X_2),
-            (ContigSchema.COVERAGE, ContigSchema.GC_CONTENT),
+        axes_labels = {
+            (ContigSchema.X_1, ContigSchema.X_2): html.P(
+                ["X", html.Sub("1"), " vs. ", "X", html.Sub("2")]
+            ),
+            (ContigSchema.COVERAGE, ContigSchema.GC_CONTENT): "Coverage vs. GC Content",
+        }
+        return [
+            dict(label=label, value="|".join(axes))
+            for axes, label in axes_labels.items()
         ]
-        for x_axis, y_axis in axes_combinations:
-            x_axis_label = (
-                "GC content" if ContigSchema.GC_CONTENT in x_axis else x_axis.title()
-            )
-            y_axis_label = (
-                "GC content" if ContigSchema.GC_CONTENT in y_axis else y_axis.title()
-            )
-            label = f"{x_axis_label} vs. {y_axis_label}"
-            value = "|".join([x_axis, y_axis])
-            options.append(dict(label=label, value=value))
-        return options
 
     def get_scatterplot_3d_zaxis_dropdown_options(
         self,
     ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
         axes = {
-            ContigSchema.LENGTH,
-            ContigSchema.COVERAGE,
-            ContigSchema.GC_CONTENT,
+            ContigSchema.LENGTH: "Length",
+            ContigSchema.COVERAGE: "Coverage",
+            ContigSchema.GC_CONTENT: "GC Content",
         }
-        options = []
-        for value in axes:
-            label = "GC content" if ContigSchema.GC_CONTENT in value else value.title()
-            options.append({"label": label, "value": value})
-
-        return options
+        return [dict(label=label, value=value) for value, label in axes.items()]
 
     def get_taxonomy_distribution_dropdown_options(
         self,
@@ -345,7 +333,7 @@ class RefinementDataSource(BaseModel):
             ContigSchema.GENUS,
             ContigSchema.SPECIES,
         ]
-        return [{"label": rank.title(), "value": rank} for rank in ranks]
+        return [dict(label=rank.title(), value=rank) for rank in ranks]
 
     def get_marker_overview(
         self, metagenome_id: int

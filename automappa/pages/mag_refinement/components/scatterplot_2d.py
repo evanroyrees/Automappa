@@ -4,11 +4,9 @@
 from typing import Dict, List, Literal, Optional, Protocol, Set, Tuple, Union
 from dash_extensions.enrich import DashProxy, Input, Output, dcc, html
 from plotly import graph_objects as go
+from automappa.data.schemas import ContigSchema
 
-from automappa.utils.figures import (
-    format_axis_title,
-    get_scatterplot_2d,
-)
+from automappa.utils.figures import format_axis_title
 
 from automappa.components import ids
 
@@ -152,19 +150,29 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         BOTTOM_MARGIN = 20
         TOP_MARGIN = 20
         legend = go.layout.Legend(visible=show_legend, x=1, y=1)
+
         # NOTE: Changing `uirevision` will trigger the graph to change
         # graph properties state (like zooming, panning, clicking on legend items).
         # i.e. if the axes change we want to reset the ui
         # See: https://community.plotly.com/t/preserving-ui-state-like-zoom-in-dcc-graph-with-uirevision-with-dash/15793
         # for more details
+        def format_title(axis: str) -> str:
+            axes_combinations = {
+                ContigSchema.X_1: r"$\text{X}_{1}$",
+                ContigSchema.X_2: r"$\text{X}_{2}$",
+                ContigSchema.COVERAGE: "Coverage",
+                ContigSchema.GC_CONTENT: "GC Content",
+            }
+            return axes_combinations[axis]
+
         layout = go.Layout(
             legend=legend,
             margin=dict(r=RIGHT_MARGIN, b=BOTTOM_MARGIN, l=LEFT_MARGIN, t=TOP_MARGIN),
             hovermode="closest",
             clickmode="event+select",
             uirevision=axes_columns,
-            xaxis=go.layout.XAxis(title=format_axis_title(x_axis)),
-            yaxis=go.layout.YAxis(title=format_axis_title(y_axis)),
+            xaxis=go.layout.XAxis(title=dict(text=format_title(x_axis))),
+            yaxis=go.layout.YAxis(title=dict(text=format_title(y_axis))),
             height=600,
         )
         return go.Figure(data=traces, layout=layout)
@@ -177,6 +185,7 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
                     id=ids.SCATTERPLOT_2D_FIGURE,
                     clear_on_unhover=True,
                     config={"displayModeBar": True, "displaylogo": False},
+                    mathjax=True,
                 ),
                 id=ids.LOADING_SCATTERPLOT_2D,
                 type="graph",
