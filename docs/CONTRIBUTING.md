@@ -1304,13 +1304,13 @@ Notice the tutorial mentions `http://localhost:9090`, but since this is running 
 
 - [ ] k-mer frequency analysis workflow
   - [ ] Parameter selection (submission to task-queue, progress monitoring & results retrieval)
-- [ ] BGC annotation (some tools: [`gecco`](gecco url), [`AntiSMASH`](antismash url), etc.)
+- [ ] BGC annotation (some tools: [`gecco`](https://github.com/zellerlab/GECCO "Gecco github page"), [`AntiSMASH`](https://github.com/antismash/antismash "AntiSMASH github page"), etc.)
 
 #### Post-processing
 
-- [ ] [GTDB](GTDB url) taxon assignment
-- [ ] [METABOLIC](METABOLIC url) functional assignment
-- [ ] [CheckM](CheckM url) completeness/purity QA
-- [ ] KEGG ortholog assignment (using [`kofamscan`](kofamscan url))
+- [ ] [GTDB](https://gtdb.ecogenomic.org/ "GTDB: Genome Taxonomy Database home page") taxon assignment
+- [ ] [METABOLIC](https://github.com/AnantharamanLab/METABOLIC "Metabolic github page") functional assignment
+- [ ] [CheckM](https://github.com/Ecogenomics/CheckM "CheckM Github page") completeness/purity QA
+- [ ] KEGG ortholog assignment (using [`kofamscan`](https://www.genome.jp/tools/kofamkoala/ "Kofamkoala page"))
 
 ###### [Back to top](#contributing)
