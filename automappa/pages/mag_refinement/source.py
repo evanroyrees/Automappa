@@ -317,7 +317,7 @@ class RefinementDataSource(BaseModel):
         self,
     ) -> List[Dict[Literal["label", "value", "disabled"], str]]:
         axes = {
-            ContigSchema.LENGTH: "length",
+            ContigSchema.LENGTH: "Length",
             ContigSchema.COVERAGE: "Coverage",
             ContigSchema.GC_CONTENT: "GC Content",
         }
