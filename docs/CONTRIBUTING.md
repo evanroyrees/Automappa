@@ -1297,6 +1297,7 @@ Notice the tutorial mentions `http://localhost:9090`, but since this is running 
 
 - [ ] Cytoscape intra/inter-MAG connection mapping
 - [ ] Overplotting reduction toggle with MAG geometric medians
+- [ ] Summary page to show both original figures, and figures calculated after refinement.
 
 ### Data processing
 
