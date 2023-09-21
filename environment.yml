@@ -18,7 +18,7 @@ dependencies:
   - psycopg2
   - python-dotenv
   - python==3.9.*
-  - pydantic==1.*
+  - pydantic>=1.8.2,<2.0.0
   - scipy
   - scikit-learn==0.24
   - sqlalchemy==1.4.41
