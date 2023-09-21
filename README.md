@@ -5,7 +5,6 @@
 | Image Name           | Image Tag       | Status | Size |
 |----------------------|-----------------|--------|-----|
 | `evanrees/automappa` | `main`,`latest` | [![docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=main "evanrees/automappa:main")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) | ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/evanrees/automappa/main) |
-| `evanrees/automappa` | `develop`       | [![develop docker CI/CD](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml/badge.svg?branch=develop "evanrees/automappa:develop")](https://github.com/WiscEvan/Automappa/actions/workflows/docker.yml) | ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/evanrees/automappa/develop) |
 
 https://github.com/WiscEvan/Automappa/assets/25933122/4de76297-f5a2-42d4-bf5e-8d695c3ef4fe
 

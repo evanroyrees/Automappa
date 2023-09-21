@@ -14,7 +14,6 @@ on:
       - "setup.py"
     branches:
       - main
-      - develop
   pull_request:
     paths:
       - "automappa/**"
@@ -25,7 +24,6 @@ on:
       - "setup.py"
     branches:
       - main
-      - develop
 
 jobs:
   docker_build_and_push:
