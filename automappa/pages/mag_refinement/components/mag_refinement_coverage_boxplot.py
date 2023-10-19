@@ -38,6 +38,23 @@ def render(app: DashProxy, source: RefinementCoverageBoxplotDataSource) -> html.
         fig = metric_boxplot(data, boxmean="sd")
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-refinement-coverage-boxplot",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         [
             html.Label("Figure 4: MAG Refinement Coverage Boxplot"),
@@ -46,7 +63,7 @@ def render(app: DashProxy, source: RefinementCoverageBoxplotDataSource) -> html.
                 children=[
                     dcc.Graph(
                         id=ids.MAG_REFINEMENT_COVERAGE_BOXPLOT,
-                        config={"displayModeBar": False, "displaylogo": False},
+                        config=graph_config,
                     )
                 ],
                 type="dot",

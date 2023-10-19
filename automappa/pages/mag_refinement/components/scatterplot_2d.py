@@ -177,6 +177,15 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
         )
         return go.Figure(data=traces, layout=layout)
 
+    graph_config = {
+        "toImageButtonOptions": dict(
+            format="svg",
+            filename="mag-refinement-scatterplot2d-figure",
+        ),
+        "displayModeBar": True,
+        "displaylogo": False,
+    }
+
     return html.Div(
         [
             html.Label("Figure 1: 2D Metagenome Overview"),
@@ -184,7 +193,7 @@ def render(app: DashProxy, source: Scatterplot2dDataSource) -> html.Div:
                 dcc.Graph(
                     id=ids.SCATTERPLOT_2D_FIGURE,
                     clear_on_unhover=True,
-                    config={"displayModeBar": True, "displaylogo": False},
+                    config=graph_config,
                     mathjax=True,
                 ),
                 id=ids.LOADING_SCATTERPLOT_2D,

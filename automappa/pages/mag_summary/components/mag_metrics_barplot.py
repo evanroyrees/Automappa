@@ -30,6 +30,23 @@ def render(app: DashProxy, source: ClusterMetricsBarplotDataSource) -> html.Div:
         fig = metric_barplot(data)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-summary-MAG-metrics-barplot",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         children=[
             dcc.Loading(
@@ -37,7 +54,7 @@ def render(app: DashProxy, source: ClusterMetricsBarplotDataSource) -> html.Div:
                 children=[
                     dcc.Graph(
                         id=ids.MAG_METRICS_BARPLOT,
-                        config={"displayModeBar": False, "displaylogo": False},
+                        config=graph_config,
                     )
                 ],
                 type="dot",
