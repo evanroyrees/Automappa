@@ -32,12 +32,29 @@ def render(app: DashProxy, source: GcContentBoxplotDataSource) -> html.Div:
         fig = metric_boxplot(data)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-summary-MAG-gc-content-boxplot",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         [
             dcc.Loading(
                 dcc.Graph(
                     id=ids.MAG_GC_CONTENT_BOXPLOT,
-                    config={"displayModeBar": False, "displaylogo": False},
+                    config=graph_config,
                 ),
                 id=ids.LOADING_MAG_GC_CONTENT_BOXPLOT,
                 type="default",

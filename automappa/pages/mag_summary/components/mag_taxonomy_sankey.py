@@ -28,12 +28,23 @@ def render(app: DashProxy, source: ClusterTaxonomySankeyDataSource) -> html.Div:
         )
         fig = taxonomy_sankey(data)
         return fig
+    
+    graph_config = dict(
+        toImageButtonOptions= dict(
+            format="svg",
+            filename="mag-summary-taxonomy-sankey",
+        ),
+        displayModeBar='hover',
+        displaylogo=False,
+        modeBarButtonsToAdd= ['toImage'],
+        modeBarButtonsToRemove= ['pan2d','select2d','lasso2d','resetScale2d','zoomOut2d'],
+    )
 
     return html.Div(
         children=[
             dcc.Loading(
                 id=ids.LOADING_MAG_TAXONOMY_SANKEY,
-                children=[dcc.Graph(id=ids.MAG_TAXONOMY_SANKEY)],
+                children=[dcc.Graph(id=ids.MAG_TAXONOMY_SANKEY, config=graph_config)],
                 type="graph",
             )
         ]

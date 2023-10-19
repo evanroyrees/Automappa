@@ -32,6 +32,23 @@ def render(app: DashProxy, source: ClusterLengthBoxplotDataSource) -> html.Div:
         fig = metric_boxplot(data)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-summary-MAG-length-boxplot",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         children=[
             dcc.Loading(
@@ -39,7 +56,7 @@ def render(app: DashProxy, source: ClusterLengthBoxplotDataSource) -> html.Div:
                 children=[
                     dcc.Graph(
                         id=ids.MAG_LENGTH_BOXPLOT,
-                        config={"displayModeBar": False, "displaylogo": False},
+                        config=graph_config,
                     )
                 ],
                 type="dot",

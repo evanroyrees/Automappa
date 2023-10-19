@@ -48,17 +48,30 @@ def render(app: DashProxy, source: TaxonomyDistributionDataSource) -> html.Div:
         fig = taxonomy_sankey(df)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-refinement-taxonomy-sankey",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         [
             html.Label("Figure 3: Taxonomic Distribution"),
             dcc.Loading(
                 dcc.Graph(
                     id=ids.TAXONOMY_DISTRIBUTION,
-                    config={
-                        "displayModeBar": False,
-                        "displaylogo": False,
-                        "staticPlot": False,
-                    },
+                    config=graph_config,
                 ),
                 id=ids.LOADING_TAXONOMY_DISTRIBUTION,
                 type="graph",

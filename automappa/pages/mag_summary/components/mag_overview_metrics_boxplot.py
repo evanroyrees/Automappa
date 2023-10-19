@@ -26,11 +26,22 @@ def render(app: DashProxy, source: OverviewMetricsBoxplotDataSource) -> html.Div
         fig = metric_boxplot(data=data)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions= dict(
+            format="svg",
+            filename="mag-metrics-boxplot",
+        ),
+        displayModeBar='hover',
+        displaylogo=False,
+        modeBarButtonsToAdd= ['toImage'],
+        modeBarButtonsToRemove= ['pan2d','select2d','lasso2d','resetScale2d','zoomOut2d'],
+    )
+
     return html.Div(
         dcc.Loading(
             dcc.Graph(
                 id=ids.MAG_OVERVIEW_METRICS_BOXPLOT,
-                config={"displayModeBar": False, "displaylogo": False},
+                config=graph_config,
             ),
             id=ids.LOADING_MAG_OVERVIEW_METRICS_BOXPLOT,
             type="default",

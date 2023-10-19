@@ -42,6 +42,23 @@ def render(app: DashProxy, source: RefinementLengthBoxplotDataSource) -> html.Di
         fig = metric_boxplot(data=data)
         return fig
 
+    graph_config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+            filename="mag-refinement-length-boxplot",
+        ),
+        displayModeBar="hover",
+        displaylogo=False,
+        modeBarButtonsToAdd=["toImage"],
+        modeBarButtonsToRemove=[
+            "pan2d",
+            "select2d",
+            "lasso2d",
+            "resetScale2d",
+            "zoomOut2d",
+        ],
+    )
+
     return html.Div(
         [
             html.Label("Figure 6: MAG Refinement Length Boxplot"),
@@ -50,7 +67,7 @@ def render(app: DashProxy, source: RefinementLengthBoxplotDataSource) -> html.Di
                 children=[
                     dcc.Graph(
                         id=ids.MAG_REFINEMENT_LENGTH_BOXPLOT,
-                        config={"displayModeBar": False, "displaylogo": False},
+                        config=graph_config,
                     )
                 ],
                 type="dot",
